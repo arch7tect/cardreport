@@ -1,0 +1,24 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local IDE, configuration, and generated reports
+.idea/
+.env
+.env.*
+!.env.template
+output/
+local/
+.DS_Store
+
+# Local check caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/

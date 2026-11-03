@@ -1,0 +1,71 @@
+[project]
+name = "cardreport"
+version = "0.1.0"
+description = "Composable Python reports with cards, constrained charts, and HTML-to-PDF output"
+readme = "README.md"
+authors = [{ name = "Oleg Orlov" }]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+    "fonttools>=4.59,<5",
+    "jinja2>=3.1,<4",
+    "plotly>=6.9,<7",
+]
+
+[project.optional-dependencies]
+pdf = [
+    "playwright==1.64.1",
+    "psutil>=7,<8",
+    "pypdf>=6,<7",
+]
+weasyprint = [
+    "matplotlib==3.11.2",
+    "pdfplumber>=0.11.10,<1",
+    "psutil>=7,<8",
+    "pypdf>=6,<7",
+    "weasyprint==70.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/experiments", "/local", "/output", "/.idea"]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "types-psutil>=7",
+    "pdfplumber>=0.11.10",
+    "pypdf>=6.21.4",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/cardreport", "tests/typing_cases.py"]
+
+[[tool.mypy.overrides]]
+module = ["cardreport.model", "cardreport.document", "cardreport.renderers"]
+disallow_any_explicit = true
+
+[[tool.mypy.overrides]]
+module = ["plotly.*", "fontTools.*", "weasyprint.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_model.py" = ["F403", "F405"]
+"tests/test_rendering.py" = ["F403", "F405"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

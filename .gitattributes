@@ -1,0 +1,2 @@
+# Preserve the bundled third-party license verbatim.
+src/cardreport/assets/LICENSE_DEJAVU -whitespace

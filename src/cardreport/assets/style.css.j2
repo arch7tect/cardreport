@@ -1,0 +1,18 @@
+
+@font-face{font-family:CardReport;src:url(data:font/ttf;base64,{{ regular }});font-weight:400}
+@font-face{font-family:CardReport;src:url(data:font/ttf;base64,{{ bold }});font-weight:700}
+@page{size:{{width}}mm {{height}}mm;margin:0}
+*{box-sizing:border-box}body{margin:0;font:{{theme.font_size_pt}}pt CardReport;color:{{theme.text}};background:{{theme.background}}}
+.page{width:{{width}}mm;height:{{height}}mm;padding:{{margin}}mm;break-after:page;background:{{theme.background}};overflow:visible}
+.page:last-child{break-after:auto}.page-body{height:100%;display:flex;flex-direction:column;gap:{{theme.gap_mm}}mm}
+.page-body>*{flex-shrink:0}header h1{font-size:20pt;margin:0 0 2mm}header{padding-bottom:2mm}
+.row{display:grid;gap:{{theme.gap_mm}}mm;align-items:stretch;min-width:0;min-height:0}
+.column{display:flex;flex-direction:column;gap:{{theme.gap_mm}}mm;min-width:0;min-height:0}
+.column>*{flex-shrink:0}.row>*{min-width:0}.card{background:{{theme.card_background}};border:0.2mm solid #eeeeee;border-radius:1.5mm;padding:{{theme.padding_mm}}mm;display:flex;flex-direction:column;gap:3mm;min-width:0;min-height:0}
+.card-title{font-weight:700;font-size:{{theme.font_size_pt+1}}pt;overflow-wrap:anywhere;flex:none}
+.card-content{flex:1;min-height:0;min-width:0}.card-content>.row,.card-content>.column{height:100%}
+.kpi-card{min-height:28mm}.kpi{min-height:19mm;overflow-wrap:anywhere}.kpi-value{font-size:24pt;margin-bottom:2mm}.kpi-note{font-size:9pt;margin-top:2mm;color:#555}
+.text{white-space:pre-wrap;overflow-wrap:anywhere}.heading{font-size:16pt;font-weight:700}.caption{font-size:9pt;color:#555}
+table{border-collapse:collapse;table-layout:fixed;width:100%;font-size:{{theme.font_size_pt}}pt}th,td{padding:2mm;text-align:left;border-bottom:0.2mm solid #eee;overflow-wrap:anywhere;white-space:pre-wrap}th{font-weight:700}tbody tr:nth-child(odd){background:#f5f5f5}tr{break-inside:avoid}
+.chart{width:100%;min-height:35mm;height:{{theme.chart_height_mm}}mm}.chart[data-definite=true]{height:100%}.empty-chart{min-height:35mm;display:flex;align-items:center;justify-content:center;color:#777}
+#source{display:none}#report-error{white-space:pre-wrap;color:#b00020;padding:5mm;background:#fff}
