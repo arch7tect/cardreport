@@ -7,15 +7,17 @@ in memory. Data loading and aggregation remain in your application.
 
 ## Install
 
-In an existing uv project, install version 0.2.0 from GitHub:
+In an existing uv project, install a verified GitHub release (the example pins the
+first automated release):
 
 ```sh
-uv add "cardreport[pdf] @ git+https://github.com/arch7tect/cardreport.git@v0.2.0"
+uv add "cardreport[pdf] @ https://github.com/arch7tect/cardreport/releases/download/v0.2.1/cardreport-0.2.1-py3-none-any.whl"
 uv run python -m playwright install chromium
 ```
 
-Python 3.12+ is required. The Git revision pins the package; retain your project's
-`uv.lock`. No PyPI release exists. To use a local checkout instead:
+Python 3.12+ is required. The wheel URL pins the package; retain your project's
+`uv.lock`. PyPI publishing awaits initial account setup. Once enabled and published,
+use `uv add "cardreport[pdf]"` instead of the wheel URL. To use a local checkout instead:
 
 ```sh
 uv add --editable /path/to/cardreport --extra pdf
@@ -25,7 +27,7 @@ uv run python -m playwright install chromium
 For a built wheel, add its actual path and request the same extra:
 
 ```sh
-uv add /path/to/cardreport-0.2.0-py3-none-any.whl --extra pdf
+uv add /path/to/cardreport-0.2.1-py3-none-any.whl --extra pdf
 ```
 
 Install Chromium in the wheel environment as above. These are alternative install

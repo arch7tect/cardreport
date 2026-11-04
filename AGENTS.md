@@ -23,4 +23,8 @@ shrink, truncate or rasterize unsupported content. Add meaningful tests with
 implementation, not tests for the existence of scaffold files.
 
 Keep .venv, .idea, local config and generated reports ignored. Do not overwrite
-existing reports by default. No publishing or remote creation without request.
+existing reports by default. A user-authorized version bump pushed to main requests
+release through .github/workflows/main.yml. That workflow may create the matching
+tag/GitHub Release and publish the same verified assets to PyPI when its setup gate
+is enabled. Never move released tags or replace released artifacts. Repository
+creation and unrelated publication still require a request. See docs/project/releases.md.

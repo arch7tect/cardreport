@@ -7,11 +7,15 @@ should begin with the [quickstart](../user/quickstart.md) and [API reference](..
 
 ## Current implementation
 
+- [Release operations](releases.md) — version bumps, GitHub/PyPI setup and recovery.
+
 - [Architecture](architecture.md) — module boundaries, snapshots and rendering.
 - [Development](development.md) — setup, checks, packaging and documentation maintenance.
 - [Renderer extension decision](decisions/renderer-extension.md) — current extension scope.
 
 ## Decisions and history
+
+- [Release automation review](history/reviews/2026-11-04-release-automation.md) — implementation findings and verification.
 
 - [Template implementation review](history/reviews/2026-11-04-template-implementation.md) — delivery, advisory findings and release checks.
 

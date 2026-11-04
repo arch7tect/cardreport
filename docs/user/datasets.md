@@ -102,7 +102,7 @@ A header-only file preserves its columns, but fails a cardinality-one schema.
 Install the extra in your application:
 
 ```sh
-uv add "cardreport[pandas] @ git+https://github.com/arch7tect/cardreport.git@v0.2.0"
+uv add "cardreport[pandas] @ https://github.com/arch7tect/cardreport/releases/download/v0.2.1/cardreport-0.2.1-py3-none-any.whl"
 ```
 
 In a checkout, use `uv sync --extra pandas --locked`. Core imports and all other

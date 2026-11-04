@@ -1,6 +1,6 @@
 [project]
 name = "cardreport"
-version = "0.2.0"
+version = "0.2.1"
 description = "Composable Python reports with cards, constrained charts, and HTML-to-PDF output"
 readme = "README.md"
 authors = [{ name = "Oleg Orlov" }]
@@ -12,6 +12,11 @@ dependencies = [
     "jinja2>=3.1,<4",
     "plotly>=6.9,<7",
 ]
+
+[project.urls]
+Repository = "https://github.com/arch7tect/cardreport"
+Documentation = "https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md"
+Issues = "https://github.com/arch7tect/cardreport/issues"
 
 [project.optional-dependencies]
 pdf = [

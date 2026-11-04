@@ -33,10 +33,14 @@ def check_links(paths: list[Path]) -> int:
         for match in LINKS.finditer(source):
             target = match.group(1).strip().split(' "', 1)[0].strip("<>")
             url = urlsplit(target)
-            if url.scheme or url.netloc:
+            prefix = "/arch7tect/cardreport/blob/main/"
+            if url.netloc == "github.com" and url.path.startswith(prefix):
+                destination = ROOT / unquote(url.path.removeprefix(prefix))
+            elif url.scheme or url.netloc:
                 external.add(target)
                 continue
-            destination = path.parent / unquote(url.path) if url.path else path
+            else:
+                destination = path.parent / unquote(url.path) if url.path else path
             checked += 1
             problem = None
             if not destination.exists():

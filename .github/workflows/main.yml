@@ -1,0 +1,142 @@
+name: CI and release
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pypi_tag:
+        description: 'Publish an existing verified GitHub Release to PyPI (vX.Y.Z)'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: cardreport-${{ github.event_name == 'workflow_dispatch' && 'pypi-dispatch' || github.ref }}
+  cancel-in-progress: false
+jobs:
+  setup-required:
+    if: github.event_name == 'workflow_dispatch' && (vars.PYPI_PUBLISH_ENABLED != 'true' || github.ref != 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          echo 'Select main, configure the PyPI Trusted Publisher and enable PYPI_PUBLISH_ENABLED first. See docs/project/releases.md.'
+          exit 1
+  verify:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: macos-15
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      action: ${{ steps.plan.outputs.action }}
+      tag: ${{ steps.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.10.6'
+      - name: Install native PDF libraries and dependencies
+        run: |
+          brew install pango
+          echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
+          uv sync --all-extras --locked
+          uv run --all-extras python -m playwright install chromium
+      - name: Lint and types
+        run: |
+          uv run --all-extras ruff check src tests examples scripts
+          uv run --all-extras ruff format --check src tests examples scripts
+          uv run --all-extras mypy
+      - name: Runtime and documentation
+        run: |
+          uv run --all-extras pytest -q --junitxml=local/ci-tests.xml
+          uv run --all-extras python scripts/check_test_results.py local/ci-tests.xml
+          uv run --all-extras python scripts/check_docs.py
+      - id: plan
+        name: Select release candidate
+        run: python scripts/release.py plan
+      - id: restore
+        name: Restore this run's verified distribution on retry
+        if: github.event_name == 'push' && github.repository == 'arch7tect/cardreport'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/release.py restore
+      - name: Build and freeze distribution
+        if: steps.restore.outputs.restored != 'true'
+        run: |
+          uv build --no-sources
+          rm -f dist/.gitignore
+          python scripts/release.py freeze
+      - name: Check packaged files and installed wheel
+        run: |
+          uvx --from twine==7.0.0 twine check --strict dist/*.whl dist/*.tar.gz
+          uv run --all-extras python scripts/check_dist.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.restore.outputs.restored != 'true'
+        with:
+          name: distribution
+          path: dist/
+          if-no-files-found: error
+          retention-days: 90
+  release:
+    needs: verify
+    if: github.event_name == 'push' && github.repository == 'arch7tect/cardreport' && needs.verify.outputs.action != 'skip'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: distribution
+          path: dist/
+      - name: Tag and publish the verified GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/release.py github
+      - name: Report PyPI setup status
+        if: vars.PYPI_PUBLISH_ENABLED != 'true'
+        run: echo 'PyPI upload is disabled until the Trusted Publisher is configured. See docs/project/releases.md.' >> "$GITHUB_STEP_SUMMARY"
+  pypi:
+    needs: [verify, release]
+    if: >-
+      always() && !cancelled() && github.repository == 'arch7tect/cardreport' &&
+      github.ref == 'refs/heads/main' && vars.PYPI_PUBLISH_ENABLED == 'true' &&
+      (needs.release.result == 'success' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.10.6'
+      - name: Download and verify the canonical release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.pypi_tag || needs.verify.outputs.tag }}
+        run: python scripts/release.py download --tag "$RELEASE_TAG"
+      - name: Publish the same bytes using Trusted Publishing
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/ dist/*.whl dist/*.tar.gz

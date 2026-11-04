@@ -23,8 +23,11 @@ uv run --all-extras ruff check src tests examples scripts
 uv run --all-extras ruff format --check src tests examples scripts
 uv run --all-extras mypy
 uv run --all-extras python scripts/check_docs.py
-uv run --all-extras pytest -q
-uv build
+uv run --all-extras pytest -q --junitxml=local/ci-tests.xml
+uv run --all-extras python scripts/check_test_results.py local/ci-tests.xml
+uv build --no-sources
+uvx --from twine==7.0.0 twine check --strict dist/*.whl dist/*.tar.gz
+uv run --all-extras python scripts/check_dist.py
 ```
 
 Mypy strict mode includes source, positive/negative consumer cases, executable
@@ -42,7 +45,8 @@ availability. Shell setup commands are not executed by the checker.
 
 The default runtime suite skips optional WeasyPrint cases when its Python package
 is absent. Full verification requires both engines and pandas with no skips. Only local
-macOS/Python 3.12 is currently verified; no Linux/Windows claim or hosted CI exists.
+macOS/Python 3.12 is currently verified; no Linux/Windows rendering support is claimed. The release workflow runs the same
+checks on hosted macOS/Python 3.12 and blocks publication on failures or skipped tests.
 Verify both rendering success and deliberate errors, literal labels, text/vector
 output, native glyph bounds, file preservation and worker cleanup. Review output
 visually when rendering changes. Do not publish local source evidence or reports.
@@ -70,7 +74,8 @@ belong in the source archive. The source archive also excludes the historical ex
 Run examples from an isolated installed wheel outside the source tree after packaging
 changes; bypass stale uv caches when rebuilding the same unreleased version.
 
-GitHub pushes and package-registry publication are separate operations. No PyPI
-release exists. Keep subjects concise and do not include tool attribution.
+A version bump in main requests an automated GitHub Release and, once configured,
+PyPI publication. See [release operations and setup](releases.md). PyPI account setup
+is still pending; the workflow reports this explicitly and preserves GitHub artifacts. Keep subjects concise and do not include tool attribution.
 See the [dated release verification](history/reviews/2026-11-04-renderer-refactor.md)
 for the initial version's test scope.

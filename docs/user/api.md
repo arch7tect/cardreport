@@ -2,7 +2,7 @@
 
 [Documentation home](../../README.md) · [Quickstart](quickstart.md) · [User guide](guide.md)
 
-Names are imported from `cardreport` unless another import location is shown. Signatures describe version 0.2.0.
+Names are imported from `cardreport` unless another import location is shown. Signatures describe the current checkout; use a release tag for its exact API.
 Annotations such as `Number`, `Value` and `Format` are defined in [types](#types).
 Values not expressible by static typing are checked at runtime: for example,
 `bool` is rejected as a number even though Python considers it an `int`.
