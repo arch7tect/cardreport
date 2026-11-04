@@ -21,7 +21,11 @@ These are images of PDFs produced by the library, not design mockups.
 ranking. Snapshot values come from an operations dashboard screenshot; trends are explicitly
 synthetic demonstration data. [Python, template and datasets](https://github.com/arch7tect/cardreport/blob/main/docs/user/dashboards.md).
 
-![Operations dashboard rendered by CardReport](https://github.com/arch7tect/cardreport/blob/main/docs/images/operations.png?raw=true)
+The same template and datasets, rendered by both engines. Open either image for a full-size view.
+
+| Chromium | SVG/WeasyPrint |
+| --- | --- |
+| [![Operations dashboard rendered by Chromium](https://github.com/arch7tect/cardreport/blob/main/docs/images/operations.png?raw=true)](https://github.com/arch7tect/cardreport/blob/main/docs/images/operations.png) | [![Operations dashboard rendered by SVG/WeasyPrint](https://github.com/arch7tect/cardreport/blob/main/docs/images/operations-weasyprint.png?raw=true)](https://github.com/arch7tect/cardreport/blob/main/docs/images/operations-weasyprint.png) |
 
 **Spanish campaign report** — the reference report with localized dates/numbers,
 tables and charts. [Example and provenance](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#spanish-reference-report).

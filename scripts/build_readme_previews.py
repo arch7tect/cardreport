@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from cardreport import WeasyPrintRenderer  # noqa: E402
 from examples.operations_report import build_report as operations  # noqa: E402
 from examples.spanish_report import build_report as spanish  # noqa: E402
 
@@ -23,14 +24,19 @@ def main() -> None:
     rasterizer = shutil.which("pdftoppm")
     if rasterizer is None:
         raise SystemExit("Install Poppler (pdftoppm) to regenerate README previews")
-    for name in ("operations", "spanish"):
+    previews = (
+        ("operations", operations, None),
+        ("operations-weasyprint", operations, WeasyPrintRenderer()),
+        ("spanish", spanish, None),
+    )
+    for name, _, _ in previews:
         for path in (args.output / f"{name}.png", args.reports / f"{name}.pdf"):
             if path.exists() and not args.overwrite:
                 raise FileExistsError(path)
     args.output.mkdir(parents=True, exist_ok=True)
-    for name, build in (("operations", operations), ("spanish", spanish)):
+    for name, build, renderer in previews:
         pdf = args.reports / f"{name}.pdf"
-        build().write_pdf(pdf, overwrite=args.overwrite)
+        build().write_pdf(pdf, overwrite=args.overwrite, renderer=renderer)
         with tempfile.TemporaryDirectory(prefix="cardreport-preview-") as directory:
             prefix = Path(directory) / name
             subprocess.run(
