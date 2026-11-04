@@ -5,6 +5,11 @@
 Use Python 3.12+ and uv. Documents, code and comments are written in English.
 If using PyCharm, select `.venv/bin/python` for the checkout; keep `.idea` local.
 
+Hosted CI uses `macos-15-intel` and Python 3.12 for the complete check suite.
+The runner label avoids the observed ARM runner capacity failure during the 0.4.0
+release; local Apple Silicon checks remain separate evidence. Native library paths
+come from `brew --prefix`, not an architecture-specific path.
+
 ## Setup
 
 ```sh

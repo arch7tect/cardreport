@@ -55,3 +55,12 @@ Raw review logs, PDFs and runtime results remain ignored. Hosted publication is
 verified separately after push. See [dashboard guide](../../../user/dashboards.md),
 [release notes](../../../../CHANGELOG.md) and
 [preview reproduction](../../development.md#readme-screenshots).
+
+The first hosted attempt failed before checkout: GitHub reported that no hosted
+runner acquired the job and noted macOS ARM capacity constraints. A retry also
+remained queued and was cancelled. CI now selects the standard macOS 15 Intel
+runner; all checks and publication gates are unchanged. This is an infrastructure
+workaround, not evidence of a code or test failure.
+An additional restricted Claude review found no blocker in the runner change;
+native layout, dependency installation and installed-wheel smoke remain mandatory
+hosted checks. Local ARM evidence does not imply hosted ARM coverage.
