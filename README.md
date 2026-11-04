@@ -57,6 +57,8 @@ for local checkouts, wheels and how to embed exports.
 
 ## Use from Python
 
+### 1. Python components
+
 ```python
 from cardreport import BarChart, Card, KPI, Report
 
@@ -70,6 +72,78 @@ report.row(
 html: str = report.to_html()
 pdf: bytes = report.to_pdf()
 ```
+
+### 2. JSON template and named datasets
+
+The same report, with presentation and data kept separately. Both JSON documents
+are inline in this [single Python file](https://github.com/arch7tect/cardreport/blob/main/examples/quickstart_template.py);
+your application can also load them from files or a database.
+
+```python
+from cardreport import ReportTemplate, datasets_from_json
+
+TEMPLATE_JSON = """
+{
+  "format": "cardreport.template/1",
+  "datasets": {
+    "summary": {
+      "cardinality": "one",
+      "fields": {"total": {"type": "integer"}}
+    },
+    "calls": {
+      "cardinality": "many",
+      "fields": {
+        "result": {"type": "text"},
+        "count": {"type": "integer"}
+      }
+    }
+  },
+  "report": {
+    "title": "Call results",
+    "blocks": [
+      {"type": "card", "content": {
+        "type": "kpi", "label": "Total calls",
+        "value": {"bind": {"dataset": "summary", "field": "total"}}
+      }},
+      {"type": "row", "height_mm": 70, "children": [
+        {"type": "card", "content": {
+          "type": "bar", "dataset": "calls",
+          "category": "result", "value": "count"
+        }}
+      ]}
+    ]
+  }
+}
+"""
+
+DATA_JSON = """
+{
+  "format": "cardreport.data/1",
+  "datasets": {
+    "summary": {"columns": ["total"], "rows": [{"total": 34}]},
+    "calls": {
+      "columns": ["result", "count"],
+      "rows": [
+        {"result": "Answered", "count": 24},
+        {"result": "No answer", "count": 10}
+      ]
+    }
+  }
+}
+"""
+
+template = ReportTemplate.from_json(TEMPLATE_JSON)
+datasets = datasets_from_json(DATA_JSON)
+report = template.bind(datasets)
+
+html: str = report.to_html()
+pdf: bytes = report.to_pdf()
+```
+
+The template declares the expected datasets and their fields; the data document
+provides the values. `bind()` creates an ordinary `Report`, with the same export API
+as the component-based example. See [templates](https://github.com/arch7tect/cardreport/blob/main/docs/user/templates.md)
+and [datasets](https://github.com/arch7tect/cardreport/blob/main/docs/user/datasets.md) for other data sources and binding options.
 
 Return `pdf` from your application, put it in storage, or use
 `report.write_pdf("report.pdf")` to save a file. Existing files are preserved by

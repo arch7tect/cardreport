@@ -44,6 +44,11 @@ Use `ReportTemplate.from_json(text)` for a stored template. `to_dict()` and
 the template. Native data use Dataset, stored data use datasets_from_json. Template
 and data versions are separate. Neither envelope contains connection credentials.
 
+The [README alternative](../../README.md#2-json-template-and-named-datasets) and
+[quickstart_template.py](../../examples/quickstart_template.py) show a complete
+KPI/bar report with inline JSON for both the template and named datasets, using
+only the installed public API. No separate JSON files are needed for that example.
+
 ## Vocabulary and bindings
 
 The envelope has exactly format, datasets and report. Report requires blocks (an array, possibly empty) and accepts optional

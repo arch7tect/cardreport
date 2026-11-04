@@ -8,6 +8,12 @@ that accepts application data. The complete examples below live in the repositor
 a checkout root, or copy the builder into your application. No renderer-library
 imports are needed to compose reports.
 
+For a self-contained JSON alternative, [quickstart_template.py](../../examples/quickstart_template.py)
+keeps the template and named datasets in one Python file and creates the same
+KPI/bar report as the [README component example](../../README.md#use-from-python).
+Its `build_report(data_json)` accepts replacement data without changing the template.
+Running the file generates HTML/PDF in memory and prints their sizes.
+
 ## Reference report
 
 The first complete example is [reference_report.py](../../examples/reference_report.py),
