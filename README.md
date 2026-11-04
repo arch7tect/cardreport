@@ -9,6 +9,10 @@ Build static reports in Python from cards, KPIs, charts and tables. Compose a
 report, then get standalone HTML or PDF bytes for your application. PDF text is
 selectable and charts are vector graphics.
 
+Chromium is the default renderer. The experimental SVG/WeasyPrint renderer works
+without JavaScript or a browser, with a smaller supported feature set. Both can
+render the [original reference example](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#reference-report).
+
 ## Reports in practice
 
 These are images of PDFs produced by the library, not design mockups.
@@ -69,11 +73,6 @@ default. Reports reject content that does not fit rather than silently shrinking
 - [Renderers](https://github.com/arch7tect/cardreport/blob/main/docs/user/renderers.md) — installation, supported features and extensions.
 - [Examples and integration](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md) — the original report, tables and async code.
 - [Command-line examples](https://github.com/arch7tect/cardreport/blob/main/docs/user/command-line.md) — optional script runners.
-
-Chromium is the default renderer. The experimental SVG/WeasyPrint renderer works
-without JavaScript or a browser, with a smaller supported feature set. Both can
-render the [original reference example](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#reference-report).
-Local macOS/Python 3.12 is verified; Linux and Windows are not yet verified.
 
 For architecture, decisions and contributing, see [project documentation](https://github.com/arch7tect/cardreport/blob/main/docs/project/README.md).
 
