@@ -1,7 +1,7 @@
 # CardReport
 
 [![Latest release](https://img.shields.io/github/v/release/arch7tect/cardreport)](https://github.com/arch7tect/cardreport/releases/latest)
-[![PyPI version](https://img.shields.io/pypi/v/cardreport)](https://pypi.org/project/cardreport/)
+[![PyPI version](https://img.shields.io/pypi/v/cardreport?cacheSeconds=300)](https://pypi.org/project/cardreport/)
 
 Build static reports in Python from cards, KPIs, charts and tables. Compose a
 report, then get standalone HTML or PDF bytes for your application. PDF text is
