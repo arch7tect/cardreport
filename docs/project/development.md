@@ -91,10 +91,12 @@ for the initial version's test scope.
 
 ## README screenshots
 
-The committed [images](../images/) are first-page rasterizations of actual checked
+The committed [images](../images/) are page rasterizations of actual checked
 PDF exports: operations_report through both Chromium and SVG/WeasyPrint, and
-spanish_report through Chromium. The operations comparison uses the same template
-and datasets. To reproduce all three images, install Poppler (`brew install poppler`
+spanish_report and flow_report through Chromium. Single-page reports use their
+first page; flow_report contributes its first two pages to show table continuation.
+The operations comparison uses the same template and datasets. To reproduce all
+five images, install Poppler (`brew install poppler`
 on macOS), the PDF extra/browser and [WeasyPrint native libraries](../user/renderers.md#weasyprint), then:
 
 ```sh
@@ -103,6 +105,6 @@ uv run --all-extras python scripts/build_readme_previews.py
 
 PDF originals go to ignored `output/readme`; PNGs go to `docs/images`. Existing
 files are preserved; use `--overwrite` only to deliberately refresh these generated
-artifacts. Review all three images before committing. Operations snapshot values are
+artifacts. Review all five images before committing. Operations snapshot values are
 from the supplied dashboard, with synthetic trends visibly labelled; no private
-source attachment is included.
+source attachment is included. The flow table uses generated example transactions.

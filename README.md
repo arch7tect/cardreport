@@ -32,6 +32,16 @@ tables and charts. [Example and provenance](https://github.com/arch7tect/cardrep
 
 ![Spanish campaign report rendered by CardReport](https://github.com/arch7tect/cardreport/blob/main/docs/images/spanish.png?raw=true)
 
+**Table across pages** — a 120-row demonstration report using `mode="flow"`.
+Chromium moves complete rows to the next page and repeats the column headings
+and card title. The first two pages show the continuation from `ROW-027` to
+`ROW-028`. [Python example](https://github.com/arch7tect/cardreport/blob/main/examples/flow_report.py)
+· [Embedding and pagination](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#long-table).
+
+| Page 1 | Page 2 — continued |
+| --- | --- |
+| [![Long table, page 1 ending at ROW-027](https://github.com/arch7tect/cardreport/blob/main/docs/images/flow-page-1.png?raw=true)](https://github.com/arch7tect/cardreport/blob/main/docs/images/flow-page-1.png) | [![Long table, page 2 starting at ROW-028 with repeated headings](https://github.com/arch7tect/cardreport/blob/main/docs/images/flow-page-2.png?raw=true)](https://github.com/arch7tect/cardreport/blob/main/docs/images/flow-page-2.png) |
+
 ## Install in your project
 
 Python 3.12+ is required. Install from PyPI with uv, then install the PDF browser runtime:

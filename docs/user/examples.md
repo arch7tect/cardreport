@@ -77,7 +77,10 @@ and source distribution. See [language and formats](localization.md) for setting
 ## Long table
 
 [flow_report.py](../../examples/flow_report.py) demonstrates a 120-row table with
-repeated headings and card titles. It requires Chromium:
+generated example transactions, repeated column headings and card titles. It
+creates `Report("Account summary", mode="flow")` and adds a top-level `Card(Table(...))`.
+The renderer determines page breaks; the application does not split the rows or
+create a separate table per page. It requires Chromium:
 
 ```python
 from examples.flow_report import build_report as build_flow_report
@@ -87,7 +90,9 @@ pdf = flow.to_pdf()
 ```
 
 Do not put the table inside a Row/Column when it needs automatic splitting.
-See [flow layout](guide.md#long-tables-with-flow).
+See [flow layout](guide.md#long-tables-with-flow) for a self-contained Python
+example and supported blocks. The [README gallery](../../README.md#reports-in-practice)
+shows the first two PDF pages, including the transition from `ROW-027` to `ROW-028`.
 
 ## Async applications
 

@@ -1,4 +1,4 @@
-"""Render actual example PDFs and rasterize their first pages for the README."""
+"""Render actual example PDFs and rasterize selected pages for the README."""
 
 import argparse
 import shutil
@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from cardreport import WeasyPrintRenderer  # noqa: E402
+from examples.flow_report import build_report as flow  # noqa: E402
 from examples.operations_report import build_report as operations  # noqa: E402
 from examples.spanish_report import build_report as spanish  # noqa: E402
 
@@ -25,38 +26,46 @@ def main() -> None:
     if rasterizer is None:
         raise SystemExit("Install Poppler (pdftoppm) to regenerate README previews")
     previews = (
-        ("operations", operations, None),
-        ("operations-weasyprint", operations, WeasyPrintRenderer()),
-        ("spanish", spanish, None),
+        ("operations", operations, None, ((1, "operations"),)),
+        (
+            "operations-weasyprint",
+            operations,
+            WeasyPrintRenderer(),
+            ((1, "operations-weasyprint"),),
+        ),
+        ("spanish", spanish, None, ((1, "spanish"),)),
+        ("flow", flow, None, ((1, "flow-page-1"), (2, "flow-page-2"))),
     )
-    for name, _, _ in previews:
-        for path in (args.output / f"{name}.png", args.reports / f"{name}.pdf"):
+    for name, _, _, pages in previews:
+        paths = [args.reports / f"{name}.pdf"]
+        paths.extend(args.output / f"{image_name}.png" for _, image_name in pages)
+        for path in paths:
             if path.exists() and not args.overwrite:
                 raise FileExistsError(path)
     args.output.mkdir(parents=True, exist_ok=True)
-    for name, build, renderer in previews:
+    for name, build, renderer, pages in previews:
         pdf = args.reports / f"{name}.pdf"
         build().write_pdf(pdf, overwrite=args.overwrite, renderer=renderer)
-        with tempfile.TemporaryDirectory(prefix="cardreport-preview-") as directory:
-            prefix = Path(directory) / name
-            subprocess.run(
-                [
-                    rasterizer,
-                    "-f",
-                    "1",
-                    "-singlefile",
-                    "-scale-to",
-                    "1800",
-                    "-png",
-                    str(pdf),
-                    str(prefix),
-                ],
-                check=True,
-            )
-            (args.output / f"{name}.png").write_bytes(
-                prefix.with_suffix(".png").read_bytes()
-            )
-        print(f"Rendered {name}: {pdf} -> {args.output / (name + '.png')}")
+        for page, image_name in pages:
+            target = args.output / f"{image_name}.png"
+            with tempfile.TemporaryDirectory(prefix="cardreport-preview-") as directory:
+                prefix = Path(directory) / image_name
+                subprocess.run(
+                    [
+                        rasterizer,
+                        "-f",
+                        str(page),
+                        "-singlefile",
+                        "-scale-to",
+                        "1800",
+                        "-png",
+                        str(pdf),
+                        str(prefix),
+                    ],
+                    check=True,
+                )
+                target.write_bytes(prefix.with_suffix(".png").read_bytes())
+            print(f"Rendered {name}, page {page}: {pdf} -> {target}")
 
 
 if __name__ == "__main__":
