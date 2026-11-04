@@ -12,6 +12,7 @@ from types import MappingProxyType
 
 from fontTools.ttLib import TTFont
 
+from ._chart_display import category_colors, date_instants
 from .document import ChartData, ChartSeries, ReportDocument
 from .formatting import Formatting, date_locale, empty_label, language_tag
 from .model import (
@@ -38,16 +39,6 @@ from .model import (
 )
 
 MAX_BLOCKS, MAX_ROWS, MAX_POINTS, MAX_DEPTH, MAX_PAGES = 500, 2000, 500, 12, 100
-PALETTE = (
-    "#20a6c4",
-    "#4263eb",
-    "#f59f00",
-    "#7950f2",
-    "#e8590c",
-    "#2f9e44",
-    "#c2255c",
-    "#495057",
-)
 
 
 @lru_cache(maxsize=1)
@@ -116,9 +107,35 @@ def validate_chart(obj: Chart, path: str) -> None:
         or obj.mode not in ("grouped", "stacked")
     ):
         raise ValidationError(f"{path}: invalid bar orientation/mode")
-    for option in ("show_labels", "legend"):
+    for option in ("show_labels", "legend", "axes", "markers", "category_labels"):
         if hasattr(obj, option) and not isinstance(getattr(obj, option), bool):
             raise ValidationError(f"{path}.{option}: expected boolean")
+    if isinstance(obj, LineChart):
+        if obj.fill not in ("none", "zero"):
+            raise ValidationError(f"{path}.fill: expected none or zero")
+        if obj.fill == "zero" and obj.series is not None and len(obj.series) != 1:
+            raise ValidationError(f"{path}.fill: zero fill requires one series")
+    if isinstance(obj, BarChart):
+        if obj.color_by not in ("series", "category") or obj.legend_position not in (
+            "bottom",
+            "left",
+        ):
+            raise ValidationError(f"{path}: invalid color_by/legend_position")
+        if (
+            obj.color_by == "category"
+            and obj.series is not None
+            and len(obj.series) != 1
+        ):
+            raise ValidationError(
+                f"{path}.color_by: category colors require one series"
+            )
+        has_legend = obj.color_by == "category" and obj.legend
+        if not obj.category_labels and not has_legend:
+            raise ValidationError(
+                f"{path}: category names require ticks or a category legend"
+            )
+        if obj.legend_position != "bottom" and not has_legend:
+            raise ValidationError(f"{path}.legend_position: requires a category legend")
     labels = obj.x if isinstance(obj, LineChart) else obj.labels
     if len(labels) > MAX_POINTS:
         raise ValidationError(f"{path}: maximum {MAX_POINTS} chart points")
@@ -149,6 +166,16 @@ def validate_chart(obj: Chart, path: str) -> None:
     )
     if len(set(identities)) != len(x):
         raise ValidationError(f"{path}: duplicate chart categories/dates")
+    if (
+        is_date
+        and isinstance(obj, LineChart)
+        and (not obj.axes or not obj.markers or obj.fill != "none")
+    ):
+        positions = date_instants(x)
+        if any(a >= b for a, b in zip(positions, positions[1:], strict=False)):
+            raise ValidationError(
+                f"{path}.x: styled date lines require strictly increasing UTC dates"
+            )
     if not is_date and len(x) > 30:
         raise ValidationError(
             f"{path}: at most 30 categories; use a date axis for longer lines"
@@ -186,7 +213,7 @@ def normalize_chart(
     assert series is not None
     tick_values: tuple[str, ...] = ()
     tick_labels: tuple[str, ...] = ()
-    if isinstance(obj, LineChart) and obj.x_kind == "date" and formatting is not None:
+    if isinstance(obj, LineChart) and obj.x_kind == "date":
         coordinates = chart_labels(obj)
         ordered = sorted(range(len(coordinates)), key=lambda i: coordinates[i])
         count = min(6, len(ordered))
@@ -281,6 +308,7 @@ def validate_report(report: Report) -> ReportDocument:
         ("padding_mm", 0, 20),
         ("font_size_pt", 9, 24),
         ("chart_height_mm", 35, 200),
+        ("kpi_value_size_pt", 12, 72),
     ]:
         if not lo <= number(getattr(theme, key), f"theme.{key}") <= hi:
             raise ValidationError(f"theme.{key}: outside {lo}..{hi}")
@@ -385,6 +413,8 @@ def validate_report(report: Report) -> ReportDocument:
                     500,
                 )
             elif isinstance(obj, (BarChart, LineChart, Funnel)):
+                if isinstance(obj, BarChart):
+                    category_colors(obj, theme, len(obj.labels), path)
                 charts[path] = normalize_chart(obj, path, formatting, language)
             else:
                 raise ValidationError(f"{path}: unsupported component")

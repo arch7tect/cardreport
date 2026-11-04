@@ -116,12 +116,14 @@ page = Page(size=(300, 200), margin_mm=8)
 Theme(accent: str = "#20a6c4", background: str = "#f5f5f5",
       card_background: str = "#ffffff", text: str = "#222222",
       gap_mm: float = 4, padding_mm: float = 4,
-      font_size_pt: float = 10, chart_height_mm: float = 60)
+      font_size_pt: float = 10, chart_height_mm: float = 60,
+      kpi_value_size_pt: float = 24)
 Theme.light() -> Theme
 ```
 
 Colors must be `#RRGGBB`. Gap/padding are 0–20 mm, body font size 9–24 pt and default
-chart height 35–200 mm. `light()` returns the default theme. DejaVu Sans regular/bold
+chart height 35–200 mm. KPI value size is 12–72 pt; non-default sizes keep the
+value on one line and reject overflow (default 24 retains legacy wrapping). `light()` returns the default theme. DejaVu Sans regular/bold
 are bundled; arbitrary fonts, CSS and theme templates are not supported.
 
 ```python
@@ -274,7 +276,10 @@ BarChart(labels: Sequence[str | date | datetime], values: Sequence[Number] | Non
          orientation: Literal["vertical", "horizontal"] = "vertical",
          mode: Literal["grouped", "stacked"] = "grouped",
          show_labels: bool = False, legend: bool = True,
-         value_format: Format = "number")
+         value_format: Format = "number",
+         color_by: Literal["series", "category"] = "series",
+         legend_position: Literal["bottom", "left"] = "bottom",
+         category_labels: bool = True)
 ```
 
 Provide exactly one of `values` or `series`. All series lengths match unique
@@ -284,7 +289,12 @@ normalization. Strings stay literal. Different category values remain separate
 even when their formatted labels match; a date and its literal ISO string are
 distinct categories. Duplicate datetimes are checked after UTC normalization.
 Category order is preserved. `show_labels` controls value labels, not category
-labels. Legend appears for multiple series when enabled. `date` is not a valid
+labels. With default series coloring, the legend appears for multiple series
+when enabled. Category coloring requires one series and assigns distinct colors
+from the deduplicated accent/palette (8 or 9 colors); exhaustion is a validation
+error. Its HTML legend supports bottom/left placement. Hiding category labels
+requires that legend; left placement also requires the category legend. See
+[dashboard layouts](dashboards.md#category-colors-and-a-left-legend). `date` is not a valid
 chart value format. Empty categories with matching empty values display "No data".
 WeasyPrint supports only one series; other bar modes/features are subject to the
 [renderer capability table](renderers.md#capabilities).
@@ -303,13 +313,28 @@ LineChart(x: Sequence[str | date | datetime],
           values: Sequence[Number | None] | None = None,
           series: Mapping[str, Sequence[Number | None]] | None = None,
           x_kind: Literal["category", "date"] = "category",
-          legend: bool = True, value_format: Format = "number")
+          legend: bool = True, value_format: Format = "number",
+          axes: bool = True, markers: bool = True,
+          fill: Literal["none", "zero"] = "none")
 ```
 
-Chromium only. Exactly one of values/series, matching x lengths. Category axes
+Chromium supports multiple series; WeasyPrint supports one. Exactly one of
+values/series, matching x lengths. Category axes
 require unique strings; date axes require dates or timezone-aware datetimes.
 Datetimes normalize to UTC; naive datetimes are rejected. None creates a gap,
 not an interpolated segment. Other numeric/format rules match BarChart.
+
+`axes=False` hides both axes/grid. `markers=False` retains a dot only for isolated
+values that have no adjacent non-null value. `fill="zero"` requires one series,
+fills each non-null segment separately to zero and includes zero in the y range.
+Any non-default axes/markers/fill option requires strictly increasing UTC date
+coordinates on date axes, without sorting input. Hidden-axis all-null input shows
+the empty message. Text-free charts allow a 10 mm container under a definite
+weighted layout; ordinary charts retain 35 mm. See [compact charts](dashboards.md).
+
+SVG date axes use up to six sampled input ticks and report formatting (ISO when
+omitted), while Chromium keeps automatic date ticks when formatting is omitted.
+Long labels still fail overflow checks. No smoothing or gradient is supported.
 
 ```python
 from datetime import date
@@ -377,7 +402,8 @@ A frozen, typed display-settings record. `Report(language="en", formatting=None,
 empty_text=None)` owns these options, and its validated `ReportDocument` stores
 canonical language, optional formatting and resolved empty text as trailing fields
 with defaults. `ChartData` adds default-empty `tick_values` and `tick_labels` tuples
-for preformatted line date-axis labels, plus `category_labels` for formatted bar
+for preformatted line date-axis labels (populated for every date line since 0.4.0),
+plus `category_labels` for formatted bar
 category text. Renderer protocol signatures are unchanged.
 
 Language tags are not restricted to a product allowlist. Decimal precision is 0..6;

@@ -10,7 +10,8 @@ from importlib.resources import files
 
 from jinja2 import Environment
 
-from .document import ReportDocument
+from ._chart_display import category_colors, compact, empty
+from .document import ChartData, ReportDocument
 from .formatting import Formatting
 from .model import (
     KPI,
@@ -25,6 +26,7 @@ from .model import (
     Row,
     Table,
     Text,
+    Theme,
     format_value,
 )
 from .validation import MAX_PAGES, weights
@@ -129,6 +131,27 @@ def render_block(
     assert_never(obj)
 
 
+def empty_chart(obj: Chart, data: ChartData, path: str, message: str) -> str:
+    small = " compact-chart" if compact(obj, data) else ""
+    return f'<div class="empty-chart{small}" data-kind="{type(obj).__name__}" data-path="{path}">{escape(message)}</div>'
+
+
+def chart_frame(
+    obj: Chart, data: ChartData, theme: Theme, path: str, definite: bool, plot: str
+) -> str:
+    if not isinstance(obj, BarChart) or obj.color_by != "category" or not obj.legend:
+        return plot
+    labels = data.category_labels or data.labels
+    colors = category_colors(obj, theme, len(labels))
+    items = "".join(
+        f'<div class="legend-item" data-path="{path}.legend.{i}"><span class="legend-swatch" style="background:{color}"></span><span>{escape(label)}</span></div>'
+        for i, (label, color) in enumerate(zip(labels, colors, strict=True))
+    )
+    columns = 1 if obj.legend_position == "left" else min(3, len(labels))
+    legend = f'<div class="category-legend" data-path="{path}.legend" style="grid-template-columns:repeat({columns},minmax(0,1fr))">{items}</div>'
+    return f'<div class="chart-frame legend-{obj.legend_position}" data-path="{path}.frame" data-definite="{str(definite).lower()}" data-legend-count="{len(labels)}">{legend}{plot}</div>'
+
+
 def render_header(report: ReportDocument) -> str:
     return (
         f"<header><h1>{escape(report.title)}</h1><div>{escape(report.subtitle)}</div></header>"
@@ -166,9 +189,12 @@ def render_html(report: ReportDocument) -> str:
         )
         charts[ident] = spec
         attrs = f'data-kind="{type(obj).__name__}" data-path="{path}"'
-        if not spec["data"]:
-            return f'<div class="empty-chart" {attrs}>{escape(report.empty_text)}</div>'
-        return f'<div class="chart" {attrs} id="{ident}" data-definite="{str(definite).lower()}"></div>'
+        data = report.charts[path]
+        if empty(obj, data):
+            return empty_chart(obj, data, path, report.empty_text)
+        small = " compact-chart" if compact(obj, data) else ""
+        plot = f'<div class="chart{small}" {attrs} id="{ident}" data-definite="{str(definite).lower()}"></div>'
+        return chart_frame(obj, data, report.theme, path, definite, plot)
 
     content = "".join(
         render_block(

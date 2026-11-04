@@ -72,3 +72,8 @@ f = Formatting(date_format="dd/MM/yyyy", number_decimals=3)
 assert_type(Report(language="es-MX", formatting=f).formatting, Formatting | None)
 Formatting(number_decimals="2")  # type: ignore[arg-type]
 Report(formatting={})  # type: ignore[arg-type]
+
+LineChart([date(2026, 11, 4)], [1], axes=False, markers=False, fill="zero")
+LineChart(["a"], [1], fill=True)  # type: ignore[arg-type]
+BarChart(["a"], [1], color_by="category", legend_position="left", category_labels=False)
+BarChart(["a"], [1], color_by="value")  # type: ignore[arg-type]

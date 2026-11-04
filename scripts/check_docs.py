@@ -126,7 +126,12 @@ def main() -> None:
         ).bind(
             datasets_from_json((examples / "spanish_data.json").read_bytes())
         ).validate()
-        print("Validated reference and Spanish template/data JSON fixtures")
+        ReportTemplate.from_json(
+            (examples / "operations_template.json").read_bytes()
+        ).bind(
+            datasets_from_json((examples / "operations_data.json").read_bytes())
+        ).validate()
+        print("Validated reference, Spanish and operations template/data JSON fixtures")
         check_examples([ROOT / "README.md", *sorted(ROOT.glob("docs/user/*.md"))])
 
 

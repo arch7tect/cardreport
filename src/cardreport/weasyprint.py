@@ -8,17 +8,34 @@ import time
 from dataclasses import asdict
 from html import escape
 
+from ._chart_display import (
+    category_colors,
+    compact,
+    date_positions,
+    empty,
+    fill_color,
+    line_range,
+    line_x_range,
+    marker_sizes,
+)
 from .document import ReportDocument
-from .html import render_block, render_header, render_styles
-from .model import BarChart, Chart, DependencyError, PageBreak, UnsupportedFeatureError
+from .html import chart_frame, empty_chart, render_block, render_header, render_styles
+from .model import (
+    BarChart,
+    Chart,
+    DependencyError,
+    LineChart,
+    PageBreak,
+    UnsupportedFeatureError,
+)
 from .pdf import run_worker
 from .validation import MAX_PAGES
 
 
 class WeasyPrintRenderer:
-    """Experimental: dashboard cards, text, tables and single-series bars.
+    """Experimental: dashboard cards, text, tables and single-series bars/lines.
 
-    Line/funnel charts, multi-series bars and automatic flow are explicitly
+    Funnel charts, multi-series charts and automatic flow are explicitly
     unsupported. Uses pinned WeasyPrint 70.0 private box measurements with a
     fail-closed canary. Native libraries must be installed by the caller.
     Static HTML is a preview; its layout in other browsers is not guaranteed.
@@ -38,25 +55,29 @@ class WeasyPrintRenderer:
         charts: dict[str, object] = {}
 
         def chart(obj: Chart, path: str, definite: bool) -> str:
-            if not isinstance(obj, BarChart) or len(doc.charts[path].series) != 1:
+            if (
+                not isinstance(obj, (BarChart, LineChart))
+                or len(doc.charts[path].series) != 1
+            ):
                 raise UnsupportedFeatureError(
-                    f"{path}: WeasyPrintRenderer currently supports single-series BarChart only"
+                    f"{path}: WeasyPrintRenderer currently supports single-series BarChart and LineChart only"
                 )
             data = doc.charts[path]
-            attrs = f'data-kind="BarChart" data-path="{path}"'
-            if not data.labels:
-                return (
-                    f'<div class="empty-chart" {attrs}>{escape(doc.empty_text)}</div>'
-                )
-            charts[path] = {
+            attrs = f'data-kind="{type(obj).__name__}" data-path="{path}"'
+            if empty(obj, data):
+                return empty_chart(obj, data, path, doc.empty_text)
+            payload: dict[str, object] = {
+                "kind": "line" if isinstance(obj, LineChart) else "bar",
+                "compact": compact(obj, data),
                 "labels": data.category_labels or data.labels,
                 "formatting": asdict(doc.formatting)
                 if doc.formatting is not None
                 else None,
                 "values": data.series[0].values,
                 "value_labels": data.series[0].labels,
-                "horizontal": obj.orientation == "horizontal",
-                "show_labels": obj.show_labels,
+                "horizontal": isinstance(obj, BarChart)
+                and obj.orientation == "horizontal",
+                "show_labels": isinstance(obj, BarChart) and obj.show_labels,
                 "font_size": doc.theme.font_size_pt,
                 "color": doc.theme.accent,
                 "text_color": doc.theme.text,
@@ -64,7 +85,38 @@ class WeasyPrintRenderer:
                 if isinstance(obj.value_format, str)
                 else obj.value_format.code,
             }
-            return f'<div class="chart" {attrs} data-chart="{path}" data-definite="{str(definite).lower()}"><!--chart:{path}--></div>'
+            if isinstance(obj, LineChart):
+                positions = (
+                    date_positions(data.labels)
+                    if obj.x_kind == "date"
+                    else tuple(float(i) for i in range(len(data.labels)))
+                )
+                payload.update(
+                    x_range=line_x_range(positions, dates=obj.x_kind == "date"),
+                    axes=obj.axes,
+                    fill=obj.fill,
+                    marker_sizes=marker_sizes(data.series[0].values, obj.markers),
+                    y_range=line_range(data, obj.fill),
+                    fill_color=fill_color(doc.theme.accent, doc.theme.card_background),
+                    positions=date_positions(data.labels)
+                    if obj.x_kind == "date"
+                    else tuple(range(len(data.labels))),
+                    ticks=date_positions(data.tick_values)
+                    if obj.x_kind == "date"
+                    else tuple(range(len(data.labels))),
+                    tick_labels=data.tick_labels
+                    if obj.x_kind == "date"
+                    else data.labels,
+                )
+            else:
+                payload.update(
+                    category_labels=obj.category_labels,
+                    colors=category_colors(obj, doc.theme, len(data.labels)),
+                )
+            charts[path] = payload
+            small = " compact-chart" if compact(obj, data) else ""
+            plot = f'<div class="chart{small}" {attrs} data-chart="{path}" data-definite="{str(definite).lower()}"><!--chart:{path}--></div>'
+            return chart_frame(obj, data, doc.theme, path, definite, plot)
 
         segments: list[str] = []
         current = render_header(doc)

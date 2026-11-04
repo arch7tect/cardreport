@@ -110,6 +110,7 @@ class Theme:
     padding_mm: float = 4
     font_size_pt: float = 10
     chart_height_mm: float = 60
+    kpi_value_size_pt: float = 24
 
     @classmethod
     def light(cls) -> Theme:
@@ -203,6 +204,10 @@ class BarChart:
     legend: bool = True
     value_format: Format = "number"
 
+    color_by: Literal["series", "category"] = "series"
+    legend_position: Literal["bottom", "left"] = "bottom"
+    category_labels: bool = True
+
     def __post_init__(self) -> None:
         freeze_chart(self, "labels")
 
@@ -215,6 +220,10 @@ class LineChart:
     x_kind: Literal["category", "date"] = "category"
     legend: bool = True
     value_format: Format = "number"
+
+    axes: bool = True
+    markers: bool = True
+    fill: Literal["none", "zero"] = "none"
 
     def __post_init__(self) -> None:
         freeze_chart(self, "x")

@@ -120,3 +120,23 @@ datetime values are rejected; dates and literal ISO strings remain distinct.
 No settings preserves the legacy automatic line/numeric axes. Chromium writes PDF language via
 pypdf because browser printing does not reliably preserve HTML lang; this does not
 claim PDF/UA conformance. See [the public contract](../user/localization.md).
+
+
+## Dashboard chart display (0.4.0)
+
+LineChart retains one model for ordinary and compact presentations. A small
+private display helper shares empty-state, segment, marker, date-coordinate,
+y-range and category-color rules. Null gaps split filled polygons, isolated values
+retain a marker, and zero fill uses a shared light color. Styling is closed and
+finite; no backend options or geometry framework enter the public API.
+
+Category legends use shared escaped HTML around a single chart plot. The same
+ordered label/color mapping feeds both backends. Grid allocates the remaining plot
+rectangle, and both layout engines inspect wrapper, legend items and plot bounds.
+SVG gains ordinary single-series lines as well as compact lines. Native glyph
+preflight explicitly permits no text only for hidden-axis lines; labelled charts
+still require text. Plot-only compact containers have a 10mm floor; ordinary
+charts retain35mm. The browser also checks legend item coverage.
+
+Read [the user contract](../user/dashboards.md) for fill, chronology, palette limits,
+KPI no-wrap behavior, layout weights and backend capability differences.

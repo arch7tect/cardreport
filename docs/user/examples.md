@@ -116,3 +116,15 @@ bounding the work. There is no shared browser pool in the library.
 For a web endpoint, return the resulting bytes with `Content-Type: application/pdf`;
 framework response objects and storage clients stay in your application. See
 [error handling](quickstart.md#handle-errors-at-the-application-boundary).
+
+
+## Operations dashboard
+
+[operations_report.py](../../examples/operations_report.py) builds a dashboard with
+large KPIs, compact LineCharts and a category-colored ranking with a left legend.
+Both renderers support it. The [template](../../examples/operations_template.json)
+and [data](../../examples/operations_data.json) are separate and import-safe.
+Snapshot numbers come from an operations dashboard screenshot; trend data is explicitly
+synthetic, and the unavailable fifth agent name is marked.
+
+See the [dashboard tutorial](dashboards.md) for Python embedding and layout rules.

@@ -81,3 +81,20 @@ PyPI publication. See [release operations and setup](releases.md). The setup gat
 artifacts for later publication. Keep subjects concise and do not include tool attribution.
 See the [dated release verification](history/reviews/2026-11-04-renderer-refactor.md)
 for the initial version's test scope.
+
+
+## README screenshots
+
+The committed [images](../images/) are first-page rasterizations of actual checked
+Chromium PDF exports of operations_report and spanish_report. To reproduce them,
+install Poppler (`brew install poppler` on macOS) and the PDF extra/browser, then:
+
+```sh
+uv run --all-extras python scripts/build_readme_previews.py
+```
+
+PDF originals go to ignored `output/readme`; PNGs go to `docs/images`. Existing
+files are preserved; use `--overwrite` only to deliberately refresh these generated
+artifacts. Review both images before committing. Operations snapshot values are
+from the supplied dashboard, with synthetic trends visibly labelled; no private
+source attachment is included.

@@ -61,3 +61,14 @@ uv run --all-extras python examples/spanish_report.py --renderer weasyprint --ou
 As with other repository runners, outputs are not overwritten unless `--overwrite`
 is passed. Prefer the [Python embedding example](examples.md#spanish-reference-report)
 when integrating with an application.
+
+
+## Operations dashboard
+
+```sh
+uv run --all-extras python examples/operations_report.py --output output/operations
+uv run --all-extras python examples/operations_report.py --renderer weasyprint --output output/operations-weasyprint
+```
+
+Accepts `--data PATH` for replacement named datasets and `--overwrite` for deliberate
+regeneration. Prefer [Python embedding](dashboards.md#templates-and-the-operations-example).

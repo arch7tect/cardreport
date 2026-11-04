@@ -287,9 +287,15 @@ class _Builder:
             if kind != "line":
                 options |= {"show_labels"}
             if kind == "bar":
-                options |= {"orientation", "mode"}
+                options |= {
+                    "orientation",
+                    "mode",
+                    "color_by",
+                    "legend_position",
+                    "category_labels",
+                }
             if kind == "line":
-                options |= {"x_kind"}
+                options |= {"x_kind", "axes", "markers", "fill"}
             keys(obj, {"type", "dataset", axis}, options)
             dataset, axis_field = name(obj["dataset"]), name(obj[axis])
             axis_spec = self.field(dataset, axis_field)
@@ -337,6 +343,9 @@ class _Builder:
                     values=next(iter(series.values())) if "value" in obj else None,
                     series=series if "series" in obj else None,
                     x_kind=x_kind,
+                    axes=boolean(obj.get("axes", True)),
+                    markers=boolean(obj.get("markers", True)),
+                    fill=choice(obj.get("fill", "none"), ("none", "zero")),
                     legend=boolean(obj.get("legend", True)),
                     value_format=format,
                 )
@@ -350,6 +359,13 @@ class _Builder:
                         obj.get("orientation", "vertical"), ("vertical", "horizontal")
                     ),
                     mode=choice(obj.get("mode", "grouped"), ("grouped", "stacked")),
+                    color_by=choice(
+                        obj.get("color_by", "series"), ("series", "category")
+                    ),
+                    legend_position=choice(
+                        obj.get("legend_position", "bottom"), ("bottom", "left")
+                    ),
+                    category_labels=boolean(obj.get("category_labels", True)),
                     show_labels=boolean(obj.get("show_labels", False)),
                     legend=boolean(obj.get("legend", True)),
                     value_format=format,
@@ -404,6 +420,7 @@ class _Builder:
                 "padding_mm",
                 "font_size_pt",
                 "chart_height_mm",
+                "kpi_value_size_pt",
             },
         )
         formatting = None
@@ -485,6 +502,7 @@ class _Builder:
                 padding_mm=numeric(theme.get("padding_mm", 4)),
                 font_size_pt=numeric(theme.get("font_size_pt", 10)),
                 chart_height_mm=numeric(theme.get("chart_height_mm", 60)),
+                kpi_value_size_pt=numeric(theme.get("kpi_value_size_pt", 24)),
             ),
         )
         for i, block in enumerate(array(obj["blocks"])):

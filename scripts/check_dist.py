@@ -17,6 +17,7 @@ ASSETS = {
     "py.typed",
     "data.py",
     "formatting.py",
+    "_chart_display.py",
     "templates.py",
     "adapters/csv.py",
     "adapters/pandas.py",
@@ -62,6 +63,9 @@ def check_archives(directory: Path) -> Path:
                 "spanish_template.json",
                 "spanish_data.json",
                 "spanish_report.py",
+                "operations_report.py",
+                "operations_template.json",
+                "operations_data.json",
             ]
         } <= source_names
         metadata_file = archive.extractfile(prefix + "PKG-INFO")
@@ -102,6 +106,10 @@ def installed_smoke(full: bool) -> None:
         (examples / "spanish_template.json").read_bytes()
     ).bind(datasets_from_json((examples / "spanish_data.json").read_bytes()))
     assert "4 de noviembre de 2026" in spanish.to_html()
+    operations = ReportTemplate.from_json(
+        (examples / "operations_template.json").read_bytes()
+    ).bind(datasets_from_json((examples / "operations_data.json").read_bytes()))
+    assert "58,837" in operations.to_html()
     assert (
         from_csv(examples / "payments.csv", schema=DatasetSchema({})).rows[0][0]
         == "00123"
@@ -133,6 +141,12 @@ def installed_smoke(full: bool) -> None:
                 localized.pages[0].extract_text().count("4 de noviembre de 2026") == 2
             )
             assert str(localized.root_object["/Lang"]) == "es-MX"
+            dashboard = PdfReader(io.BytesIO(operations.to_pdf(renderer=renderer)))
+            assert len(dashboard.pages) == 1 and not list(dashboard.pages[0].images)
+            content = dashboard.pages[0].extract_text()
+            assert (
+                "58,837" in content and "synthetic" in content and "11,683" in content
+            )
     print("Installed wheel smoke passed:", "all extras" if full else "core only")
 
 

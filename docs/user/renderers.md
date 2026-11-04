@@ -19,7 +19,10 @@ ReportTemplate.bind have exactly these capabilities and geometric checks.
 | Automatic flow / split tables | Yes | Unsupported |
 | Single-series bars | Yes | Yes |
 | Multi-series bars | Yes | Unsupported |
-| Lines / funnels | Yes | Unsupported |
+| Single-series lines (axes, markers, fill) | Yes | Yes |
+| Multi-series lines / funnels | Yes | Unsupported |
+| Category colors / left or bottom category legend | Yes | Yes |
+| Compact line charts in KPI cards | Yes | Yes |
 
 A one-series `series` mapping is also supported by WeasyPrint. Grouped/stacked mode
 has no multi-series distinction in that case. Unsupported features raise
@@ -131,3 +134,9 @@ validated snapshot. They emit HTML language and PDF `/Lang`. Both support custom
 numeric separators/precision within their existing chart capabilities. Chromium
 date axes use preformatted sampled input positions when formatting is explicit.
 See [format rules and compatibility](localization.md#chart-axes-and-compatibility).
+
+Version 0.4.0 precomputes ChartData date tick tuples even when Formatting is absent
+(the labels then use ISO). SVG consumes these sampled ticks; Chromium retains its
+automatic date ticks unless Formatting is supplied. Numeric tick locations can
+differ between engines. Category legends use shared HTML and consume part of the
+chart rectangle. See [dashboard controls](dashboards.md).

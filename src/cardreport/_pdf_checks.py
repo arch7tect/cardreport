@@ -61,13 +61,18 @@ def verify_fonts(reader: PdfReader) -> None:
 
 
 def verify_chart_bounds(
-    data: bytes, width_px: float, height_px: float, path: str
+    data: bytes,
+    width_px: float,
+    height_px: float,
+    path: str,
+    *,
+    expect_text: bool = True,
 ) -> None:
     """Validate glyph bounds in the native SVG render, in PDF points."""
     import pdfplumber
 
     with pdfplumber.open(BytesIO(data)) as pdf:
-        if len(pdf.pages) != 1 or not pdf.pages[0].chars:
+        if len(pdf.pages) != 1 or (expect_text and not pdf.pages[0].chars):
             raise RenderError(f"{path}: native SVG text was lost")
         width, height = width_px * 0.75, height_px * 0.75
         for char in pdf.pages[0].chars:

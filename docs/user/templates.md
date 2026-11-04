@@ -71,6 +71,10 @@ merging matching display labels. Text categories remain literal.
 Line x_kind=date uses date/datetime fields. Chart values require numeric fields;
 only Line permits nullable values for gaps. Row order is preserved. Ordinary chart
 options (orientation, mode, show_labels, legend, value_format) apply where supported.
+Line also accepts axes/markers booleans and fill=`"none"` or `"zero"`. Bar accepts
+color_by=`"series"` or `"category"`, legend_position=`"bottom"` or `"left"`, and
+category_labels. Theme accepts kpi_value_size_pt. Defaults preserve old templates;
+all constraints match the [Python API](api.md) and [dashboard guide](dashboards.md).
 
 Scalar bindings are `{"bind":{"dataset":"summary","field":"total"}}` and
 require one row. They can also provide full text: report title/subtitle, Text.text,

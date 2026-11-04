@@ -3,6 +3,18 @@
 from html import escape
 from typing import Any
 
+from ._chart_display import (
+    category_colors,
+    compact,
+    date_positions,
+    empty,
+    fill_color,
+    line_range,
+    line_x_range,
+    marker_sizes,
+    segments,
+    series_colors,
+)
 from .document import ChartData
 from .formatting import Formatting
 from .model import (
@@ -13,7 +25,7 @@ from .model import (
     LineChart,
     Theme,
 )
-from .validation import PALETTE, normalize_chart
+from .validation import normalize_chart
 
 
 def chart_spec(
@@ -35,7 +47,7 @@ def chart_spec(
     for i, item in enumerate(series):
         name = escape(item.name)
         vals = list(item.values)
-        color = theme.accent if i == 0 else PALETTE[i]
+        color = series_colors(theme)[i]
         trace: dict[str, Any] = {
             "name": name,
             "marker": {"color": color},
@@ -50,6 +62,32 @@ def chart_spec(
                 connectgaps=False,
                 line={"color": color},
             )
+            if not obj.axes or not obj.markers or obj.fill != "none":
+                trace["cliponaxis"] = False
+                trace["marker"]["size"] = marker_sizes(vals, obj.markers)
+                trace["marker"]["opacity"] = 1
+                trace["marker"]["line"] = {"width": 0}
+                trace["line"]["width"] = 2
+            if obj.fill == "zero":
+                sizes = marker_sizes(vals, obj.markers)
+                for indices in segments(vals):
+                    data.append(
+                        {
+                            **trace,
+                            "x": [x[j] for j in indices],
+                            "y": [vals[j] for j in indices],
+                            "marker": {
+                                "color": color,
+                                "opacity": 1,
+                                "line": {"width": 0},
+                                "size": [sizes[j] for j in indices],
+                            },
+                            "fill": "tozeroy",
+                            "fillcolor": fill_color(color, theme.card_background),
+                            "showlegend": False,
+                        }
+                    )
+                continue
         elif isinstance(obj, Funnel):
             trace.update(
                 type="funnel",
@@ -68,6 +106,8 @@ def chart_spec(
                 x=vals if horizontal else x,
                 y=x if horizontal else vals,
             )
+            if obj.color_by == "category":
+                trace["marker"]["color"] = list(category_colors(obj, theme, len(x)))
             if obj.show_labels:
                 trace.update(
                     text=[escape(label) for label in item.labels],
@@ -75,7 +115,7 @@ def chart_spec(
                     cliponaxis=False,
                 )
         data.append(trace)
-    if not x:
+    if empty(obj, normalized):
         data = []
     horizontal = isinstance(obj, Funnel) or (
         isinstance(obj, BarChart) and obj.orientation == "horizontal"
@@ -125,6 +165,34 @@ def chart_spec(
                 tickvals=list(normalized.tick_values),
                 ticktext=[escape(t) for t in normalized.tick_labels],
             )
+    category_count: int | None = (
+        len(x)
+        if category["type"] == "category"
+        else (len(normalized.tick_values) if formatting is not None else None)
+    )
+    if isinstance(obj, LineChart):
+        if not obj.axes or not obj.markers or obj.fill != "none":
+            axis["range"] = line_range(normalized, obj.fill)
+        if (
+            not obj.axes or not obj.markers or obj.fill != "none"
+        ) and normalized.labels:
+            dates = obj.x_kind == "date"
+            positions = (
+                date_positions(normalized.labels)
+                if dates
+                else tuple(float(i) for i in range(len(x)))
+            )
+            limits = line_x_range(positions, dates=dates)
+            category["range"] = (
+                [v * 86400000 for v in limits] if dates else list(limits)
+            )
+        if not obj.axes:
+            category.update(visible=False, automargin=False)
+            axis.update(visible=False, automargin=False)
+            category_count = None
+    if isinstance(obj, BarChart) and not obj.category_labels:
+        category.update(visible=False, automargin=False)
+        category_count = None
     if horizontal:
         category["autorange"] = "reversed"
     layout = {
@@ -143,6 +211,13 @@ def chart_spec(
         "uniformtext": {"minsize": theme.font_size_pt * 96 / 72, "mode": "show"},
         "barmode": "stack" if getattr(obj, "mode", None) == "stacked" else "group",
     }
+    if isinstance(obj, LineChart) and not obj.axes:
+        layout["margin"] = {
+            "l": 5,
+            "r": 5,
+            "t": 5,
+            "b": 5 if compact(obj, normalized) else 30,
+        }
     if formatting is not None:
         layout["separators"] = formatting.decimal + (
             formatting.group_character or ("." if formatting.decimal == "," else ",")
@@ -150,8 +225,7 @@ def chart_spec(
     return {
         "data": data,
         "layout": layout,
-        "categoryCount": len(x)
-        if category["type"] == "category"
-        else (len(normalized.tick_values) if formatting is not None else None),
+        "compact": compact(obj, normalized),
+        "categoryCount": category_count,
         "categoryAxis": ".y" if horizontal else ".x",
     }

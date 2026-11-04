@@ -9,6 +9,21 @@ Build static reports in Python from cards, KPIs, charts and tables. Compose a
 report, then get standalone HTML or PDF bytes for your application. PDF text is
 selectable and charts are vector graphics.
 
+## Reports in practice
+
+These are images of PDFs produced by the library, not design mockups.
+
+**Operations dashboard** — large KPIs, compact line charts and a color-coded
+ranking. Snapshot values come from an operations dashboard screenshot; trends are explicitly
+synthetic demonstration data. [Python, template and datasets](https://github.com/arch7tect/cardreport/blob/main/docs/user/dashboards.md).
+
+![Operations dashboard rendered by CardReport](https://github.com/arch7tect/cardreport/blob/main/docs/images/operations.png?raw=true)
+
+**Spanish campaign report** — the reference report with localized dates/numbers,
+tables and charts. [Example and provenance](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#spanish-reference-report).
+
+![Spanish campaign report rendered by CardReport](https://github.com/arch7tect/cardreport/blob/main/docs/images/spanish.png?raw=true)
+
 ## Install in your project
 
 Python 3.12+ is required. Install from PyPI with uv, then install the PDF browser runtime:
@@ -45,6 +60,7 @@ default. Reports reject content that does not fit rather than silently shrinking
 ## Documentation
 
 - [Quickstart](https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md) — build from application data; return strings/bytes.
+- [KPI dashboards](https://github.com/arch7tect/cardreport/blob/main/docs/user/dashboards.md) — compact charts, category legends and larger KPI values.
 - [Templates](https://github.com/arch7tect/cardreport/blob/main/docs/user/templates.md) — JSON presentation with separate named datasets.
 - [Datasets](https://github.com/arch7tect/cardreport/blob/main/docs/user/datasets.md) — native Python data and typed JSON storage.
 - [User guide](https://github.com/arch7tect/cardreport/blob/main/docs/user/guide.md) — cards, layout, formatting and multiple pages.

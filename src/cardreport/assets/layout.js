@@ -59,7 +59,7 @@
     source.remove();
     for (const el of pages.querySelectorAll('.chart')) {
       const spec=settings.charts[el.id];
-      if (el.clientHeight < 35*96/25.4-1 || el.clientWidth<40) fail(el,'chart has insufficient allocated space');
+      if (el.clientHeight < (spec.compact ? 10 : 35)*96/25.4-1 || el.clientWidth<40) fail(el,'chart has insufficient allocated space');
       await Plotly.newPlot(el,spec.data,{...spec.layout,width:el.clientWidth,height:el.clientHeight},
           {staticPlot:true,displayModeBar:false,responsive:false,typesetMath:false});
     }
@@ -78,12 +78,15 @@
         if (cr.width && cr.height && (cr.right>er.right+tolerance || cr.bottom>er.bottom+tolerance || cr.left<er.left-tolerance || cr.top<er.top-tolerance)) fail(el,'child exceeds allocated space');
       }
     }
+    for (const frame of pages.querySelectorAll('.chart-frame')) {
+      if (frame.querySelectorAll('.legend-item').length !== +frame.dataset.legendCount) fail(frame, 'category legend entries were omitted');
+    }
     for (const chart of pages.querySelectorAll('.chart')) {
       const cr=rect(chart);
       const spec=settings.charts[chart.id];
       if (spec.categoryCount !== null && chart.querySelectorAll(spec.categoryAxis+'tick text').length!==spec.categoryCount) fail(chart,'category labels were omitted');
       const plot=chart.querySelector('clipPath.plotclip rect');
-      if (plot && (+plot.getAttribute('width')<40 || +plot.getAttribute('height')<40)) fail(chart,'labels leave insufficient plotting area');
+      if (plot && (+plot.getAttribute('width')<40 || +plot.getAttribute('height')<(spec.compact ? 20 : 40))) fail(chart,'labels leave insufficient plotting area');
       const texts=[...chart.querySelectorAll('svg text')].filter(e=>getComputedStyle(e).visibility!=='hidden' && rect(e).width && rect(e).height);
       for (const t of texts) {
         const tr=rect(t);

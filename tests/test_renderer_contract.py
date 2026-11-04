@@ -186,7 +186,7 @@ def test_invalid_x_kind_has_correct_error():
     [
         Report(mode="flow"),
         Report().add(Funnel(["a"], [1])),
-        Report().add(LineChart(["a"], [1])),
+        Report().add(LineChart(["a"], series={"A": [1], "B": [2]})),
         Report().add(BarChart(["a"], series={"A": [1], "B": [2]})),
     ],
 )

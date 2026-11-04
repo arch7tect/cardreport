@@ -5,6 +5,36 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.4.0 — 2026-11-04
+
+### Added
+
+- LineChart axes/marker controls and zero-baseline area fill, including compact
+  trends composed with KPIs. Null gaps remain gaps; isolated values retain a dot.
+- Single-series LineChart support in SVG/WeasyPrint, with full or hidden axes.
+- Category-colored bars and shared left/bottom category legends in both engines.
+- Independent KPI value sizing through Theme.kpi_value_size_pt.
+- Matching optional settings in template/1, an operations dashboard example and
+  a dashboard guide. Its snapshot values come from the supplied dashboard;
+  synthetic historical trends are labelled explicitly.
+- Two README previews rasterized from real PDF exports, plus a regeneration script.
+
+### Fixed
+
+- Distinct series colors when the theme accent matches a palette color.
+- Compact chart edge markers stay visible; shared styled-line ranges include all
+  input coordinates, including missing endpoints. Date ordering uses exact UTC
+  datetimes instead of plotting floats.
+
+### Compatibility
+
+- Existing chart/KPI defaults remain unchanged. Styled date lines require strictly
+  increasing UTC coordinates; zero fill and SVG lines support one series.
+- Non-default KPI sizes keep values on one line and reject overflow. Default 24 pt
+  retains legacy wrapping. Compact text-free charts allow 10 mm containers.
+- Date tick tuples in the renderer snapshot are now populated even without
+  Formatting for SVG use; Chromium's default automatic date axes are preserved.
+
 ## 0.3.1 — 2026-11-04
 
 ### Fixed

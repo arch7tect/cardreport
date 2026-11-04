@@ -73,7 +73,9 @@ def main() -> None:
         chart_pdf = HTML(string=chart_html, url_fetcher=fetch).write_pdf(
             font_config=config
         )
-        verify_chart_bounds(chart_pdf, width, height, path)
+        verify_chart_bounds(
+            chart_pdf, width, height, path, expect_text=spec.get("axes", True)
+        )
         html = html.replace(f"<!--chart:{path}-->", svg)
     final = HTML(string=html, url_fetcher=fetch).render(font_config=config)
     final_sizes = inspect(final, payload["pages"], expected_paths)
