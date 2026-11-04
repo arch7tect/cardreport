@@ -29,6 +29,26 @@ The source PDF stays private; it is not required to run the example. The Python
 file contains the transcribed aggregate data. See the
 [reference inventory](../project/history/reference-report.md) for provenance.
 
+### The same report from a template
+
+[reference_template.json](../../examples/reference_template.json) contains the layout;
+[reference_data.json](../../examples/reference_data.json) contains the aggregate data.
+[reference_from_template.py](../../examples/reference_from_template.py) loads both:
+
+```python
+from examples.reference_from_template import EXAMPLES, build_report as bind_reference
+
+report = bind_reference()
+pdf = report.to_pdf()
+second = bind_reference(EXAMPLES / "reference_data_second.json")
+second_pdf = second.to_pdf()
+```
+
+The second dataset doubles counts and updates the complete dynamic labels while
+retaining rates. Both use the same presentation, which produces the same normalized
+model as the original Python builder. [Dataset adapters](datasets.md) can replace
+the JSON inputs with CSV or pandas snapshots; the template is unchanged.
+
 ## Long table
 
 [flow_report.py](../../examples/flow_report.py) demonstrates a 120-row table with

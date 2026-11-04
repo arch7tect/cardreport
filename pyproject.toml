@@ -1,6 +1,6 @@
 [project]
 name = "cardreport"
-version = "0.1.0"
+version = "0.2.0"
 description = "Composable Python reports with cards, constrained charts, and HTML-to-PDF output"
 readme = "README.md"
 authors = [{ name = "Oleg Orlov" }]
@@ -26,6 +26,9 @@ weasyprint = [
     "pypdf>=6,<7",
     "weasyprint==70.0",
 ]
+pandas = [
+    "pandas>=2.2,<4",
+]
 
 [build-system]
 requires = ["hatchling>=1.27,<2"]
@@ -42,6 +45,7 @@ dev = [
     "pypdf>=6.21.4",
     "pytest>=9.2.0",
     "ruff>=0.17.3",
+    "pandas-stubs>=3.1.0.261029",
 ]
 
 [tool.mypy]
@@ -50,7 +54,7 @@ strict = true
 files = ["src/cardreport", "tests/typing_cases.py", "examples", "scripts"]
 
 [[tool.mypy.overrides]]
-module = ["cardreport.model", "cardreport.document", "cardreport.renderers"]
+module = ["cardreport.model", "cardreport.document", "cardreport.renderers", "cardreport.data", "cardreport.templates", "cardreport._inputs", "cardreport.adapters.*"]
 disallow_any_explicit = true
 
 [[tool.mypy.overrides]]

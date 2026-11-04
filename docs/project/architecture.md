@@ -9,7 +9,8 @@ publication. It has no service, query layer, plugin registry or custom geometry 
 ## Export path
 
 ```text
-Report + frozen components
+Optional ReportTemplate + named Dataset snapshots
+  -> bind -> Report + frozen components
   -> semantic validation and chart normalization
   -> frozen ReportDocument
   -> Renderer (HTML preview or checked PDF)
@@ -27,6 +28,10 @@ A snapshot contains no page coordinates. PDF deadlines start before validation.
 
 | Module | Responsibility |
 | --- | --- |
+| [data.py](../../src/cardreport/data.py) | Immutable tables, schemas, bounded native and tagged JSON input |
+| [templates.py](../../src/cardreport/templates.py) | Closed JSON grammar and binding to existing components |
+| [_inputs.py](../../src/cardreport/_inputs.py) | Shared bounded parsing and located errors |
+| [adapters](../../src/cardreport/adapters/) | Single CSV file and lazy optional pandas ingestion |
 | [model.py](../../src/cardreport/model.py) | Components, aliases, formats, errors and Report facade |
 | [validation.py](../../src/cardreport/validation.py) | Independent semantic checks and normalization |
 | [document.py](../../src/cardreport/document.py) | Frozen export and chart records |
@@ -76,3 +81,20 @@ New renderer implementations satisfy the shared semantic/error/output contract,
 while owning their geometry and lifecycle. Do not add a registry or inheritance
 framework merely to reuse helpers. See the [extension decision](decisions/renderer-extension.md)
 for the rationale and the [development guide](development.md) for verification.
+
+## Separate presentation and data
+
+Version 0.2.0 adds a layer above Report, with independent `cardreport.template/1`
+and `cardreport.data/1` envelopes. Templates snapshot a bounded validated definition;
+Dataset copies native rows and fixed-offset datetimes. Schemas distinguish missing,
+null and empty input. Binding checks every declared contract, constructs ordinary
+components and calls existing validation; no unresolved expressions reach renderers.
+Semantic errors map known component paths back to template paths, preserving causes.
+Static validation uses one representative row per declared field type plus explicit
+binding/type checks. Real row counts, values and geometry are checked later.
+
+`from_csv` requires a schema and uses the standard library. `from_pandas` imports its
+optional dependency only on invocation. Neither source access nor normalization is
+part of bind/render. No source registry, SQL execution, directory scanner, expressions
+or model-to-template serializer is introduced. See the [decision](decisions/report-templates.md)
+and [delivery plan](template-implementation-plan.md).

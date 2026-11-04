@@ -3,7 +3,8 @@
 [Documentation home](../../README.md) · [API reference](api.md#renderers)
 
 A Report uses Chromium by default. Pass a renderer to an export method to choose
-another implementation; the component model stays the same.
+another implementation; the component model stays the same. Reports returned by
+ReportTemplate.bind have exactly these capabilities and geometric checks.
 
 ## Capabilities
 
@@ -60,7 +61,7 @@ but no Playwright/Chromium installation; opening that HTML still requires JavaSc
 Install the optional extra in an existing uv project:
 
 ```sh
-uv add "cardreport[weasyprint] @ git+https://github.com/arch7tect/cardreport.git@570572879a5af38f3708a60f041815a6dfa3744a"
+uv add "cardreport[weasyprint] @ git+https://github.com/arch7tect/cardreport.git@v0.2.0"
 ```
 
 Or, from a checkout, use `uv sync --extra weasyprint --locked`. Follow the

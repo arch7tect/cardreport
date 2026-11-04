@@ -7,10 +7,10 @@ in memory. Data loading and aggregation remain in your application.
 
 ## Install
 
-In an existing uv project, install the initial library version from GitHub:
+In an existing uv project, install version 0.2.0 from GitHub:
 
 ```sh
-uv add "cardreport[pdf] @ git+https://github.com/arch7tect/cardreport.git@570572879a5af38f3708a60f041815a6dfa3744a"
+uv add "cardreport[pdf] @ git+https://github.com/arch7tect/cardreport.git@v0.2.0"
 uv run python -m playwright install chromium
 ```
 
@@ -25,7 +25,7 @@ uv run python -m playwright install chromium
 For a built wheel, add its actual path and request the same extra:
 
 ```sh
-uv add /path/to/cardreport-0.1.0-py3-none-any.whl --extra pdf
+uv add /path/to/cardreport-0.2.0-py3-none-any.whl --extra pdf
 ```
 
 Install Chromium in the wheel environment as above. These are alternative install
@@ -117,3 +117,31 @@ The boundary includes composition because constructors can reject malformed inpu
 Other report failures derive from [ReportError](api.md#errors). File I/O failures
 use ordinary Python exceptions. Next: [layout and formatting](guide.md), then the
 [original complete report](examples.md#reference-report).
+
+## Embed a stored presentation with separate data
+
+For reusable presentation, save a template as JSON and supply named datasets.
+This complete function accepts JSON text from a file, database or request; I/O stays
+in your application. It returns the same bytes as the direct Python API:
+
+```python
+from cardreport import Dataset, ReportTemplate
+
+
+def render_template(template_json: str, datasets: dict[str, Dataset]) -> bytes:
+    report = ReportTemplate.from_json(template_json).bind(datasets)
+    return report.to_pdf()
+
+
+# Repository fixture for this demonstration; use your stored JSON in production.
+from examples.reference_from_template import EXAMPLES
+from cardreport import datasets_from_json
+
+template_json = (EXAMPLES / "reference_template.json").read_text(encoding="utf-8")
+datasets = datasets_from_json((EXAMPLES / "reference_data.json").read_bytes())
+pdf = render_template(template_json, datasets)
+```
+
+See the [template guide](templates.md) for a small complete definition and
+[datasets](datasets.md) for native rows, typed JSON, single-file CSV and pandas.
+The examples package is checkout-only; the function above uses installed public APIs.

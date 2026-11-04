@@ -2,13 +2,14 @@
 
 [Documentation home](../../README.md) · [Quickstart](quickstart.md) · [User guide](guide.md)
 
-All names below are imported from `cardreport`. Signatures describe version 0.1.0.
+Names are imported from `cardreport` unless another import location is shown. Signatures describe version 0.2.0.
 Annotations such as `Number`, `Value` and `Format` are defined in [types](#types).
 Values not expressible by static typing are checked at runtime: for example,
 `bool` is rejected as a number even though Python considers it an `int`.
 Some malformed inputs raise `ValidationError` in component constructors; other
 checks run during `validate()` or export. Handle errors around composition too.
 
+- [Datasets and data JSON](#datasets-and-data-json), [ReportTemplate](#reporttemplate), [adapters](#data-adapters)
 - [Report](#report) and [export methods](#export-methods)
 - [Page](#page) and [Theme](#theme)
 - [Card](#card), [Row](#row), [Column](#column), [PageBreak](#pagebreak)
@@ -431,7 +432,10 @@ public types; there is no geometry model in the snapshot.
 
 ```text
 ReportError
+├── DataError
 ├── ValidationError
+│   ├── TemplateError
+│   └── BindingError
 ├── LayoutOverflowError
 ├── UnsupportedFeatureError
 ├── DependencyError
@@ -441,6 +445,9 @@ ReportError
 
 | Error | Meaning / action |
 | --- | --- |
+| `DataError` | Invalid dataset, transport or CSV/pandas input |
+| `TemplateError` | Invalid template definition; inspect template_path |
+| `BindingError` | Input does not satisfy template/semantic contracts; inspect location attributes |
 | `ValidationError` | Invalid data/settings/structure; fix input before export |
 | `LayoutOverflowError` | Content, chart labels or pages do not fit; allocate space or reduce content |
 | `UnsupportedFeatureError` | Selected renderer cannot handle the feature; select a supporting renderer |
@@ -450,3 +457,72 @@ ReportError
 
 Export fails rather than silently clipping/shrinking output. I/O failures such as
 `FileExistsError` and `PermissionError` remain ordinary Python exceptions.
+
+## Datasets and data JSON
+
+All names in this section are exported from cardreport. See the
+[dataset guide](datasets.md) for schema rules and transport examples.
+
+```text
+DataLimits(max_rows=2000, max_columns=100, max_datasets=32, max_cells=100000,
+           max_string_chars=10000, max_text_bytes=16777216, max_json_bytes=16777216)
+Dataset(columns: Sequence[str], rows: Iterable[Sequence[object]], *, limits=DataLimits())
+Dataset.from_records(columns: Sequence[str], records: Iterable[Sequence[object]],
+                     *, limits=DataLimits()) -> Dataset
+Dataset.from_dicts(rows: Iterable[Mapping[str, object]], *, columns: Sequence[str] | None = None,
+                   limits=DataLimits()) -> Dataset
+Dataset.single(values: Mapping[str, object], *, limits=DataLimits()) -> Dataset
+FieldType = Literal["text", "integer", "number", "decimal", "date", "datetime"]
+FieldSpec(type: FieldType, nullable: bool = False)
+DatasetSchema(fields: Mapping[str, FieldSpec], cardinality: Literal["one", "many"] = "many")
+DatasetSchema.validate(dataset: Dataset) -> None
+
+datasets_from_json(source: str | bytes, *, limits=DataLimits()) -> dict[str, Dataset]
+datasets_to_json(data: Mapping[str, Dataset], *, limits=DataLimits()) -> str
+```
+
+Dataset exposes frozen columns: tuple[str, ...] and rows: tuple[tuple[Value, ...], ...].
+Schema exposes copied read-only fields and cardinality one/many. Limits only decrease
+the listed caps. Direct/native inputs are checked as well as JSON. DataError derives
+from ReportError and carries optional dataset, row, field and template_path.
+No constructor stores a connection or a lazy iterator.
+
+## ReportTemplate
+
+```text
+ReportTemplate(spec: Mapping[str, object])
+ReportTemplate.from_dict(spec: Mapping[str, object]) -> ReportTemplate
+ReportTemplate.from_json(source: str | bytes) -> ReportTemplate
+ReportTemplate.to_dict() -> dict[str, object]
+ReportTemplate.to_json() -> str
+ReportTemplate.datasets: Mapping[str, DatasetSchema]  # read-only
+ReportTemplate.bind(data: Mapping[str, Dataset], *, limits=DataLimits()) -> Report
+```
+
+TemplateError and BindingError derive from ValidationError; both have optional
+location attributes like DataError. Binding checks data and existing semantic
+contracts, then returns a fresh mutable Report. Template/dataset inputs are never
+modified. PDF geometry/capability checks happen on export. Formats and the complete
+binding vocabulary are described in the [template guide](templates.md).
+
+## Data adapters
+
+Import `from_csv` from `cardreport.adapters.csv` and `from_pandas` from
+`cardreport.adapters.pandas`; they are not top-level exports.
+
+```text
+from_csv(path: str | Path, *, schema: DatasetSchema,
+         encoding: str = "utf-8", delimiter: str = ",",
+         null_values: Sequence[str] = (), limits: DataLimits = DataLimits()) -> Dataset
+from_pandas(frame: pandas.DataFrame, *, schema: DatasetSchema,
+            index: Literal["error", "drop"] = "error",
+            limits: DataLimits = DataLimits()) -> Dataset
+```
+
+Both require an explicit schema and return an immutable snapshot. Extra columns
+are retained and must contain supported cells. CSV extra columns are text; numeric
+CSV fields parse as int (integer) or Decimal (number/decimal). CSV reads at most
+`max_json_bytes + 1` bytes to detect excess input. Adapter errors are DataError;
+CSV I/O/decoding errors preserve the original exception as their cause.
+The pandas adapter imports pandas only when called; absence raises DependencyError.
+See [datasets](datasets.md) for null, index, precision, encoding and lexical rules.

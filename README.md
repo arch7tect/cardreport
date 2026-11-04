@@ -6,15 +6,15 @@ selectable and charts are vector graphics.
 
 ## Install in your project
 
-Python 3.12+ is required. CardReport 0.1.0 is available from this GitHub repository,
-not PyPI. With uv, add the initial version and install the PDF browser runtime:
+Python 3.12+ is required. CardReport 0.2.0 is available from this GitHub repository,
+not PyPI. With uv, add version 0.2.0 and install the PDF browser runtime:
 
 ```sh
-uv add "cardreport[pdf] @ git+https://github.com/arch7tect/cardreport.git@570572879a5af38f3708a60f041815a6dfa3744a"
+uv add "cardreport[pdf] @ git+https://github.com/arch7tect/cardreport.git@v0.2.0"
 uv run python -m playwright install chromium
 ```
 
-The commit pins the library version. For HTML-only use, omit `[pdf]` and the
+The tag pins the library version. For HTML-only use, omit `[pdf]` and the
 browser-install command. See [installation and quickstart](docs/user/quickstart.md)
 for local checkouts, wheels and how to embed exports.
 
@@ -41,6 +41,8 @@ default. Reports reject content that does not fit rather than silently shrinking
 ## Documentation
 
 - [Quickstart](docs/user/quickstart.md) — build from application data; return strings/bytes.
+- [Templates](docs/user/templates.md) — JSON presentation with separate named datasets.
+- [Datasets](docs/user/datasets.md) — native Python data and typed JSON storage.
 - [User guide](docs/user/guide.md) — cards, layout, formatting and multiple pages.
 - [API reference](docs/user/api.md) — signatures, defaults, constraints and errors.
 - [Renderers](docs/user/renderers.md) — installation, supported features and extensions.

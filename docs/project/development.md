@@ -31,15 +31,17 @@ Mypy strict mode includes source, positive/negative consumer cases, executable
 examples and maintenance scripts. Expected-error annotations fail if typing becomes permissive.
 `check_docs.py` validates repository Markdown paths/anchors and runs Python blocks
 from README and user docs in isolated temporary output directories, one namespace
-per page. The full documentation check requires both renderers, Chromium and the
-native WeasyPrint libraries, even if you otherwise develop with Chromium only.
+per page. It also loads and binds the published template/data JSON fixtures through
+the real parsers. `uv run --extra pdf --extra weasyprint --extra pandas python scripts/check_docs.py`
+is the explicit equivalent of the all-extras check. The full documentation check requires both renderers, Chromium and the
+native WeasyPrint libraries and the pandas extra, even if you otherwise develop with Chromium only.
 Use `uv run python scripts/check_docs.py --links-only` for an offline navigation-only check.
 API signatures use `text` fences and are reference notation, not runnable
 Python. Network links are inventoried separately; offline checks do not claim remote
 availability. Shell setup commands are not executed by the checker.
 
 The default runtime suite skips optional WeasyPrint cases when its Python package
-is absent. Full verification requires both engines with no skips. Only local
+is absent. Full verification requires both engines and pandas with no skips. Only local
 macOS/Python 3.12 is currently verified; no Linux/Windows claim or hosted CI exists.
 Verify both rendering success and deliberate errors, literal labels, text/vector
 output, native glyph bounds, file preservation and worker cleanup. Review output
@@ -63,7 +65,8 @@ Preserve decision/review history.
 
 The wheel must include fonts, font license, templates, JavaScript and `py.typed`.
 Check the wheel and source archive; neither may include `local`, `output`, `.idea`
-or the original PDF. The source archive also excludes the historical experiments.
+or the original PDF. The wheel includes the data/template modules and adapters; repository JSON/CSV examples
+belong in the source archive. The source archive also excludes the historical experiments.
 Run examples from an isolated installed wheel outside the source tree after packaging
 changes; bypass stale uv caches when rebuilding the same unreleased version.
 

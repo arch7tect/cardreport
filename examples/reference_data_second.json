@@ -1,0 +1,110 @@
+{
+  "format": "cardreport.data/1",
+  "datasets": {
+    "summary": {
+      "columns": [
+        "clients",
+        "call_attempted",
+        "call_attempted_note",
+        "not_yet_called",
+        "not_yet_called_note",
+        "2_of_5_identified_clients",
+        "2_of_5_identified_clients_label",
+        "promises",
+        "promised_amount"
+      ],
+      "rows": [
+        {
+          "clients": 42,
+          "call_attempted": 42,
+          "call_attempted_note": "100.0%",
+          "not_yet_called": 0,
+          "not_yet_called_note": "0.0%",
+          "2_of_5_identified_clients": 0.4,
+          "2_of_5_identified_clients_label": "4 of 10 identified clients",
+          "promises": 4,
+          "promised_amount": 0
+        }
+      ]
+    },
+    "funnel": {
+      "columns": [
+        "category",
+        "count"
+      ],
+      "rows": [
+        {
+          "category": "1. Call attempted",
+          "count": 42
+        },
+        {
+          "category": "2. Human answered",
+          "count": 10
+        },
+        {
+          "category": "3. Identity confirmed",
+          "count": 10
+        },
+        {
+          "category": "4. Promised to pay",
+          "count": 4
+        }
+      ]
+    },
+    "attempts": {
+      "columns": [
+        "category",
+        "count"
+      ],
+      "rows": [
+        {
+          "category": "1. All attempts",
+          "count": 68
+        },
+        {
+          "category": "2. No answer / busy / voicemail",
+          "count": 20
+        },
+        {
+          "category": "3. Human answer",
+          "count": 48
+        },
+        {
+          "category": "4. Technical error",
+          "count": 0
+        }
+      ]
+    },
+    "outcomes": {
+      "columns": [
+        "outcome",
+        "clients",
+        "rate"
+      ],
+      "rows": [
+        {
+          "outcome": "Promised to pay",
+          "clients": 6,
+          "rate": 0.6
+        },
+        {
+          "outcome": "Refused",
+          "clients": 4,
+          "rate": 0.4
+        }
+      ]
+    },
+    "payments": {
+      "columns": [
+        "category",
+        "count"
+      ],
+      "rows": [
+        {
+          "category": "2026-11-04",
+          "count": 4
+        }
+      ]
+    }
+  }
+}

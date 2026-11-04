@@ -21,6 +21,7 @@ uv run --extra pdf python -m playwright install chromium
 uv run --extra pdf python examples/quickstart.py
 uv run --extra pdf python examples/reference_report.py --output output/reference
 uv run --extra pdf python examples/flow_report.py --output output/flow
+uv run --extra pdf python examples/reference_from_template.py --data examples/reference_data_second.json --output output/template-second
 ```
 
 Quickstart returns results in memory and prints their sizes; it does not save
@@ -30,9 +31,10 @@ files. The reference and flow runners each write a PDF and HTML file.
 | --- | --- |
 | `quickstart.py` | No options |
 | `reference_report.py` | `--output PATH`, `--overwrite`, `--renderer chromium\|weasyprint` |
+| `reference_from_template.py` | `--data PATH`, `--output PATH`, `--overwrite`, `--renderer chromium\|weasyprint` |
 | `flow_report.py` | `--output PATH`, `--overwrite` |
 
-The default output directory is `output`, and the default reference renderer is
+The template runner defaults to `output/template` and the original data; other file runners default to `output`, and the default reference renderer is
 Chromium. Existing files are preserved; add `--overwrite` only to intentionally
 regenerate your own results. A runner writes PDF and HTML separately, not as one
 atomic pair: if the second write fails, the first result can already exist.

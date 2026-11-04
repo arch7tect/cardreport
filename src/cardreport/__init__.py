@@ -1,5 +1,15 @@
 """Compose static reports using a small renderer-independent API."""
 
+from ._inputs import BindingError, DataError, TemplateError
+from .data import (
+    DataLimits,
+    Dataset,
+    DatasetSchema,
+    FieldSpec,
+    FieldType,
+    datasets_from_json,
+    datasets_to_json,
+)
 from .document import ChartData, ChartSeries, ReportDocument
 from .model import (
     KPI,
@@ -32,9 +42,21 @@ from .model import (
     Value,
 )
 from .renderers import ChromiumRenderer, Renderer
+from .templates import ReportTemplate
 from .weasyprint import WeasyPrintRenderer
 
 __all__ = [
+    "ReportTemplate",
+    "BindingError",
+    "DataError",
+    "TemplateError",
+    "DataLimits",
+    "Dataset",
+    "DatasetSchema",
+    "FieldSpec",
+    "FieldType",
+    "datasets_from_json",
+    "datasets_to_json",
     "WeasyPrintRenderer",
     "ReportDocument",
     "ChartData",

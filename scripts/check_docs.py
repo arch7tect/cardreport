@@ -107,6 +107,17 @@ def main() -> None:
     ]
     check_links(paths)
     if not args.links_only:
+        from cardreport import ReportTemplate, datasets_from_json
+
+        examples = ROOT / "examples"
+        template = ReportTemplate.from_json(
+            (examples / "reference_template.json").read_bytes()
+        )
+        for filename in ("reference_data.json", "reference_data_second.json"):
+            template.bind(
+                datasets_from_json((examples / filename).read_bytes())
+            ).validate()
+        print("Validated the published template and both data JSON fixtures")
         check_examples([ROOT / "README.md", *sorted(ROOT.glob("docs/user/*.md"))])
 
 
