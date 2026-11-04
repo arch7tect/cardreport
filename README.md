@@ -1,6 +1,7 @@
 # CardReport
 
 [![Latest release](https://img.shields.io/github/v/release/arch7tect/cardreport)](https://github.com/arch7tect/cardreport/releases/latest)
+[![PyPI version](https://img.shields.io/pypi/v/cardreport)](https://pypi.org/project/cardreport/)
 
 Build static reports in Python from cards, KPIs, charts and tables. Compose a
 report, then get standalone HTML or PDF bytes for your application. PDF text is
@@ -8,20 +9,16 @@ selectable and charts are vector graphics.
 
 ## Install in your project
 
-Python 3.12+ is required. Install the verified GitHub release shown below and the PDF
-browser runtime with uv (PyPI publishing is prepared and awaits initial account setup):
+Python 3.12+ is required. Install from PyPI with uv, then install the PDF browser runtime:
 
 ```sh
-uv add "cardreport[pdf] @ https://github.com/arch7tect/cardreport/releases/download/v0.2.1/cardreport-0.2.1-py3-none-any.whl"
+uv add "cardreport[pdf]"
 uv run python -m playwright install chromium
 ```
 
-The downloaded wheel pins the library version. For HTML-only use, omit `[pdf]` and the
+Keep your application’s uv.lock to pin the installed version. For HTML-only use, omit `[pdf]` and the
 browser-install command. See [installation and quickstart](https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md)
 for local checkouts, wheels and how to embed exports.
-
-Once the package is published on PyPI, installation is simply
-`uv add "cardreport[pdf]"`, followed by the same browser setup.
 
 ## Use from Python
 

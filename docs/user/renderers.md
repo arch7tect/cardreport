@@ -61,7 +61,7 @@ but no Playwright/Chromium installation; opening that HTML still requires JavaSc
 Install the optional extra in an existing uv project:
 
 ```sh
-uv add "cardreport[weasyprint] @ https://github.com/arch7tect/cardreport/releases/download/v0.2.1/cardreport-0.2.1-py3-none-any.whl"
+uv add "cardreport[weasyprint]"
 ```
 
 Or, from a checkout, use `uv sync --extra weasyprint --locked`. Follow the

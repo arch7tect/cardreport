@@ -115,7 +115,6 @@ Release notes are generated from GitHub history; version intent is never inferre
 from commit-subject conventions. See [uv publishing behavior](https://docs.astral.sh/uv/guides/package/).
 
 
-The version badge updates automatically. While PyPI setup is pending, the README
-contains a pinned wheel URL as a reproducible installation example; update this
-example on release if needed. Once PyPI is live, replace it with the unversioned
-registry install command and retain uv.lock in consuming applications.
+The GitHub and PyPI version badges update automatically. README uses the registry
+install command without a hardcoded version; consuming applications retain uv.lock.
+Quickstart also shows a pinned GitHub wheel URL as an alternative installation example.

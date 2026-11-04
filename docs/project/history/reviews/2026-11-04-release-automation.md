@@ -58,3 +58,13 @@ The first hosted run occurs after this commit is pushed; its job results and Rel
 assets provide the publication evidence. No hosted success or actual PyPI upload is
 claimed by this pre-push review. PyPI setup/recovery instructions specify the remaining
 owner action. No new Linux/Windows rendering support is claimed.
+
+
+Before the first successful push, the owner created the pending PyPI publisher and
+confirmed its details (environment field Any). The GitHub pypi environment remains
+main-only; the publication gate was enabled. README/quickstart now use PyPI as the
+primary install route, with both version badges and a pinned GitHub wheel alternative.
+Their remote availability must be verified with the first actual publication.
+GitHub rejected the initial push because the CLI OAuth grant lacked workflow scope;
+no remote commit/tag/release was created by that rejected push. Access refresh was
+requested from the owner; no credential values were requested or stored.

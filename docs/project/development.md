@@ -75,7 +75,7 @@ Run examples from an isolated installed wheel outside the source tree after pack
 changes; bypass stale uv caches when rebuilding the same unreleased version.
 
 A version bump in main requests an automated GitHub Release and, once configured,
-PyPI publication. See [release operations and setup](releases.md). PyPI account setup
-is still pending; the workflow reports this explicitly and preserves GitHub artifacts. Keep subjects concise and do not include tool attribution.
+PyPI publication. See [release operations and setup](releases.md). The setup gate makes unconfigured PyPI uploads explicit and preserves GitHub
+artifacts for later publication. Keep subjects concise and do not include tool attribution.
 See the [dated release verification](history/reviews/2026-11-04-renderer-refactor.md)
 for the initial version's test scope.
