@@ -58,7 +58,7 @@ verified separately after push. See [dashboard guide](../../../user/dashboards.m
 
 The first hosted attempt failed before checkout: GitHub reported that no hosted
 runner acquired the job and noted macOS ARM capacity constraints. A retry also
-remained queued and was cancelled. CI now selects the standard macOS 15 Intel
+remained queued; cancellation was requested. CI now selects the standard macOS 15 Intel
 runner; all checks and publication gates are unchanged. This is an infrastructure
 workaround, not evidence of a code or test failure.
 An additional restricted Claude review found no blocker in the runner change;
