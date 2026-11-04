@@ -5,6 +5,18 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.4.1 — 2026-11-04
+
+### Examples and documentation
+
+- Add a self-contained Python example with an inline JSON template and named
+  datasets, producing the same report as the direct component API.
+- Show Chromium and SVG/WeasyPrint dashboard exports side by side in the README.
+- Show table continuation across pages, including repeated column headings and
+  card titles, with links to the Python example and pagination guide.
+- Reorganize the README introduction and documentation links, and extend the
+  preview generator to reproduce all five screenshots from actual PDF exports.
+
 ## 0.4.0 — 2026-11-04
 
 ### Added
