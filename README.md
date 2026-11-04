@@ -3,6 +3,8 @@
 [![Latest release](https://img.shields.io/github/v/release/arch7tect/cardreport)](https://github.com/arch7tect/cardreport/releases/latest)
 [![PyPI version](https://img.shields.io/pypi/v/cardreport?cacheSeconds=300)](https://pypi.org/project/cardreport/)
 
+[What’s new](https://github.com/arch7tect/cardreport/blob/main/CHANGELOG.md)
+
 Build static reports in Python from cards, KPIs, charts and tables. Compose a
 report, then get standalone HTML or PDF bytes for your application. PDF text is
 selectable and charts are vector graphics.
@@ -62,3 +64,6 @@ For architecture, decisions and contributing, see [project documentation](https:
 
 [MIT](https://github.com/arch7tect/cardreport/blob/main/LICENSE). Bundled DejaVu fonts retain their [font license](https://github.com/arch7tect/cardreport/blob/main/src/cardreport/assets/LICENSE_DEJAVU).
 Third-party rendering packages retain their own licenses.
+
+See [language and display formats](https://github.com/arch7tect/cardreport/blob/main/docs/user/localization.md)
+for report language tags, custom dates, number precision and the Spanish example.

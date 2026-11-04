@@ -13,7 +13,8 @@ bot, release branches or generated development versions are used.
 
 ```sh
 uv version --bump patch --no-sync
-# Include pyproject.toml and uv.lock with the intended changes, then push main.
+# Move the relevant CHANGELOG.md entries from Unreleased to the new dated version.
+# Include pyproject.toml, uv.lock and CHANGELOG.md, then push main.
 ```
 
 [main.yml](../../.github/workflows/main.yml) checks macOS/Python 3.12: both renderers,
@@ -111,8 +112,14 @@ access. See [PyPI's pending-publisher guide](https://docs.pypi.org/trusted-publi
 GitHub permissions are separated: verification reads source/artifacts; the GitHub
 release job writes release assets/tags; the PyPI job reads assets and obtains OIDC
 credentials. Actions and uv are pinned. Update their pins deliberately and rerun checks.
-Release notes are generated from GitHub history; version intent is never inferred
-from commit-subject conventions. See [uv publishing behavior](https://docs.astral.sh/uv/guides/package/).
+Starting with 0.3.0, GitHub Release notes are the exact body of the version section
+in CHANGELOG.md at the release commit. The changelog starts with `## Unreleased`,
+then unique descending `## X.Y.Z — YYYY-MM-DD` sections. New release planning checks
+for a nonempty matching section before a tag is reserved. Check it locally with
+`uv run python scripts/release.py notes`. Draft retries restore notes from the same
+commit; published notes are never rewritten. Older pre-changelog release recovery
+continues to use its original behavior. Version intent is never inferred from
+commit-subject conventions. See [uv publishing behavior](https://docs.astral.sh/uv/guides/package/).
 
 
 The GitHub and PyPI version badges update automatically. README uses the registry

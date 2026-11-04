@@ -11,6 +11,7 @@ from .data import (
     datasets_to_json,
 )
 from .document import ChartData, ChartSeries, ReportDocument
+from .formatting import Formatting
 from .model import (
     KPI,
     BarChart,
@@ -46,6 +47,7 @@ from .templates import ReportTemplate
 from .weasyprint import WeasyPrintRenderer
 
 __all__ = [
+    "Formatting",
     "ReportTemplate",
     "BindingError",
     "DataError",

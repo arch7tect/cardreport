@@ -1,0 +1,332 @@
+{
+  "format": "cardreport.template/1",
+  "datasets": {
+    "summary": {
+      "cardinality": "one",
+      "fields": {
+        "clients": {
+          "type": "integer"
+        },
+        "call_attempted": {
+          "type": "integer"
+        },
+        "call_attempted_note": {
+          "type": "text"
+        },
+        "not_yet_called": {
+          "type": "integer"
+        },
+        "not_yet_called_note": {
+          "type": "text"
+        },
+        "2_of_5_identified_clients": {
+          "type": "number"
+        },
+        "2_of_5_identified_clients_label": {
+          "type": "text"
+        },
+        "promises": {
+          "type": "integer"
+        },
+        "promised_amount": {
+          "type": "integer"
+        },
+        "report_date": {
+          "type": "date"
+        }
+      }
+    },
+    "funnel": {
+      "cardinality": "many",
+      "fields": {
+        "category": {
+          "type": "text"
+        },
+        "count": {
+          "type": "integer"
+        }
+      }
+    },
+    "attempts": {
+      "cardinality": "many",
+      "fields": {
+        "category": {
+          "type": "text"
+        },
+        "count": {
+          "type": "integer"
+        }
+      }
+    },
+    "outcomes": {
+      "cardinality": "many",
+      "fields": {
+        "outcome": {
+          "type": "text"
+        },
+        "clients": {
+          "type": "integer"
+        },
+        "rate": {
+          "type": "number"
+        }
+      }
+    },
+    "payments": {
+      "cardinality": "many",
+      "fields": {
+        "category": {
+          "type": "text"
+        },
+        "count": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "report": {
+    "page": {
+      "size": [
+        564.444,
+        423.333
+      ],
+      "orientation": "portrait",
+      "margin_mm": 5.644
+    },
+    "theme": {
+      "accent": "#20a6c4",
+      "background": "#f5f5f5",
+      "card_background": "#ffffff",
+      "text": "#222222",
+      "gap_mm": 5.644,
+      "padding_mm": 6.3,
+      "font_size_pt": 14,
+      "chart_height_mm": 95
+    },
+    "blocks": [
+      {
+        "type": "row",
+        "children": [
+          {
+            "type": "card",
+            "title": "Avance de la campaña",
+            "content": {
+              "type": "column",
+              "children": [
+                {
+                  "type": "kpi",
+                  "label": "Clientes",
+                  "value": {
+                    "bind": {
+                      "dataset": "summary",
+                      "field": "clients"
+                    }
+                  },
+                  "format": "number"
+                },
+                {
+                  "type": "row",
+                  "children": [
+                    {
+                      "type": "kpi",
+                      "label": "Llamada intentada",
+                      "value": {
+                        "bind": {
+                          "dataset": "summary",
+                          "field": "call_attempted"
+                        }
+                      },
+                      "format": "number",
+                      "note": {
+                        "bind": {
+                          "dataset": "summary",
+                          "field": "call_attempted_note"
+                        }
+                      }
+                    },
+                    {
+                      "type": "kpi",
+                      "label": "Sin llamar",
+                      "value": {
+                        "bind": {
+                          "dataset": "summary",
+                          "field": "not_yet_called"
+                        }
+                      },
+                      "format": "number",
+                      "note": {
+                        "bind": {
+                          "dataset": "summary",
+                          "field": "not_yet_called_note"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "type": "card",
+            "title": "Embudo de contacto",
+            "content": {
+              "type": "bar",
+              "dataset": "funnel",
+              "category": "category",
+              "value": "count",
+              "orientation": "horizontal",
+              "show_labels": true
+            }
+          },
+          {
+            "type": "card",
+            "title": "Resultados de llamadas",
+            "content": {
+              "type": "bar",
+              "dataset": "attempts",
+              "category": "category",
+              "value": "count",
+              "orientation": "horizontal",
+              "show_labels": true
+            }
+          }
+        ],
+        "height_mm": 112.889
+      },
+      {
+        "type": "row",
+        "children": [
+          {
+            "type": "card",
+            "title": "Resultados de conversaciones",
+            "content": {
+              "type": "table",
+              "dataset": "outcomes",
+              "columns": [
+                {
+                  "key": "outcome",
+                  "label": "Resultado",
+                  "format": "number",
+                  "align": "left",
+                  "width": 3
+                },
+                {
+                  "key": "clients",
+                  "label": "Clientes",
+                  "format": "number",
+                  "align": "center"
+                },
+                {
+                  "key": "rate",
+                  "label": "%",
+                  "format": "percent",
+                  "align": "center"
+                }
+              ]
+            }
+          },
+          {
+            "type": "card",
+            "title": "Tasa de promesas (PTP)",
+            "content": {
+              "type": "column",
+              "children": [
+                {
+                  "type": "kpi",
+                  "label": {
+                    "bind": {
+                      "dataset": "summary",
+                      "field": "2_of_5_identified_clients_label"
+                    }
+                  },
+                  "value": {
+                    "bind": {
+                      "dataset": "summary",
+                      "field": "2_of_5_identified_clients"
+                    }
+                  },
+                  "format": "percent"
+                },
+                {
+                  "type": "row",
+                  "children": [
+                    {
+                      "type": "kpi",
+                      "label": "Promesas",
+                      "value": {
+                        "bind": {
+                          "dataset": "summary",
+                          "field": "promises"
+                        }
+                      },
+                      "format": "number"
+                    },
+                    {
+                      "type": "kpi",
+                      "label": "Importe prometido",
+                      "value": {
+                        "bind": {
+                          "dataset": "summary",
+                          "field": "promised_amount"
+                        }
+                      },
+                      "format": "number"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "widths": [
+          2.03125,
+          1
+        ],
+        "height_mm": 112.889
+      },
+      {
+        "type": "row",
+        "children": [
+          {
+            "type": "card",
+            "title": "Calendario de pagos prometidos",
+            "content": {
+              "type": "bar",
+              "dataset": "payments",
+              "category": "category",
+              "value": "count",
+              "orientation": "vertical",
+              "show_labels": true
+            }
+          },
+          {
+            "type": "card",
+            "title": "Fecha del informe",
+            "content": {
+              "type": "kpi",
+              "label": "Cierre de campaña",
+              "value": {
+                "bind": {
+                  "dataset": "summary",
+                  "field": "report_date"
+                }
+              },
+              "format": "date"
+            }
+          }
+        ],
+        "height_mm": 141.111,
+        "widths": [
+          2,
+          1
+        ]
+      }
+    ],
+    "language": "es-MX",
+    "formatting": {
+      "decimal": ",",
+      "group": ".",
+      "date_format": "d 'de' MMMM 'de' yyyy"
+    }
+  }
+}

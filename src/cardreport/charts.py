@@ -4,6 +4,7 @@ from html import escape
 from typing import Any
 
 from .document import ChartData
+from .formatting import Formatting
 from .model import (
     BarChart,
     Chart,
@@ -16,9 +17,18 @@ from .validation import PALETTE, normalize_chart
 
 
 def chart_spec(
-    obj: Chart, theme: Theme, path: str, prepared: ChartData | None = None
+    obj: Chart,
+    theme: Theme,
+    path: str,
+    prepared: ChartData | None = None,
+    formatting: Formatting | None = None,
+    language: str = "en",
 ) -> dict[str, Any]:
-    normalized = prepared if prepared is not None else normalize_chart(obj, path)
+    normalized = (
+        prepared
+        if prepared is not None
+        else normalize_chart(obj, path, formatting, language)
+    )
     x = [escape(label) for label in normalized.labels]
     series = normalized.series
     data = []
@@ -98,6 +108,23 @@ def chart_spec(
         axis["tickformat"] = ".1%"
     elif obj.value_format == "integer":
         axis["tickformat"] = ",.0f"
+    if formatting is not None:
+        grouping = "," if formatting.group != "none" else ""
+        if isinstance(obj.value_format, Currency):
+            axis["tickformat"] = f"{grouping}.{formatting.currency_decimals}f"
+        elif obj.value_format == "percent":
+            axis["tickformat"] = f"{grouping}.{formatting.percent_decimals}%"
+        elif obj.value_format == "integer":
+            axis["tickformat"] = f"{grouping}.0f"
+        else:
+            axis["tickformat"] = f"{grouping}.{formatting.number_decimals}~f"
+        axis["exponentformat"] = "none"
+        if category["type"] == "date":
+            category.update(
+                tickmode="array",
+                tickvals=list(normalized.tick_values),
+                ticktext=[escape(t) for t in normalized.tick_labels],
+            )
     if horizontal:
         category["autorange"] = "reversed"
     layout = {
@@ -116,9 +143,15 @@ def chart_spec(
         "uniformtext": {"minsize": theme.font_size_pt * 96 / 72, "mode": "show"},
         "barmode": "stack" if getattr(obj, "mode", None) == "stacked" else "group",
     }
+    if formatting is not None:
+        layout["separators"] = formatting.decimal + (
+            formatting.group_character or ("." if formatting.decimal == "," else ",")
+        )
     return {
         "data": data,
         "layout": layout,
-        "categoryCount": len(x) if category["type"] == "category" else None,
+        "categoryCount": len(x)
+        if category["type"] == "category"
+        else (len(normalized.tick_values) if formatting is not None else None),
         "categoryAxis": ".y" if horizontal else ".x",
     }

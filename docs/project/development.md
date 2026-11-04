@@ -25,6 +25,7 @@ uv run --all-extras mypy
 uv run --all-extras python scripts/check_docs.py
 uv run --all-extras pytest -q --junitxml=local/ci-tests.xml
 uv run --all-extras python scripts/check_test_results.py local/ci-tests.xml
+uv run python scripts/release.py notes
 uv build --no-sources
 uvx --from twine==7.0.0 twine check --strict dist/*.whl dist/*.tar.gz
 uv run --all-extras python scripts/check_dist.py
@@ -55,7 +56,8 @@ visually when rendering changes. Do not publish local source evidence or reports
 
 README is the user entry point. Keep it focused on installation and a short Python
 example. Put tutorials in `docs/user`, the complete public contract in `api.md`, and
-implementation rationale in `docs/project`. Keep current facts out of dated history.
+implementation rationale in `docs/project`. User-visible changes belong in root
+`CHANGELOG.md`, linked from README and used as release notes. Keep current facts out of dated history.
 The renderer capability table has one authoritative home in user documentation.
 
 Runnable snippets use only public imports (except clearly labelled repository

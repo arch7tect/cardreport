@@ -49,10 +49,18 @@ def main() -> None:
             if any(not u.startswith(("data:", "blob:", "about:")) for u in requests):
                 raise RenderError("Unexpected external resource request")
             data = page.pdf(print_background=True, prefer_css_page_size=True, scale=1)
-            from pypdf import PdfReader
+            from pypdf import PdfReader, PdfWriter
+            from pypdf.generic import NameObject, TextStringObject
 
             if len(PdfReader(io.BytesIO(data)).pages) != state["pages"]:
                 raise RenderError("Printed page count differs from measured layout")
+            writer = PdfWriter(clone_from=io.BytesIO(data))
+            writer.root_object[NameObject("/Lang")] = TextStringObject(
+                page.evaluate("document.documentElement.lang")
+            )
+            output = io.BytesIO()
+            writer.write(output)
+            data = output.getvalue()
             context.close()
         finally:
             browser.close()

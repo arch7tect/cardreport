@@ -7,6 +7,7 @@ from io import StringIO
 from typing import Any
 from xml.etree import ElementTree as ET
 
+from .formatting import Formatting
 from .model import Currency, Format, LayoutOverflowError, format_value
 
 
@@ -27,6 +28,9 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
     )
     fmt: Format = (
         Currency(spec["format"]) if len(spec["format"]) == 3 else spec["format"]
+    )
+    formatting = (
+        Formatting(**spec["formatting"]) if spec.get("formatting") is not None else None
     )
     with rc_context():
         rcdefaults()
@@ -51,14 +55,14 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
             ax.set_yticks(positions, spec["labels"])
             ax.invert_yaxis()
             ax.xaxis.set_major_formatter(
-                FuncFormatter(lambda v, _: format_value(v, fmt))
+                FuncFormatter(lambda v, _: format_value(v, fmt, formatting))
             )
             ax.margins(x=0.22)
         else:
             bars = ax.bar(positions, spec["values"], color=spec["color"])
             ax.set_xticks(positions, spec["labels"])
             ax.yaxis.set_major_formatter(
-                FuncFormatter(lambda v, _: format_value(v, fmt))
+                FuncFormatter(lambda v, _: format_value(v, fmt, formatting))
             )
             ax.margins(y=0.22)
         if fmt == "integer":

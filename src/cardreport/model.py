@@ -6,12 +6,13 @@ import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
+from decimal import ROUND_HALF_EVEN, Context, Decimal, InvalidOperation, localcontext
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Literal, Self
 
 if TYPE_CHECKING:
+    from .formatting import Formatting
     from .renderers import Renderer
 import math
 import re
@@ -181,7 +182,7 @@ class TableColumn:
 class Table:
     columns: Sequence[TableColumn]
     rows: Sequence[Mapping[str, Value]]
-    empty_text: str = "No data"
+    empty_text: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "columns", sequence(self.columns, "table.columns"))
@@ -278,7 +279,12 @@ def check_format(fmt: object, path: str) -> None:
         raise ValidationError(f"{path}: unsupported format")
 
 
-def format_value(v: object, fmt: Format = "number") -> str:
+def format_value(
+    v: object,
+    fmt: Format = "number",
+    formatting: Formatting | None = None,
+    language: str = "en",
+) -> str:
     check_format(fmt, "format")
     if v is None:
         return "—"
@@ -287,31 +293,53 @@ def format_value(v: object, fmt: Format = "number") -> str:
     if isinstance(v, datetime):
         if v.utcoffset() is None:
             raise ValidationError("value: naive datetime is unsupported")
+        if formatting is not None:
+            return formatting.dates(v, date_only=fmt == "date", language=language)
         normalized = v.astimezone(UTC)
         return (
             normalized.date().isoformat() if fmt == "date" else normalized.isoformat()
         )
     if isinstance(v, date):
-        return v.isoformat()
+        return (
+            v.isoformat()
+            if formatting is None
+            else formatting.dates(v, date_only=True, language=language)
+        )
     number(v, "value")
     if fmt == "date":
         raise ValidationError("value: date format requires a date")
-    n = Decimal(str(v))
-    digits = 2
-    if fmt == "integer":
-        digits = 0
-    if fmt == "percent":
-        n *= 100
-        digits = 1
-    try:
-        n = n.quantize(Decimal(10) ** -digits, rounding=ROUND_HALF_EVEN)
-    except InvalidOperation:
-        raise ValidationError("value: cannot format number") from None
-    if not n:
-        n = abs(n)
-    result = f"{n:,.{digits}f}"
+    # A caller's Decimal precision/traps must not change report formatting.
+    with localcontext(
+        Context(prec=40, rounding=ROUND_HALF_EVEN, traps=[InvalidOperation])
+    ):
+        n = Decimal(str(v))
+        digits = (
+            (
+                formatting.currency_decimals
+                if isinstance(fmt, Currency)
+                else formatting.number_decimals
+            )
+            if formatting
+            else 2
+        )
+        if fmt == "integer":
+            digits = 0
+        if fmt == "percent":
+            n *= 100
+            digits = formatting.percent_decimals if formatting else 1
+        try:
+            n = n.quantize(Decimal(10) ** -digits, rounding=ROUND_HALF_EVEN)
+        except InvalidOperation as exc:
+            raise ValidationError("value: cannot format number") from exc
+        if not n:
+            n = abs(n)
+        result = f"{n:,.{digits}f}"
     if fmt == "number":
         result = result.rstrip("0").rstrip(".") if "." in result else result
+    if formatting is not None:
+        result = result.translate(
+            {ord("."): formatting.decimal, ord(","): formatting.group_character}
+        )
     if fmt == "percent":
         result += "%"
     if isinstance(fmt, Currency):
@@ -328,7 +356,16 @@ class Report:
         mode: Literal["dashboard", "flow"] = "dashboard",
         page: Page | None = None,
         theme: Theme | None = None,
+        language: str = "en",
+        formatting: Formatting | None = None,
+        empty_text: str | None = None,
     ) -> None:
+        from .formatting import Formatting, language_tag
+
+        if formatting is not None and not isinstance(formatting, Formatting):
+            raise ValidationError("formatting: expected Formatting")
+        self.language = language_tag(language)
+        self.formatting, self.empty_text = formatting, empty_text
         self.title, self.subtitle, self.mode = title, subtitle, mode
         self.page, self.theme = (
             page if page is not None else Page(),

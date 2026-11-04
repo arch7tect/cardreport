@@ -123,3 +123,11 @@ unsupported features explicitly and clean up owned processes on failure.
 Strings are unescaped; escape for the output format. Do not expose private renderer
 objects through public components. See [extension data](api.md#extension-data).
 Implementation rationale belongs in [project architecture](../project/architecture.md).
+
+## Language and display settings
+
+Both engines consume report language, formatting and resolved empty text from the
+validated snapshot. They emit HTML language and PDF `/Lang`. Both support customized
+numeric separators/precision within their existing chart capabilities. Chromium
+date axes use preformatted sampled input positions when formatting is explicit.
+See [format rules and compatibility](localization.md#chart-axes-and-compatibility).

@@ -23,7 +23,9 @@ checks run during `validate()` or export. Handle errors around composition too.
 ```text
 Report(title: str = "", *, subtitle: str = "",
        mode: Literal["dashboard", "flow"] = "dashboard",
-       page: Page | None = None, theme: Theme | None = None)
+       page: Page | None = None, theme: Theme | None = None,
+       language: str = "en", formatting: Formatting | None = None,
+       empty_text: str | None = None)
 
 add(block: Block) -> Self
 row(*children: Component, widths: Sequence[float] | None = None,
@@ -246,7 +248,7 @@ apply to numeric/date values; strings remain literal even with the default forma
 
 ```text
 Table(columns: Sequence[TableColumn], rows: Sequence[Mapping[str, Value]],
-      empty_text: str = "No data")
+      empty_text: str | None = None)
 ```
 
 One to 20 columns; every row must contain each column key. Extra keys are ignored.
@@ -351,9 +353,41 @@ against a currency registry is not performed. Numeric rounding is half-even.
 None displays an em dash in KPI/tables. Strings pass through literally; they are
 not parsed as numbers/dates. Dates display ISO dates. Aware datetimes normalize
 to UTC, displaying an ISO timestamp except with `date`, which displays its date.
-Numeric values cannot use `date`. Currency always uses two decimals; locale and
+Numeric values cannot use `date`. These are the defaults without report formatting.
+Precision and date patterns can be customized through [Formatting](#language-and-formatting);
 currency-specific minor-unit rules are not inferred. Chart coordinates convert
 to floats, while value labels are formatted from the original values.
+
+## Language and formatting
+
+```text
+Formatting(decimal: Literal[".", ","] = ".",
+           group: Literal[",", ".", "'", "space", "none"] = ",",
+           number_decimals: int = 2, percent_decimals: int = 1,
+           currency_decimals: int = 2,
+           date_format: str | None = None, datetime_format: str | None = None,
+           locale: str | None = None)
+```
+
+A frozen, typed display-settings record. `Report(language="en", formatting=None,
+empty_text=None)` owns these options, and its validated `ReportDocument` stores
+canonical language, optional formatting and resolved empty text as trailing fields
+with defaults. `ChartData` adds default-empty `tick_values` and `tick_labels` tuples
+for preformatted date-axis labels. Renderer protocol signatures are unchanged.
+
+Language tags are not restricted to a product allowlist. Decimal precision is 0..6;
+number precision is a maximum, percent/currency precision is fixed. Date patterns
+use Babel LDML, up to 200 characters. The effective date locale is the explicit
+Formatting locale or the report language. No system locale, currency or timezone
+is inferred. Custom datetime patterns intentionally select the displayed precision.
+
+`Table.empty_text=None` inherits the report message; explicit strings, including
+empty strings, override it. Built-in English/Spanish/Russian empty labels fall back
+to English for other languages; `Report.empty_text` customizes empty charts too.
+
+Omitted formatting preserves legacy axes; explicit settings control their labels.
+See [language and display formats](localization.md) for language/font boundaries,
+date/time rules, examples, sampled date ticks and scalar/axis rounding differences.
 
 ## Types
 
@@ -415,10 +449,12 @@ build Report rather than construct snapshots manually.
 
 ```text
 ChartSeries(name: str, values: tuple[float | None, ...], labels: tuple[str, ...])
-ChartData(labels: tuple[str, ...], series: tuple[ChartSeries, ...])
+ChartData(labels: tuple[str, ...], series: tuple[ChartSeries, ...],
+          tick_values: tuple[str, ...] = (), tick_labels: tuple[str, ...] = ())
 ReportDocument(title: str, subtitle: str, mode: Literal["dashboard", "flow"],
                page: Page, theme: Theme, blocks: tuple[Block, ...],
-               charts: Mapping[str, ChartData])
+               charts: Mapping[str, ChartData], language: str = "en",
+               formatting: Formatting | None = None, empty_text: str = "No data")
 ```
 
 `ChartData.labels` contains raw categories or normalized ISO dates. Series values

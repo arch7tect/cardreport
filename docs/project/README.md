@@ -36,3 +36,7 @@ should begin with the [quickstart](../user/quickstart.md) and [API reference](..
 Other dated [review records](history/reviews) preserve the earlier discussions.
 History documents record what was decided/tested at that time; they are not the
 current user API specification. No report evidence or original source PDF is published.
+
+Language, formatting and template compatibility are described in the
+[architecture](architecture.md#report-display-context) and [user contract](../user/localization.md).
+User-facing release history lives in [What’s new](../../CHANGELOG.md).

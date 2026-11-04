@@ -16,6 +16,7 @@ from cardreport import (
     Dataset,
     DatasetSchema,
     FieldSpec,
+    Formatting,
     LineChart,
     PageBreak,
     Report,
@@ -64,3 +65,8 @@ DatasetSchema({"n": "integer"})  # type: ignore[dict-item]
 template.bind({"summary": [{"total": 12}]})  # type: ignore[dict-item]
 from_csv("x.csv")  # type: ignore[call-arg]
 from_pandas([], schema=schema)  # type: ignore[arg-type]
+
+f = Formatting(date_format="dd/MM/yyyy", number_decimals=3)
+assert_type(Report(language="es-MX", formatting=f).formatting, Formatting | None)
+Formatting(number_decimals="2")  # type: ignore[arg-type]
+Report(formatting={})  # type: ignore[arg-type]

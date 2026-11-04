@@ -49,6 +49,30 @@ retaining rates. Both use the same presentation, which produces the same normali
 model as the original Python builder. [Dataset adapters](datasets.md) can replace
 the JSON inputs with CSV or pandas snapshots; the template is unchanged.
 
+## Spanish reference report
+
+[spanish_report.py](../../examples/spanish_report.py) binds
+[spanish_template.json](../../examples/spanish_template.json) to
+[spanish_data.json](../../examples/spanish_data.json). It translates the reference
+labels, preserves the aggregate discrepancy, and adds a typed report-date KPI to
+show a custom Spanish month-name pattern. Preformatted category strings and notes
+are translated by the application; the engine formats native numbers/dates.
+
+```python
+from examples.spanish_report import build_report as build_spanish
+from cardreport import WeasyPrintRenderer
+
+spanish = build_spanish()
+html = spanish.to_html()
+pdf = spanish.to_pdf()
+static_pdf = spanish.to_pdf(renderer=WeasyPrintRenderer())
+assert "4 de noviembre de 2026" in html
+```
+
+This uses the same public embedding API as the English reference. Installation
+from a wheel provides the library; example source/JSON files live in the repository
+and source distribution. See [language and formats](localization.md) for settings.
+
 ## Long table
 
 [flow_report.py](../../examples/flow_report.py) demonstrates a 120-row table with

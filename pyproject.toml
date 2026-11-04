@@ -1,6 +1,6 @@
 [project]
 name = "cardreport"
-version = "0.2.1"
+version = "0.3.0"
 description = "Composable Python reports with cards, constrained charts, and HTML-to-PDF output"
 readme = "README.md"
 authors = [{ name = "Oleg Orlov" }]
@@ -8,8 +8,10 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
+    "babel>=2.17,<3",
     "fonttools>=4.59,<5",
     "jinja2>=3.1,<4",
+    "langcodes>=3.5,<4",
     "plotly>=6.9,<7",
 ]
 
@@ -59,7 +61,7 @@ strict = true
 files = ["src/cardreport", "tests/typing_cases.py", "examples", "scripts"]
 
 [[tool.mypy.overrides]]
-module = ["cardreport.model", "cardreport.document", "cardreport.renderers", "cardreport.data", "cardreport.templates", "cardreport._inputs", "cardreport.adapters.*"]
+module = ["cardreport.model", "cardreport.formatting", "cardreport.document", "cardreport.renderers", "cardreport.data", "cardreport.templates", "cardreport._inputs", "cardreport.adapters.*"]
 disallow_any_explicit = true
 
 [[tool.mypy.overrides]]

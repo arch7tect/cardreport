@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
+from .formatting import Formatting
 from .model import Block, Page, Theme
 
 
@@ -18,6 +19,8 @@ class ChartSeries:
 class ChartData:
     labels: tuple[str, ...]
     series: tuple[ChartSeries, ...]
+    tick_values: tuple[str, ...] = ()
+    tick_labels: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -29,3 +32,6 @@ class ReportDocument:
     theme: Theme
     blocks: tuple[Block, ...]
     charts: Mapping[str, ChartData]
+    language: str = "en"
+    formatting: Formatting | None = None
+    empty_text: str = "No data"

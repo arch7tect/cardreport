@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import time
+from dataclasses import asdict
 from html import escape
 
 from .document import ReportDocument
@@ -44,9 +45,14 @@ class WeasyPrintRenderer:
             data = doc.charts[path]
             attrs = f'data-kind="BarChart" data-path="{path}"'
             if not data.labels:
-                return f'<div class="empty-chart" {attrs}>No data</div>'
+                return (
+                    f'<div class="empty-chart" {attrs}>{escape(doc.empty_text)}</div>'
+                )
             charts[path] = {
                 "labels": data.labels,
+                "formatting": asdict(doc.formatting)
+                if doc.formatting is not None
+                else None,
                 "values": data.series[0].values,
                 "value_labels": data.series[0].labels,
                 "horizontal": obj.orientation == "horizontal",
@@ -73,7 +79,14 @@ class WeasyPrintRenderer:
                 current = ""
                 has_content = False
                 pending_break = False
-            current += render_block(block, f"blocks.{i}", chart)
+            current += render_block(
+                block,
+                f"blocks.{i}",
+                chart,
+                formatting=doc.formatting,
+                language=doc.language,
+                empty_text=doc.empty_text,
+            )
             has_content = True
         segments.append(current)
         if len(segments) > MAX_PAGES:
@@ -96,7 +109,7 @@ class WeasyPrintRenderer:
 .chart svg{{display:block}} .page{{break-before:auto}}
 """
         )
-        html = f'<!doctype html><html><head><meta charset="utf-8"><title>{escape(doc.title or "Report")}</title><style>{styles}</style></head><body>{content}</body></html>'
+        html = f'<!doctype html><html lang="{escape(doc.language, quote=True)}"><head><meta charset="utf-8"><title>{escape(doc.title or "Report")}</title><style>{styles}</style></head><body>{content}</body></html>'
         payload = json.dumps(
             {"html": html, "charts": charts, "pages": len(segments), "pdf": pdf}
         ).encode()

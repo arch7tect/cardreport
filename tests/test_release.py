@@ -173,3 +173,78 @@ def test_pypi_recovery_requires_completed_main_release(tmp_path, monkeypatch):
     assert commands == [("git", "merge-base", "--is-ancestor", SHA, "origin/main")]
     with pytest.raises(ValueError):
         release.download_release(tmp_path, "v../../main")
+
+
+def test_changelog_exact_section():
+    from scripts.release import changelog_notes
+
+    source = "# What's new\n\n## Unreleased\n\n## 0.3.10 — 2026-11-04\n\n- Ten.\n\n## 0.3.1 — 2026-11-03\n\n- One.\n"
+    assert changelog_notes("0.3.1", source) == "- One.\n"
+    with pytest.raises(ValueError, match="missing"):
+        changelog_notes("0.3.0", source)
+    with pytest.raises(ValueError, match="unique"):
+        changelog_notes("0.3.1", source + "\n## 0.3.1 — 2026-11-03\n- Duplicate.\n")
+    with pytest.raises(ValueError, match="empty"):
+        changelog_notes("0.3.1", source.replace("- One.", "### Added"))
+    with pytest.raises(ValueError):
+        changelog_notes("0.3.1", source.replace("2026-11-03", "2026-02-30"))
+
+
+def test_new_release_checks_notes_before_tag(tmp_path, monkeypatch):
+    import scripts.release as release
+
+    bundle(tmp_path)
+    monkeypatch.setattr(release, "tags", lambda: {})
+    calls = []
+
+    def run(*args):
+        calls.append(args)
+        return "## Unreleased\n"
+
+    monkeypatch.setattr(release, "run", run)
+    with pytest.raises(ValueError, match="missing"):
+        release.publish_github(tmp_path, "0.2.1", SHA)
+    assert ("git", "show", f"{SHA}:CHANGELOG.md") in calls
+    assert not any("tag" in call or "create" in call for call in calls)
+
+
+@pytest.mark.parametrize("draft", [True, False])
+def test_changelog_retry_uses_reserved_commit_and_never_edits_published(
+    tmp_path, monkeypatch, draft
+):
+    import scripts.release as release
+
+    version = "0.3.0"
+    for name in filenames(version):
+        (tmp_path / name).write_bytes(name.encode())
+    freeze(tmp_path, version, SHA)
+    names = filenames(version) | {"release.json"}
+    monkeypatch.setattr(release, "tags", lambda: {"v0.3.0": SHA})
+    monkeypatch.setattr(
+        release,
+        "release_info",
+        lambda tag: {"isDraft": draft, "assets": [{"name": name} for name in names]},
+    )
+    calls = []
+
+    def run(*args):
+        calls.append(args)
+        if args[:2] == ("git", "show"):
+            assert args[2] == f"{SHA}:CHANGELOG.md"
+            return "## Unreleased\n\n## 0.3.0 — 2026-11-04\n\n- Verified notes.\n"
+        if args[:3] == ("gh", "release", "download"):
+            name = args[args.index("--pattern") + 1]
+            (Path(args[args.index("--dir") + 1]) / name).write_bytes(
+                (tmp_path / name).read_bytes()
+            )
+        if "--notes-file" in args:
+            assert (
+                Path(args[args.index("--notes-file") + 1]).read_text()
+                == "- Verified notes.\n"
+            )
+        return ""
+
+    monkeypatch.setattr(release, "run", run)
+    release.publish_github(tmp_path, version, SHA)
+    assert any("--notes-file" in call for call in calls) == draft
+    assert not any("upload" in call or "create" in call for call in calls)

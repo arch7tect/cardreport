@@ -1,0 +1,45 @@
+"""Spanish presentation of the original reference data, with explicit display settings."""
+
+import argparse
+from pathlib import Path
+
+from cardreport import Report, ReportTemplate, WeasyPrintRenderer, datasets_from_json
+
+EXAMPLES = Path(__file__).resolve().parent
+
+
+def build_report(data_path: Path | None = None) -> Report:
+    template = ReportTemplate.from_json(
+        (EXAMPLES / "spanish_template.json").read_bytes()
+    )
+    data = datasets_from_json(
+        (data_path or EXAMPLES / "spanish_data.json").read_bytes()
+    )
+    return template.bind(data)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data", type=Path)
+    parser.add_argument("--output", type=Path, default=Path("output/spanish"))
+    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--renderer", choices=["chromium", "weasyprint"], default="chromium"
+    )
+    args = parser.parse_args()
+    report = build_report(args.data)
+    renderer = WeasyPrintRenderer() if args.renderer == "weasyprint" else None
+    report.write_pdf(
+        args.output / "spanish_report.pdf",
+        overwrite=args.overwrite,
+        renderer=renderer,
+    )
+    report.write_html(
+        args.output / "spanish_report.html",
+        overwrite=args.overwrite,
+        renderer=renderer,
+    )
+
+
+if __name__ == "__main__":
+    main()

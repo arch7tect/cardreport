@@ -121,7 +121,12 @@ def main() -> None:
             template.bind(
                 datasets_from_json((examples / filename).read_bytes())
             ).validate()
-        print("Validated the published template and both data JSON fixtures")
+        ReportTemplate.from_json(
+            (examples / "spanish_template.json").read_bytes()
+        ).bind(
+            datasets_from_json((examples / "spanish_data.json").read_bytes())
+        ).validate()
+        print("Validated reference and Spanish template/data JSON fixtures")
         check_examples([ROOT / "README.md", *sorted(ROOT.glob("docs/user/*.md"))])
 
 

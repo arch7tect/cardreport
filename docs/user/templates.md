@@ -47,7 +47,7 @@ and data versions are separate. Neither envelope contains connection credentials
 ## Vocabulary and bindings
 
 The envelope has exactly format, datasets and report. Report requires blocks (an array, possibly empty) and accepts optional
-title/subtitle/mode/page/theme with the [Python API](api.md)'s defaults. Each dataset
+title/subtitle/mode/page/theme/language/formatting/empty_text with the [Python API](api.md)'s defaults. Each dataset
 has fields and cardinality one/many. Fields require type and optionally nullable
 (default false); all declared datasets and fields are required at bind, even when
 unused. Extra data columns/datasets remain permitted within data bounds.
@@ -97,3 +97,31 @@ experimental renderer retain their [documented limits](renderers.md#capabilities
 Template JSON is limited to 1 MiB and nesting depth 64; the constructed component
 tree also obeys the existing depth/count limits. The format is provisional, version
 1; unsupported versions fail explicitly. YAML and JSON Schema files are deferred.
+
+## Display settings
+
+The optional report fields `language`, `formatting` and `empty_text` are supported
+in `cardreport.template/1` starting with CardReport 0.3.0. The format identifier is
+unchanged by the owner's pre-adoption compatibility decision; older packages reject
+these new keys. Existing templates retain their behavior. Data remains `cardreport.data/1`.
+
+```python
+localized_spec = template.to_dict()
+localized_spec["report"]["language"] = "es-MX"
+localized_spec["report"]["formatting"] = {
+    "decimal": ",", "group": ".", "number_decimals": 2,
+    "date_format": "d 'de' MMMM 'de' yyyy",
+}
+localized = ReportTemplate.from_dict(localized_spec)
+assert localized.bind({"summary": Dataset.single({"total": 34})}).language == "es-MX"
+```
+
+`formatting` is an object with the [Formatting fields](api.md#language-and-formatting).
+Omitting it means legacy axes; `{}` means explicit defaults. JSON `null` is not a
+formatting object. `date_format`, `datetime_format` and `locale` may be omitted or
+null. Report/table `empty_text` may be omitted/null to inherit, or a literal string.
+These options are static presentation settings, not data bindings. Serialization
+preserves the missing-vs-explicit distinction. No dataset/CSV parsing changes occur.
+
+See [spanish_template.json](../../examples/spanish_template.json) and
+[spanish_data.json](../../examples/spanish_data.json) for the complete example.

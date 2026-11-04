@@ -151,3 +151,7 @@ pdf = render_template(template_json, datasets)
 See the [template guide](templates.md) for a small complete definition and
 [datasets](datasets.md) for native rows, typed JSON, single-file CSV and pandas.
 The examples package is checkout-only; the function above uses installed public APIs.
+
+For report language tags and custom number/date display, see
+[language and formatting](localization.md). The [Spanish reference](examples.md#spanish-reference-report)
+shows the same settings in JSON and application embedding.

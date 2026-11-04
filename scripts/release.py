@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import tomllib
 from collections.abc import Mapping
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
@@ -33,6 +34,45 @@ def project_version() -> str:
     )
     version_key(version)
     return version
+
+
+def changelog_notes(version: str, source: str) -> str:
+    """Extract one dated entry, refusing ambiguous or incomplete release notes."""
+    version_key(version)
+    sections = list(re.finditer(r"^## (.+)$", source, re.MULTILINE))
+    if not sections or sections[0].group(1) != "Unreleased":
+        raise ValueError("changelog must start with an Unreleased section")
+    known: list[str] = []
+    result = None
+    for i, section in enumerate(sections[1:], 1):
+        match = re.fullmatch(r"(\d+\.\d+\.\d+) — (\d{4}-\d{2}-\d{2})", section.group(1))
+        if match is None:
+            raise ValueError("invalid changelog version heading")
+        current, released = match.groups()
+        date.fromisoformat(released)
+        version_key(current)
+        if current in known or (
+            known and version_key(current) >= version_key(known[-1])
+        ):
+            raise ValueError("changelog versions must be unique and descending")
+        known.append(current)
+        if current == version:
+            end = sections[i + 1].start() if i + 1 < len(sections) else len(source)
+            body = source[section.end() : end].strip()
+            if not body or not any(
+                line.strip() and not line.startswith("#") for line in body.splitlines()
+            ):
+                raise ValueError("empty changelog version section")
+            result = body + "\n"
+    if result is None:
+        raise ValueError("missing changelog version section")
+    return result
+
+
+def release_notes(version: str, sha: str) -> str:
+    if not SHA.fullmatch(sha):
+        raise ValueError("invalid commit SHA")
+    return changelog_notes(version, run("git", "show", f"{sha}:CHANGELOG.md"))
 
 
 def tags() -> dict[str, str]:
@@ -170,6 +210,11 @@ def publish_github(directory: Path, version: str, sha: str) -> None:
     if action == "skip":
         raise ValueError("this version belongs to a different commit")
     tag = "v" + version
+    notes = (
+        release_notes(version, sha)
+        if action == "new" or version_key(version) >= (0, 3, 0)
+        else None
+    )
     if action == "new":
         run(
             "git",
@@ -186,21 +231,40 @@ def publish_github(directory: Path, version: str, sha: str) -> None:
         )
         run("git", "push", "origin", f"refs/tags/{tag}")
     info = release_info(tag)
-    if info is None:
-        run(
-            "gh",
-            "release",
-            "create",
-            tag,
-            "--repo",
-            REPO,
-            "--verify-tag",
-            "--draft",
-            "--title",
-            f"CardReport {version}",
-            "--generate-notes",
-        )
-        info = release_info(tag)
+    with tempfile.TemporaryDirectory() as temporary:
+        notes_path = Path(temporary) / "notes.md"
+        if notes is not None:
+            notes_path.write_text(notes, encoding="utf-8")
+        if info is None:
+            run(
+                "gh",
+                "release",
+                "create",
+                tag,
+                "--repo",
+                REPO,
+                "--verify-tag",
+                "--draft",
+                "--title",
+                f"CardReport {version}",
+                *(
+                    ["--notes-file", str(notes_path)]
+                    if notes is not None
+                    else ["--generate-notes"]
+                ),
+            )
+            info = release_info(tag)
+        elif info["isDraft"] and notes is not None:
+            run(
+                "gh",
+                "release",
+                "edit",
+                tag,
+                "--repo",
+                REPO,
+                "--notes-file",
+                str(notes_path),
+            )
     assert info is not None
     assets = info["assets"]
     if not isinstance(assets, list):
@@ -264,7 +328,7 @@ def download_release(directory: Path, tag: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "command", choices=["plan", "freeze", "restore", "github", "download"]
+        "command", choices=["plan", "freeze", "restore", "github", "download", "notes"]
     )
     parser.add_argument("--dist", type=Path, default=Path("dist"))
     parser.add_argument("--tag")
@@ -275,8 +339,16 @@ def main() -> None:
         download_release(args.dist, args.tag)
         return
     version, sha = project_version(), run("git", "rev-parse", "HEAD")
-    if args.command == "plan":
-        output(action=plan(version, sha, tags()), version=version, tag="v" + version)
+    if args.command == "notes":
+        print(
+            changelog_notes(version, Path("CHANGELOG.md").read_text(encoding="utf-8")),
+            end="",
+        )
+    elif args.command == "plan":
+        action = plan(version, sha, tags())
+        if action == "new":
+            release_notes(version, sha)
+        output(action=action, version=version, tag="v" + version)
     elif args.command == "freeze":
         freeze(args.dist, version, sha)
     elif args.command == "restore":

@@ -11,6 +11,7 @@ from importlib.resources import files
 from jinja2 import Environment
 
 from .document import ReportDocument
+from .formatting import Formatting
 from .model import (
     KPI,
     BarChart,
@@ -43,6 +44,9 @@ def render_block(
     path: str,
     chart: Callable[[Chart, str, bool], str],
     definite: bool = False,
+    formatting: Formatting | None = None,
+    language: str = "en",
+    empty_text: str = "No data",
 ) -> str:
     """Emit validated content. Chart markup and page placement belong to the engine."""
     kind = type(obj).__name__
@@ -56,7 +60,7 @@ def render_block(
             else f'<div class="card-title">{escape(obj.title)}</div>'
         )
         minimum = " kpi-card" if isinstance(obj.content, KPI) else ""
-        return f'<div class="card{minimum}" data-has-title="{str(obj.title is not None).lower()}" {attrs}>{head}<div class="card-content">{render_block(obj.content, path + ".content", chart, definite)}</div></div>'
+        return f'<div class="card{minimum}" data-has-title="{str(obj.title is not None).lower()}" {attrs}>{head}<div class="card-content">{render_block(obj.content, path + ".content", chart, definite, formatting, language, empty_text)}</div></div>'
     if isinstance(obj, (Row, Column)):
         fixed = definite
         style = ""
@@ -80,7 +84,9 @@ def render_block(
         else:
             fixed = False
         kids = "".join(
-            render_block(c, f"{path}.{i}", chart, fixed)
+            render_block(
+                c, f"{path}.{i}", chart, fixed, formatting, language, empty_text
+            )
             for i, c in enumerate(obj.children)
         )
         return f'<div class="{kind.lower()}" {attrs} style="{style}">{kids}</div>'
@@ -92,7 +98,7 @@ def render_block(
             if obj.note is None
             else f'<div class="kpi-note">{escape(obj.note)}</div>'
         )
-        return f'<div class="kpi" {attrs}><div class="kpi-value">{escape(format_value(obj.value, obj.format))}</div><div>{escape(obj.label)}</div>{note}</div>'
+        return f'<div class="kpi" {attrs}><div class="kpi-value">{escape(format_value(obj.value, obj.format, formatting, language))}</div><div>{escape(obj.label)}</div>{note}</div>'
     if isinstance(obj, Table):
         heads = "".join(
             f'<th style="text-align:{c.align}">{escape(c.label)}</th>'
@@ -105,7 +111,7 @@ def render_block(
         rows = [
             "<tr>"
             + "".join(
-                f'<td style="text-align:{c.align}">{escape(format_value(row[c.key], c.format))}</td>'
+                f'<td style="text-align:{c.align}">{escape(format_value(row[c.key], c.format, formatting, language))}</td>'
                 for c in obj.columns
             )
             + "</tr>"
@@ -113,7 +119,7 @@ def render_block(
         ]
         if not rows:
             rows = [
-                f'<tr><td colspan="{len(obj.columns)}">{escape(obj.empty_text)}</td></tr>'
+                f'<tr><td colspan="{len(obj.columns)}">{escape(empty_text if obj.empty_text is None else obj.empty_text)}</td></tr>'
             ]
         return f"<table {attrs}><colgroup>{cols}</colgroup><thead><tr>{heads}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
     if isinstance(obj, (BarChart, LineChart, Funnel)):
@@ -155,15 +161,25 @@ def render_html(report: ReportDocument) -> str:
 
     def chart(obj: Chart, path: str, definite: bool) -> str:
         ident = "chart" + str(len(charts))
-        spec = chart_spec(obj, report.theme, path, report.charts[path])
+        spec = chart_spec(
+            obj, report.theme, path, report.charts[path], report.formatting
+        )
         charts[ident] = spec
         attrs = f'data-kind="{type(obj).__name__}" data-path="{path}"'
         if not spec["data"]:
-            return f'<div class="empty-chart" {attrs}>No data</div>'
+            return f'<div class="empty-chart" {attrs}>{escape(report.empty_text)}</div>'
         return f'<div class="chart" {attrs} id="{ident}" data-definite="{str(definite).lower()}"></div>'
 
     content = "".join(
-        render_block(n, f"blocks.{i}", chart) for i, n in enumerate(report.blocks)
+        render_block(
+            n,
+            f"blocks.{i}",
+            chart,
+            formatting=report.formatting,
+            language=report.language,
+            empty_text=report.empty_text,
+        )
+        for i, n in enumerate(report.blocks)
     )
     from plotly.offline import get_plotlyjs
 
@@ -180,6 +196,7 @@ def render_html(report: ReportDocument) -> str:
                 {"mode": report.mode, "charts": charts, "pageLimit": MAX_PAGES}
             ),
             script=asset.joinpath("layout.js").read_text(),
+            language=report.language,
             title=report.title or "Report",
         )
     )

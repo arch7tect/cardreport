@@ -1,0 +1,114 @@
+{
+  "format": "cardreport.data/1",
+  "datasets": {
+    "summary": {
+      "columns": [
+        "clients",
+        "call_attempted",
+        "call_attempted_note",
+        "not_yet_called",
+        "not_yet_called_note",
+        "2_of_5_identified_clients",
+        "2_of_5_identified_clients_label",
+        "promises",
+        "promised_amount",
+        "report_date"
+      ],
+      "rows": [
+        {
+          "clients": 21,
+          "call_attempted": 21,
+          "call_attempted_note": "100,0%",
+          "not_yet_called": 0,
+          "not_yet_called_note": "0,0%",
+          "2_of_5_identified_clients": 0.4,
+          "2_of_5_identified_clients_label": "2 de 5 clientes identificados",
+          "promises": 2,
+          "promised_amount": 0,
+          "report_date": {
+            "$type": "date", "value": "2026-11-04"
+          }
+        }
+      ]
+    },
+    "funnel": {
+      "columns": [
+        "category",
+        "count"
+      ],
+      "rows": [
+        {
+          "category": "1. Intento de llamada",
+          "count": 21
+        },
+        {
+          "category": "2. Respuesta humana",
+          "count": 5
+        },
+        {
+          "category": "3. Identidad confirmada",
+          "count": 5
+        },
+        {
+          "category": "4. Promesa de pago",
+          "count": 2
+        }
+      ]
+    },
+    "attempts": {
+      "columns": [
+        "category",
+        "count"
+      ],
+      "rows": [
+        {
+          "category": "1. Todos los intentos",
+          "count": 34
+        },
+        {
+          "category": "2. Sin respuesta / ocupado / buzón",
+          "count": 10
+        },
+        {
+          "category": "3. Respuesta humana",
+          "count": 24
+        },
+        {
+          "category": "4. Error técnico",
+          "count": 0
+        }
+      ]
+    },
+    "outcomes": {
+      "columns": [
+        "outcome",
+        "clients",
+        "rate"
+      ],
+      "rows": [
+        {
+          "outcome": "Promesa de pago",
+          "clients": 3,
+          "rate": 0.6
+        },
+        {
+          "outcome": "Rechazo",
+          "clients": 2,
+          "rate": 0.4
+        }
+      ]
+    },
+    "payments": {
+      "columns": [
+        "category",
+        "count"
+      ],
+      "rows": [
+        {
+          "category": "2026-11-04",
+          "count": 2
+        }
+      ]
+    }
+  }
+}

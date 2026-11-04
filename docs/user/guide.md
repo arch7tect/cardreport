@@ -69,7 +69,8 @@ table = Table(
 Use fractions for percentages. None displays an em dash in KPI/table cells and a
 gap in line charts; it is invalid in bar/funnel values. Dates and aware datetimes
 are supported, with datetime normalization to UTC. Formatting uses fixed separators
-and half-even rounding, independent of the machine locale. See [formats](api.md#currency-and-formatting).
+and half-even rounding, independent of the machine locale. Report-wide [display settings](localization.md)
+customize separators, precision and date patterns. See [formats](api.md#currency-and-formatting).
 
 ## Explicit dashboard pages
 

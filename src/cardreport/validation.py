@@ -13,6 +13,7 @@ from types import MappingProxyType
 from fontTools.ttLib import TTFont
 
 from .document import ChartData, ChartSeries, ReportDocument
+from .formatting import Formatting, date_locale, empty_label, language_tag
 from .model import (
     KPI,
     BarChart,
@@ -80,11 +81,18 @@ def weights(values: Sequence[float] | None, n: int, path: str) -> list[float]:
     return result
 
 
-def formatted(value: object, fmt: Format, path: str) -> str:
+def formatted(
+    value: object,
+    fmt: Format,
+    path: str,
+    formatting: Formatting | None = None,
+    language: str = "en",
+) -> str:
     try:
-        return text(format_value(value, fmt), path)
+        result = format_value(value, fmt, formatting, language)
     except ValidationError as exc:
         raise ValidationError(f"{path}: {exc}") from None
+    return text(result, path)
 
 
 def chart_labels(obj: Chart) -> list[str]:
@@ -151,7 +159,9 @@ def validate_chart(obj: Chart, path: str) -> None:
                 raise ValidationError(f"{path}: funnel cannot contain negatives")
 
 
-def normalize_chart(obj: Chart, path: str) -> ChartData:
+def normalize_chart(
+    obj: Chart, path: str, formatting: Formatting | None = None, language: str = "en"
+) -> ChartData:
     validate_chart(obj, path)
     series: Mapping[str, Sequence[Number | None]] | None
     if isinstance(obj, Funnel):
@@ -159,16 +169,38 @@ def normalize_chart(obj: Chart, path: str) -> ChartData:
     else:
         series = {"": obj.values} if obj.values is not None else obj.series
     assert series is not None
+    tick_values: tuple[str, ...] = ()
+    tick_labels: tuple[str, ...] = ()
+    if isinstance(obj, LineChart) and obj.x_kind == "date" and formatting is not None:
+        coordinates = chart_labels(obj)
+        ordered = sorted(range(len(coordinates)), key=lambda i: coordinates[i])
+        count = min(6, len(ordered))
+        indices = [
+            ordered[round(i * (len(ordered) - 1) / max(1, count - 1))]
+            for i in range(count)
+        ]
+        tick_values = tuple(coordinates[i] for i in indices)
+        tick_labels = tuple(
+            formatted(obj.x[i], "number", path + ".ticks", formatting, language)
+            for i in indices
+        )
     return ChartData(
         tuple(chart_labels(obj)),
         tuple(
             ChartSeries(
                 name,
                 tuple(None if v is None else number(v, path) for v in values),
-                tuple(format_value(v, obj.value_format) for v in values),
+                tuple(
+                    formatted(
+                        v, obj.value_format, path + ".values", formatting, language
+                    )
+                    for v in values
+                ),
             )
             for name, values in series.items()
         ),
+        tick_values,
+        tick_labels,
     )
 
 
@@ -183,6 +215,30 @@ def validate_timeout(timeout: float) -> None:
 
 def validate_report(report: Report) -> ReportDocument:
     report.page.dimensions()
+    language = language_tag(report.language)
+    formatting = report.formatting
+    if formatting is not None:
+        if not isinstance(formatting, Formatting):
+            raise ValidationError("formatting: expected Formatting")
+        if (
+            formatting.date_format is not None
+            or formatting.datetime_format is not None
+            or formatting.locale is not None
+        ):
+            try:
+                date_locale(formatting.locale or language)
+            except ValidationError as exc:
+                path = (
+                    "formatting.locale" if formatting.locale is not None else "language"
+                )
+                raise ValidationError(
+                    f"{path}: no date locale data for language"
+                ) from exc
+    empty = text(
+        empty_label(language) if report.empty_text is None else report.empty_text,
+        "empty_text",
+        500,
+    )
     if report.mode not in ("dashboard", "flow"):
         raise ValidationError("mode: use dashboard or flow")
     theme = report.theme
@@ -256,7 +312,7 @@ def validate_report(report: Report) -> ReportDocument:
                 text(obj.text, path)
             elif isinstance(obj, KPI):
                 text(obj.label, path + ".label", 500)
-                formatted(obj.value, obj.format, path + ".value")
+                formatted(obj.value, obj.format, path + ".value", formatting, language)
                 if obj.note is not None:
                     text(obj.note, path + ".note", 500)
             elif isinstance(obj, Table):
@@ -288,11 +344,19 @@ def validate_report(report: Report) -> ReportDocument:
                         raise ValidationError(f"{path}.rows.{i}: missing column key")
                     for col in obj.columns:
                         formatted(
-                            row[col.key], col.format, f"{path}.rows.{i}.{col.key}"
+                            row[col.key],
+                            col.format,
+                            f"{path}.rows.{i}.{col.key}",
+                            formatting,
+                            language,
                         )
-                text(obj.empty_text, path + ".empty", 500)
+                text(
+                    empty if obj.empty_text is None else obj.empty_text,
+                    path + ".empty_text",
+                    500,
+                )
             elif isinstance(obj, (BarChart, LineChart, Funnel)):
-                charts[path] = normalize_chart(obj, path)
+                charts[path] = normalize_chart(obj, path, formatting, language)
             else:
                 raise ValidationError(f"{path}: unsupported component")
         finally:
@@ -308,4 +372,7 @@ def validate_report(report: Report) -> ReportDocument:
         report.theme,
         blocks,
         MappingProxyType(charts),
+        language,
+        formatting,
+        empty,
     )

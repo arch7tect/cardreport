@@ -30,6 +30,7 @@ from .data import (
     FieldType,
     validate_bundle,
 )
+from .formatting import Formatting
 from .model import (
     KPI,
     BarChart,
@@ -273,7 +274,11 @@ class _Builder:
                 for i in range(len(next(iter(values.values()), [])))
             ]
             self.table_sources[generated] = dataset
-            return Table(columns, rows, string(obj.get("empty_text", "No data")))
+            return Table(
+                columns,
+                rows,
+                None if obj.get("empty_text") is None else string(obj["empty_text"]),
+            )
         if kind in ("bar", "line", "funnel"):
             axis = "x" if kind == "line" else "category"
             options = {"value_format", "value"}
@@ -357,7 +362,20 @@ class _Builder:
 
     def build(self, value: object) -> Report:
         obj = mapping(value)
-        keys(obj, {"blocks"}, {"title", "subtitle", "mode", "page", "theme"})
+        keys(
+            obj,
+            {"blocks"},
+            {
+                "title",
+                "subtitle",
+                "mode",
+                "page",
+                "theme",
+                "language",
+                "formatting",
+                "empty_text",
+            },
+        )
         page = mapping(obj.get("page", {}))
         keys(page, set(), {"size", "orientation", "margin_mm"})
         size = page.get("size", "A4")
@@ -386,9 +404,70 @@ class _Builder:
                 "chart_height_mm",
             },
         )
+        formatting = None
+        if "formatting" in obj:
+            self.location = "report.formatting"
+            raw = mapping(obj["formatting"])
+            keys(
+                raw,
+                set(),
+                {
+                    "decimal",
+                    "group",
+                    "number_decimals",
+                    "percent_decimals",
+                    "currency_decimals",
+                    "date_format",
+                    "datetime_format",
+                    "locale",
+                },
+            )
+
+            def digits(key: str, default: int) -> int:
+                value = raw.get(key, default)
+                if isinstance(value, bool) or not isinstance(value, int):
+                    raise ValidationError(f"formatting.{key}: expected integer")
+                return value
+
+            def optional_string(key: str) -> str | None:
+                value = raw.get(key)
+                if value is None:
+                    return None
+                if not isinstance(value, str):
+                    raise ValidationError(f"formatting.{key}: expected text or null")
+                return value
+
+            def display_choice[T: str](
+                key: str, default: T, options: tuple[T, ...]
+            ) -> T:
+                try:
+                    return choice(raw.get(key, default), options)
+                except ValueError as exc:
+                    raise ValidationError(f"formatting.{key}: invalid option") from exc
+
+            formatting = Formatting(
+                decimal=display_choice("decimal", ".", (".", ",")),
+                group=display_choice("group", ",", (",", ".", "'", "space", "none")),
+                number_decimals=digits("number_decimals", 2),
+                percent_decimals=digits("percent_decimals", 1),
+                currency_decimals=digits("currency_decimals", 2),
+                date_format=optional_string("date_format"),
+                datetime_format=optional_string("datetime_format"),
+                locale=optional_string("locale"),
+            )
+        self.location = "report.language"
+        language = string(obj.get("language", "en"))
+        self.location = "report.empty_text"
+        empty_text = (
+            None if obj.get("empty_text") is None else string(obj["empty_text"])
+        )
+        self.location = "report"
         report = Report(
             cast(str, self.text(obj.get("title", ""))),
             subtitle=cast(str, self.text(obj.get("subtitle", ""))),
+            language=language,
+            formatting=formatting,
+            empty_text=empty_text,
             mode=choice(obj.get("mode", "dashboard"), ("dashboard", "flow")),
             page=Page(
                 page_size,
@@ -406,8 +485,8 @@ class _Builder:
                 chart_height_mm=numeric(theme.get("chart_height_mm", 60)),
             ),
         )
-        for i, raw in enumerate(array(obj["blocks"])):
-            report.add(self.node(raw, f"report.blocks[{i}]", f"blocks.{i}"))
+        for i, block in enumerate(array(obj["blocks"])):
+            report.add(self.node(block, f"report.blocks[{i}]", f"blocks.{i}"))
         report.validate()
         return report
 
@@ -415,9 +494,14 @@ class _Builder:
         self, error: Exception
     ) -> tuple[str | None, str | None, int | None, str | None]:
         prefix = str(error).split(": ", 1)[0]
-        if prefix in ("title", "subtitle", "mode") or prefix.startswith(
-            ("theme.", "page.")
-        ):
+        if prefix in (
+            "title",
+            "subtitle",
+            "mode",
+            "language",
+            "formatting",
+            "empty_text",
+        ) or prefix.startswith(("theme.", "page.", "formatting.")):
             return "report." + prefix, None, None, None
         candidates = [
             p for p in self.paths if prefix == p or prefix.startswith(p + ".")

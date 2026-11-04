@@ -477,7 +477,10 @@ slices, per-slice documentation and acceptance checks.
 
 The existing Report API, frozen components, renderer protocol and file publication
 behavior remain unchanged. The new formats start provisional at version 1;
-compatibility changes to serialized structure require a new format version.
+compatibility changes to serialized structure normally require a new format version.
+Owner exception (2026-11-04, version 0.3.0): with no external users, optional
+language/formatting/empty_text fields extend template/1. Existing templates keep
+their behavior; older library versions reject the new keys. Data/1 is unchanged.
 No automatic migrations or code execution from documents.
 
 Implement in small independently verified steps:

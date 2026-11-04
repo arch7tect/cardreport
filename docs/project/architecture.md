@@ -98,3 +98,20 @@ optional dependency only on invocation. Neither source access nor normalization 
 part of bind/render. No source registry, SQL execution, directory scanner, expressions
 or model-to-template serializer is introduced. See the [decision](decisions/report-templates.md)
 and [delivery plan](template-implementation-plan.md).
+
+
+## Report display context
+
+Version 0.3.0 adds optional immutable Formatting and a canonical language tag to
+Report and its snapshot. Language parsing uses langcodes without a product allowlist.
+Babel LDML formats dates with an explicitly resolved locale. All numeric display
+uses report separators/precision, never global locale or localized input parsing.
+Shared HTML fragments and SVG tick formatting receive the same display context.
+Empty text resolves once at report level, with optional table overrides.
+
+Date coordinates stay ISO UTC. Explicit formatting precomputes at most six sampled
+input-date ticks in validation, including glyph checks; Plotly receives separate
+coordinates and escaped display text. Numeric tick positions remain engine-owned.
+No settings preserves the legacy automatic axes. Chromium writes PDF language via
+pypdf because browser printing does not reliably preserve HTML lang; this does not
+claim PDF/UA conformance. See [the public contract](../user/localization.md).

@@ -50,3 +50,14 @@ uv run --extra weasyprint python examples/reference_report.py --renderer weasypr
 Use separate output directories to retain both versions. Flow is unsupported by
 the experimental engine. Library checks and packaging commands belong in the
 [development guide](../project/development.md).
+
+## Spanish example
+
+```sh
+uv run --all-extras python examples/spanish_report.py --output output/spanish
+uv run --all-extras python examples/spanish_report.py --renderer weasyprint --output output/spanish-weasyprint
+```
+
+As with other repository runners, outputs are not overwritten unless `--overwrite`
+is passed. Prefer the [Python embedding example](examples.md#spanish-reference-report)
+when integrating with an application.

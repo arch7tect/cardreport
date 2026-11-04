@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS = {
     "py.typed",
     "data.py",
+    "formatting.py",
     "templates.py",
     "adapters/csv.py",
     "adapters/pandas.py",
@@ -58,6 +59,9 @@ def check_archives(directory: Path) -> Path:
                 "reference_data.json",
                 "reference_data_second.json",
                 "payments.csv",
+                "spanish_template.json",
+                "spanish_data.json",
+                "spanish_report.py",
             ]
         } <= source_names
         metadata_file = archive.extractfile(prefix + "PKG-INFO")
@@ -65,6 +69,7 @@ def check_archives(directory: Path) -> Path:
         with metadata_file:
             metadata = email.message_from_bytes(metadata_file.read())
         assert metadata["Version"] == version
+        assert prefix + "CHANGELOG.md" in source_names
     for name in names | source_names:
         assert not {"local", "output", ".idea", ".env", ".venv", "experiments"} & set(
             Path(name).parts
@@ -93,6 +98,10 @@ def installed_smoke(full: bool) -> None:
         datasets_from_json((examples / "reference_data.json").read_bytes())
     )
     assert "<html" in report.to_html()
+    spanish = ReportTemplate.from_json(
+        (examples / "spanish_template.json").read_bytes()
+    ).bind(datasets_from_json((examples / "spanish_data.json").read_bytes()))
+    assert "4 de noviembre de 2026" in spanish.to_html()
     assert (
         from_csv(examples / "payments.csv", schema=DatasetSchema({})).rows[0][0]
         == "00123"
@@ -119,6 +128,9 @@ def installed_smoke(full: bool) -> None:
             pdf = PdfReader(io.BytesIO(report.to_pdf(renderer=renderer)))
             assert len(pdf.pages) == 1 and not list(pdf.pages[0].images)
             assert "Campaign progress" in pdf.pages[0].extract_text()
+            localized = PdfReader(io.BytesIO(spanish.to_pdf(renderer=renderer)))
+            assert "4 de noviembre de 2026" in localized.pages[0].extract_text()
+            assert str(localized.root_object["/Lang"]) == "es-MX"
     print("Installed wheel smoke passed:", "all extras" if full else "core only")
 
 
