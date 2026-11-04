@@ -51,8 +51,8 @@ checked against the bundled fonts; unsupported glyphs fail validation.
 Both HTML renderers set `lang`. Both PDF engines write the document `/Lang` metadata;
 this alone is not a PDF accessibility or PDF/UA conformance claim.
 
-Built-in empty table/chart labels are `No data`, `Sin datos` for Spanish and
-`Нет данных` for Russian, selected by the primary language. Other languages use
+Built-in empty table/chart labels have English, Spanish and Russian translations,
+selected by the primary language. Other languages use
 `No data`. Use `Report(empty_text="...")` to supply the application's wording for
 all empty tables/charts. A table's `empty_text` overrides the report; `None` inherits
 and `""` intentionally renders no message. User labels and strings remain literal.

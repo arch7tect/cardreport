@@ -20,7 +20,7 @@ def build_report() -> Report:
                 rows=[
                     {
                         "id": f"ROW-{i:03d}",
-                        "description": "Example transaction. Пример записи.",
+                        "description": "Example transaction.",
                         "amount": i * 1.25,
                     }
                     for i in range(120)

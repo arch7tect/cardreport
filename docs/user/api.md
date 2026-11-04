@@ -216,7 +216,7 @@ allocation. Unsupported font glyphs fail validation. See [limits](#limits).
 ```python
 from cardreport import Text
 
-note = Text("Ready for review\nПример текста", style="caption")
+note = Text("Ready for review\nExample text", style="caption")
 ```
 
 ## KPI
