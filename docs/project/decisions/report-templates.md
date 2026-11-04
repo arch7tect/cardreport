@@ -212,7 +212,9 @@ For Table, `dataset` replaces `rows`; `columns` are ordinary TableColumn definit
 For a single-series chart, `value` is a field name. Multi-series Bar/Line use
 `series: [{"field":"promised","label":"Promised"}, ...]`; order is explicit,
 labels are unique literal strings, and exactly one of value/series is required.
-Category fields must be non-nullable text. Line uses `x` and the existing `x_kind`:
+Bar category fields accept non-nullable text, date or datetime (extended in 0.3.1
+within template/1); Funnel categories require non-nullable text. Bar category
+identity is independent of formatted display text. Line uses `x` and the existing `x_kind`:
 category requires text, date requires date/datetime. Chart value fields are numeric;
 only Line permits nullable values, yielding gaps. Existing chart checks reject
 nonfinite values, duplicate categories/dates, excessive series/points and invalid

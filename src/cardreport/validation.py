@@ -124,7 +124,7 @@ def validate_chart(obj: Chart, path: str) -> None:
         raise ValidationError(f"{path}: maximum {MAX_POINTS} chart points")
     is_date = isinstance(obj, LineChart) and obj.x_kind == "date"
     for value in labels:
-        if is_date:
+        if is_date or (isinstance(obj, BarChart) and isinstance(value, date)):
             if not isinstance(value, date):
                 raise ValidationError(f"{path}: date axis requires dates")
             if isinstance(value, datetime) and value.utcoffset() is None:
@@ -132,7 +132,22 @@ def validate_chart(obj: Chart, path: str) -> None:
         else:
             text(value, path + ".labels", 200)
     x = chart_labels(obj)
-    if len(set(x)) != len(x):
+    identities = (
+        [
+            (
+                "datetime"
+                if isinstance(v, datetime)
+                else "date"
+                if isinstance(v, date)
+                else "text",
+                label,
+            )
+            for v, label in zip(labels, x, strict=True)
+        ]
+        if isinstance(obj, BarChart)
+        else [("", label) for label in x]
+    )
+    if len(set(identities)) != len(x):
         raise ValidationError(f"{path}: duplicate chart categories/dates")
     if not is_date and len(x) > 30:
         raise ValidationError(
@@ -184,8 +199,21 @@ def normalize_chart(
             formatted(obj.x[i], "number", path + ".ticks", formatting, language)
             for i in indices
         )
+    category_values = tuple(chart_labels(obj))
+    category_labels: tuple[str, ...] = ()
+    if isinstance(obj, BarChart) and any(isinstance(v, date) for v in obj.labels):
+        category_labels = tuple(
+            text(
+                formatted(v, "number", path + ".labels", formatting, language),
+                path + ".labels",
+                200,
+            )
+            for v in obj.labels
+        )
+        # Positional category keys prevent equal display text from merging bars.
+        category_values = tuple(str(i) for i in range(len(obj.labels)))
     return ChartData(
-        tuple(chart_labels(obj)),
+        category_values,
         tuple(
             ChartSeries(
                 name,
@@ -201,6 +229,7 @@ def normalize_chart(
         ),
         tick_values,
         tick_labels,
+        category_labels,
     )
 
 

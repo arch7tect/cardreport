@@ -112,6 +112,11 @@ Empty text resolves once at report level, with optional table overrides.
 Date coordinates stay ISO UTC. Explicit formatting precomputes at most six sampled
 input-date ticks in validation, including glyph checks; Plotly receives separate
 coordinates and escaped display text. Numeric tick positions remain engine-owned.
-No settings preserves the legacy automatic axes. Chromium writes PDF language via
+Bars containing typed dates/datetimes use positional category keys and separate
+`ChartData.category_labels`, formatted during validation. String-only charts keep
+their existing representation. Both adapters consume display labels independently
+of identity; equal labels never merge distinct categories. UTC-normalized duplicate
+datetime values are rejected; dates and literal ISO strings remain distinct.
+No settings preserves the legacy automatic line/numeric axes. Chromium writes PDF language via
 pypdf because browser printing does not reliably preserve HTML lang; this does not
 claim PDF/UA conformance. See [the public contract](../user/localization.md).

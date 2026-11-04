@@ -269,7 +269,7 @@ table = Table(
 ## BarChart
 
 ```text
-BarChart(labels: Sequence[str], values: Sequence[Number] | None = None,
+BarChart(labels: Sequence[str | date | datetime], values: Sequence[Number] | None = None,
          series: Mapping[str, Sequence[Number]] | None = None,
          orientation: Literal["vertical", "horizontal"] = "vertical",
          mode: Literal["grouped", "stacked"] = "grouped",
@@ -278,7 +278,11 @@ BarChart(labels: Sequence[str], values: Sequence[Number] | None = None,
 ```
 
 Provide exactly one of `values` or `series`. All series lengths match unique
-category labels. Values may be negative or zero, but never None/bool/nonfinite.
+category values (strings, dates or aware datetimes). Values may be negative or zero, but never None/bool/nonfinite.
+Dates use the report date pattern; datetimes use the datetime pattern after UTC
+normalization. Strings stay literal. Different category values remain separate
+even when their formatted labels match; a date and its literal ISO string are
+distinct categories. Duplicate datetimes are checked after UTC normalization.
 Category order is preserved. `show_labels` controls value labels, not category
 labels. Legend appears for multiple series when enabled. `date` is not a valid
 chart value format. Empty categories with matching empty values display "No data".
@@ -373,7 +377,8 @@ A frozen, typed display-settings record. `Report(language="en", formatting=None,
 empty_text=None)` owns these options, and its validated `ReportDocument` stores
 canonical language, optional formatting and resolved empty text as trailing fields
 with defaults. `ChartData` adds default-empty `tick_values` and `tick_labels` tuples
-for preformatted date-axis labels. Renderer protocol signatures are unchanged.
+for preformatted line date-axis labels, plus `category_labels` for formatted bar
+category text. Renderer protocol signatures are unchanged.
 
 Language tags are not restricted to a product allowlist. Decimal precision is 0..6;
 number precision is a maximum, percent/currency precision is fixed. Date patterns
@@ -450,14 +455,20 @@ build Report rather than construct snapshots manually.
 ```text
 ChartSeries(name: str, values: tuple[float | None, ...], labels: tuple[str, ...])
 ChartData(labels: tuple[str, ...], series: tuple[ChartSeries, ...],
-          tick_values: tuple[str, ...] = (), tick_labels: tuple[str, ...] = ())
+          tick_values: tuple[str, ...] = (), tick_labels: tuple[str, ...] = (),
+          category_labels: tuple[str, ...] = ())
 ReportDocument(title: str, subtitle: str, mode: Literal["dashboard", "flow"],
                page: Page, theme: Theme, blocks: tuple[Block, ...],
                charts: Mapping[str, ChartData], language: str = "en",
                formatting: Formatting | None = None, empty_text: str = "No data")
 ```
 
-`ChartData.labels` contains raw categories or normalized ISO dates. Series values
+`ChartData.labels` contains category coordinates or normalized ISO line dates.
+For bars containing typed dates/datetimes, coordinates are positional string keys
+and `category_labels` contains formatted display text. Renderers must keep those
+keys separate from display text to avoid merging equal labels. When
+`category_labels` is empty, use `labels` as display text (legacy string categories).
+Series values
 are plotting floats; `ChartSeries.labels` contains value labels formatted from the
 original values. `charts` is keyed by component path, e.g. `blocks.0.content`.
 Export-produced snapshots use read-only mappings. Strings are unescaped; each

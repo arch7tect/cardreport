@@ -136,7 +136,25 @@ pattern is the caller's choice; prefer a time-bearing pattern for intraday data.
 Long labels still fail geometric overflow checks rather than being silently hidden
 or shrunk. There is no shared tick-layout engine or JavaScript locale dependency.
 
-Bar category strings are already text; they are not parsed/reformatted as dates.
+BarChart accepts Python `date` and aware `datetime` categories. They use the same
+report patterns as table cells; datetimes normalize to UTC. Category spacing stays
+equal and input order is preserved. Different values remain separate bars even
+when a pattern produces identical labels. Both renderers support typed categories
+within their existing bar capabilities. Strings remain literal, including ISO
+strings such as `"2026-11-04"`; they are never guessed or parsed as dates.
+
+```python
+from datetime import date
+from cardreport import BarChart, Formatting, Report
+
+report = Report(language="es", formatting=Formatting(date_format="d MMM yyyy"))
+report.add(BarChart([date(2026, 11, 4), date(2026, 11, 5)], [2, 3]))
+html = report.to_html()  # Axis labels: 4 nov 2026, 5 nov 2026
+```
+
+In JSON templates, declare the bar category field as `date` or `datetime` and
+supply tagged values, e.g. `{"$type":"date","value":"2026-11-04"}`. This remains
+`cardreport.template/1` and `cardreport.data/1`.
 The WeasyPrint adapter still supports only its documented single-series bar subset;
 localization does not add date axes or new chart types to that renderer.
 

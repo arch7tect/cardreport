@@ -64,7 +64,10 @@ unused. Extra data columns/datasets remain permitted within data bounds.
 | line | dataset, x field, value field and x_kind |
 
 Bar/Line accept `series: [{"field":"count","label":"Calls"}, ...]` instead of
-value; order is explicit and series labels unique. Categories use non-null text.
+value; order is explicit and series labels unique. Bar categories accept non-null
+text, date or datetime fields; Funnel categories require non-null text. Typed bar
+categories use report date/datetime patterns without changing their order or
+merging matching display labels. Text categories remain literal.
 Line x_kind=date uses date/datetime fields. Chart values require numeric fields;
 only Line permits nullable values for gaps. Row order is preserved. Ordinary chart
 options (orientation, mode, show_labels, legend, value_format) apply where supported.

@@ -98,7 +98,7 @@ def chart_spec(
         category.update(
             tickmode="array",
             tickvals=x,
-            ticktext=x,
+            ticktext=[escape(label) for label in normalized.category_labels] or x,
             categoryorder="array",
             categoryarray=x,
         )

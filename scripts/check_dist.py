@@ -129,7 +129,9 @@ def installed_smoke(full: bool) -> None:
             assert len(pdf.pages) == 1 and not list(pdf.pages[0].images)
             assert "Campaign progress" in pdf.pages[0].extract_text()
             localized = PdfReader(io.BytesIO(spanish.to_pdf(renderer=renderer)))
-            assert "4 de noviembre de 2026" in localized.pages[0].extract_text()
+            assert (
+                localized.pages[0].extract_text().count("4 de noviembre de 2026") == 2
+            )
             assert str(localized.root_object["/Lang"]) == "es-MX"
     print("Installed wheel smoke passed:", "all extras" if full else "core only")
 

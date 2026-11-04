@@ -54,9 +54,10 @@ the JSON inputs with CSV or pandas snapshots; the template is unchanged.
 [spanish_report.py](../../examples/spanish_report.py) binds
 [spanish_template.json](../../examples/spanish_template.json) to
 [spanish_data.json](../../examples/spanish_data.json). It translates the reference
-labels, preserves the aggregate discrepancy, and adds a typed report-date KPI to
-show a custom Spanish month-name pattern. Preformatted category strings and notes
-are translated by the application; the engine formats native numbers/dates.
+labels, preserves the aggregate discrepancy, and adds a typed report-date KPI.
+Both that KPI and the payment-calendar axis show a custom Spanish month-name pattern. The
+payment category is a tagged date in data and a date field in the template.
+Preformatted text categories and notes are translated by the application; the engine formats native numbers/dates.
 
 ```python
 from examples.spanish_report import build_report as build_spanish

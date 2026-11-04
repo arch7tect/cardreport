@@ -297,7 +297,9 @@ class _Builder:
                 obj.get("x_kind", "category"), ("category", "date")
             )
             allowed = (
-                ("date", "datetime")
+                ("text", "date", "datetime")
+                if kind == "bar"
+                else ("date", "datetime")
                 if kind == "line" and x_kind == "date"
                 else ("text",)
             )
@@ -341,7 +343,7 @@ class _Builder:
             numbers = cast(dict[str, list[Number]], series)
             if kind == "bar":
                 return BarChart(
-                    cast(list[str], x),
+                    cast(list[str | date | datetime], x),
                     values=next(iter(numbers.values())) if "value" in obj else None,
                     series=numbers if "series" in obj else None,
                     orientation=choice(

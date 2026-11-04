@@ -76,7 +76,7 @@
       "cardinality": "many",
       "fields": {
         "category": {
-          "type": "text"
+          "type": "date"
         },
         "count": {
           "type": "integer"

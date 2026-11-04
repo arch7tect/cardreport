@@ -49,7 +49,7 @@ class WeasyPrintRenderer:
                     f'<div class="empty-chart" {attrs}>{escape(doc.empty_text)}</div>'
                 )
             charts[path] = {
-                "labels": data.labels,
+                "labels": data.category_labels or data.labels,
                 "formatting": asdict(doc.formatting)
                 if doc.formatting is not None
                 else None,

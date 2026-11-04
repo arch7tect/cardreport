@@ -169,7 +169,7 @@ def test_all_components_and_static_chart_contracts():
     assert "Literal &lt;b&gt;" in report.to_html()
     for change in [
         {"value": "gap"},
-        {"category": "day"},
+        {"category": "n"},
         {"series": [{"field": "n", "label": "N"}], "value": "n"},
     ]:
         bad = deepcopy(spec)

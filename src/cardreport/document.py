@@ -21,6 +21,7 @@ class ChartData:
     series: tuple[ChartSeries, ...]
     tick_values: tuple[str, ...] = ()
     tick_labels: tuple[str, ...] = ()
+    category_labels: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

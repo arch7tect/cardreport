@@ -194,7 +194,7 @@ class Table:
 
 @dataclass(frozen=True)
 class BarChart:
-    labels: Sequence[str]
+    labels: Sequence[str | date | datetime]
     values: Sequence[Number] | None = None
     series: Mapping[str, Sequence[Number]] | None = None
     orientation: Literal["vertical", "horizontal"] = "vertical"

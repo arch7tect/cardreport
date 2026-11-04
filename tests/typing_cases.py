@@ -1,6 +1,6 @@
 """Checked by mypy, not executed: unused ignores detect weakened public typing."""
 
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import assert_type
 
@@ -46,6 +46,8 @@ report.row(Text("typo"), width_mm=20)  # type: ignore[call-arg]
 Text("x", style="raw")  # type: ignore[arg-type]
 BarChart(["a"], ["not numeric"])  # type: ignore[list-item]
 BarChart(["a"], [None])  # type: ignore[list-item]
+BarChart([date(2026, 11, 4), datetime(2026, 11, 5, tzinfo=UTC), "literal"], [1, 2, 3])
+BarChart([42], [1])  # type: ignore[list-item]
 KPI("bad", [])  # type: ignore[arg-type]
 report.to_pdf(renderer=object())  # type: ignore[arg-type]
 

@@ -5,6 +5,22 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.3.1 — 2026-11-04
+
+### Fixed
+
+- BarChart date and aware datetime categories now use report date/datetime formats
+  in both renderers. Literal strings remain unchanged; equal formatted labels do
+  not merge distinct categories.
+- JSON bar category fields accept date/datetime within template/1. The Spanish
+  reference calendar now uses a typed date and displays its Spanish date pattern.
+
+### Renderer implementers
+
+- For typed bar categories, use `ChartData.labels` as category keys and
+  `category_labels` as display text; an empty `category_labels` retains the
+  existing string-category representation.
+
 ## 0.3.0 — 2026-11-04
 
 ### Added
