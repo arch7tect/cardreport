@@ -83,6 +83,6 @@ created the [public GitHub Release](https://github.com/arch7tect/cardreport/rele
 and published [cardreport0.2.1 on PyPI](https://pypi.org/project/cardreport/0.2.1/).
 Post-publication checks downloaded the GitHub bundle, verified its manifest/tag,
 compared both wheel/sdist SHA-256 values to PyPI metadata, and installed the package
-from PyPI in isolation to render HTML. All passed. Both README version badges show
-0.2.1. PYPI_PUBLISH_ENABLED is true; initial account setup no longer blocks publishing.
+from PyPI in isolation to render HTML. All passed. README badges point to the public GitHub Release and PyPI; badge
+caches can lag publication. PYPI_PUBLISH_ENABLED is true; initial account setup no longer blocks publishing.
 Published artifacts remain unchanged by subsequent documentation commits.
