@@ -68,3 +68,21 @@ Their remote availability must be verified with the first actual publication.
 GitHub rejected the initial push because the CLI OAuth grant lacked workflow scope;
 no remote commit/tag/release was created by that rejected push. Access refresh was
 requested from the owner; no credential values were requested or stored.
+
+
+## Hosted publication outcome
+
+After the owner refreshed GitHub CLI workflow access, commits 6764d45 and 5767581
+were pushed. [Run 41816443293](https://github.com/arch7tect/cardreport/actions/runs/41816443293)
+completed successfully: verification, GitHub Release and PyPI jobs all passed.
+It ran176 tests with zero skips, strict mypy30files, Ruff,205 local links and36
+executable docs blocks; installed-wheel core-only and full-extra smoke checks passed.
+
+The workflow reserved v0.2.1 at `57675819ec2e193c2da14686f6778e1eb8ff22c6`,
+created the [public GitHub Release](https://github.com/arch7tect/cardreport/releases/tag/v0.2.1)
+and published [cardreport0.2.1 on PyPI](https://pypi.org/project/cardreport/0.2.1/).
+Post-publication checks downloaded the GitHub bundle, verified its manifest/tag,
+compared both wheel/sdist SHA-256 values to PyPI metadata, and installed the package
+from PyPI in isolation to render HTML. All passed. Both README version badges show
+0.2.1. PYPI_PUBLISH_ENABLED is true; initial account setup no longer blocks publishing.
+Published artifacts remain unchanged by subsequent documentation commits.

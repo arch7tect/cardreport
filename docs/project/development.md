@@ -44,8 +44,8 @@ Python. Network links are inventoried separately; offline checks do not claim re
 availability. Shell setup commands are not executed by the checker.
 
 The default runtime suite skips optional WeasyPrint cases when its Python package
-is absent. Full verification requires both engines and pandas with no skips. Only local
-macOS/Python 3.12 is currently verified; no Linux/Windows rendering support is claimed. The release workflow runs the same
+is absent. Full verification requires both engines and pandas with no skips.
+macOS/Python 3.12 is verified locally and in GitHub Actions; no Linux/Windows rendering support is claimed. The release workflow runs the same
 checks on hosted macOS/Python 3.12 and blocks publication on failures or skipped tests.
 Verify both rendering success and deliberate errors, literal labels, text/vector
 output, native glyph bounds, file preservation and worker cleanup. Review output
