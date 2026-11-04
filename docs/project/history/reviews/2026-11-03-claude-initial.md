@@ -1,8 +1,8 @@
 # CardReport design review (advisory only)
 
-**Read marker:** `docs/design.md` §4 "Layout contract" includes the passage *"Dashboard mode: each explicit page is a fixed printable rectangle. Rows cannot fragment."*
+**Read marker:** `docs/project/history/design.md` §4 "Layout contract" includes the passage *"Dashboard mode: each explicit page is a fixed printable rectangle. Rows cannot fragment."*
 
-I read `docs/design.md`, `README.md`, `pyproject.toml` and `AGENTS.md`, plus `src/cardreport/__init__.py` (a one-line docstring) and `py.typed`. I made no edits and ran no commands.
+I read `docs/project/history/design.md`, `README.md`, `pyproject.toml` and `AGENTS.md`, plus `src/cardreport/__init__.py` (a one-line docstring) and `py.typed`. I made no edits and ran no commands.
 
 ## Verdict
 

@@ -1,19 +1,21 @@
 # CardReport contributor instructions
 
 Use Python 3.12+ and uv. Write source, comments and documentation in English.
-Read docs/design.md and docs/implementation-plan.md before implementing or
-changing the public API. Keep README and docs/implementation-status.md aligned with tested behavior.
-The design and plan preserve history; working examples are in examples/.
+Read docs/project/architecture.md and the relevant decision before changing the
+public API. Keep README.md and docs/user/api.md aligned with implemented behavior.
+README is the user entry point; tutorials/reference live in docs/user. Project
+rationale lives in docs/project; dated history is not the current API contract.
 
-Read docs/backend-decision.md: v0.1 selects Plotly/Jinja2/Chromium based on the
-measured P0 comparison. The owner subsequently authorized a provisional Renderer protocol and an experimental
-SVG/WeasyPrint extra. Chromium remains the production default. Keep rendering
-libraries behind typed public components; see docs/renderer-extension.md. No
-arbitrary Plotly kwargs, user HTML, custom CSS or template plugin API in v0.1.
-Prefer small concrete modules to a backend/plugin framework. No BI server,
-query engine, telemetry, or network-dependent report assets.
+Chromium is the production default. The provisional Renderer protocol also supports
+an experimental SVG/WeasyPrint subset. See docs/user/renderers.md for capabilities
+and docs/project/decisions/renderer-extension.md for rationale. Keep renderers behind
+typed public components. No arbitrary Plotly kwargs, user HTML/CSS or template
+plugins. Prefer small concrete modules to a framework; no BI server, query layer,
+telemetry or network-dependent report assets.
 
 Use uv sync --all-extras --locked for development and uv build for packaging.
+Follow docs/project/development.md for checks; validate snippets and links with
+uv run --all-extras python scripts/check_docs.py when changing documentation.
 PDF implementation must include selected-engine integration checks, output
 inspection, font readiness, hostile-label coverage and overflow rejection. Browser
 lifecycle checks apply only if the browser candidate is selected. Never silently

@@ -2,7 +2,7 @@
 
 > Update 2026-11-03: the owner authorized typed components, independent validation
 > and a provisional renderer extension with an experimental SVG/WeasyPrint path.
-> See [renderer extension](renderer-extension.md); the original decision below is historical.
+> See [renderer extension](../decisions/renderer-extension.md); the original decision below is historical.
 
 
 Status: reviewed design baseline, implemented as local v0.1. Current delivered
@@ -317,7 +317,7 @@ install the wheel in a clean environment to verify template/font/JS packaging.
 
 ## 9. References and unresolved validation
 
-The [backend decision gate](backend-decision.md) takes precedence over candidate-A
+The [backend decision gate](../decisions/backend-selection.md) takes precedence over candidate-A
 implementation details. The initial Claude review and backend review are linked
 from [the review disposition](reviews/2026-11-03-disposition.md).
 

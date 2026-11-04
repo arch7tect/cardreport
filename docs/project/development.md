@@ -1,0 +1,73 @@
+# Development
+
+[Project documentation](README.md) · [Contributor instructions](../../AGENTS.md)
+
+Use Python 3.12+ and uv. Documents, code and comments are written in English.
+If using PyCharm, select `.venv/bin/python` for the checkout; keep `.idea` local.
+
+## Setup
+
+```sh
+uv sync --all-extras --locked
+uv run --all-extras python -m playwright install chromium
+```
+
+Complete [WeasyPrint native setup](../user/renderers.md#weasyprint) for both-engine
+checks. The library never installs native dependencies implicitly. For Chromium-only
+development, use `--extra pdf` instead of `--all-extras`.
+
+## Checks
+
+```sh
+uv run --all-extras ruff check src tests examples scripts
+uv run --all-extras ruff format --check src tests examples scripts
+uv run --all-extras mypy
+uv run --all-extras python scripts/check_docs.py
+uv run --all-extras pytest -q
+uv build
+```
+
+Mypy strict mode includes source, positive/negative consumer cases, executable
+examples and maintenance scripts. Expected-error annotations fail if typing becomes permissive.
+`check_docs.py` validates repository Markdown paths/anchors and runs Python blocks
+from README and user docs in isolated temporary output directories, one namespace
+per page. The full documentation check requires both renderers, Chromium and the
+native WeasyPrint libraries, even if you otherwise develop with Chromium only.
+Use `uv run python scripts/check_docs.py --links-only` for an offline navigation-only check.
+API signatures use `text` fences and are reference notation, not runnable
+Python. Network links are inventoried separately; offline checks do not claim remote
+availability. Shell setup commands are not executed by the checker.
+
+The default runtime suite skips optional WeasyPrint cases when its Python package
+is absent. Full verification requires both engines with no skips. Only local
+macOS/Python 3.12 is currently verified; no Linux/Windows claim or hosted CI exists.
+Verify both rendering success and deliberate errors, literal labels, text/vector
+output, native glyph bounds, file preservation and worker cleanup. Review output
+visually when rendering changes. Do not publish local source evidence or reports.
+
+## Documentation ownership
+
+README is the user entry point. Keep it focused on installation and a short Python
+example. Put tutorials in `docs/user`, the complete public contract in `api.md`, and
+implementation rationale in `docs/project`. Keep current facts out of dated history.
+The renderer capability table has one authoritative home in user documentation.
+
+Runnable snippets use only public imports (except clearly labelled repository
+examples). Keep examples import-safe: importing a builder must not write files or
+start rendering. The quickstart builder appears in both its tutorial and source;
+update and validate both together. When moving documents, update relative links,
+AGENTS.md. Maintainers also update their local project-profile links when present.
+Preserve decision/review history.
+
+## Packaging and publication
+
+The wheel must include fonts, font license, templates, JavaScript and `py.typed`.
+Check the wheel and source archive; neither may include `local`, `output`, `.idea`
+or the original PDF. The source archive also excludes the historical experiments.
+Run examples from an isolated installed wheel outside the source tree after packaging
+changes; bypass stale uv caches when rebuilding the same unreleased version.
+
+GitHub pushes and package-registry publication are separate operations. No PyPI
+release exists. Keep subjects concise and do not include tool attribution.
+See the [dated release verification](history/reviews/2026-11-04-renderer-refactor.md)
+for the initial version's test scope.

@@ -1,4 +1,4 @@
-Read marker: the last section of `docs/implementation-plan.md`, **Open inputs**, ends with *"These unknowns do not block writing/reviewing this plan."*
+Read marker: the last section of `docs/project/history/implementation-plan.md`, **Open inputs**, ends with *"These unknowns do not block writing/reviewing this plan."*
 
 # Final review: CardReport implementation plan
 
@@ -17,7 +17,7 @@ What's sound:
 
 - **Order of work.** The plan inventories the original in P0.1, assembles the example in P3 and runs the acceptance comparison in P4.
 - **Missing original.** If the original is missing, synthetic P0 can still go ahead, but P4 is blocked unless the owner changes the requirement. That is stated the same way in P0.1, the P3 exit, P4 and Open inputs.
-- **Data handling and provenance.** Provenance and a hash are recorded locally. The inventory in `docs/reference-report.md` is sanitized, and any sanitization must be approved and recorded. The attachment is not published by default.
+- **Data handling and provenance.** Provenance and a hash are recorded locally. The inventory in `docs/project/history/reference-report.md` is sanitized, and any sanitization must be approved and recorded. The attachment is not published by default.
 - **Source discrepancies.** The KPI 2 vs table 3 inconsistency is preserved and flagged, never corrected. This matches design §1.
 - **README and outputs.** The example is the first README example and runs offline, producing HTML and PDF. No-clobber behaviour is consistent with AGENTS.md.
 - **Lookalike vs sanitized data.** "Synthetic lookalike does not satisfy" and "approved sanitized equivalents" don't contradict each other. The first means invented data; the second means data derived from the original.
@@ -42,4 +42,4 @@ The inventory already exists at P0.1, so this is a sequencing fix, not new scope
 
 ## Verdict
 
-**I endorse the plan once the API-gap check moves to P0.1, with a fallback for a late-arriving original.** Everything else is sequenced realistically, consistent with `docs/design.md`, and within scope. Nothing else blocks endorsement.
+**I endorse the plan once the API-gap check moves to P0.1, with a fallback for a late-arriving original.** Everything else is sequenced realistically, consistent with `docs/project/history/design.md`, and within scope. Nothing else blocks endorsement.

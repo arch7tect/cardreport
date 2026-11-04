@@ -1,6 +1,6 @@
-**Read marker:** in `docs/design.md`, line 28 starts with `o network at rendering time`. The leading "N" is missing.
+**Read marker:** in `docs/project/history/design.md`, line 28 starts with `o network at rendering time`. The leading "N" is missing.
 
-**Evidence basis:** I only read `docs/design.md` and `README.md`. I ran no commands and didn't check `pyproject.toml`, the lockfile or installed packages. Anything I say below about WeasyPrint, Matplotlib or Chromium comes from what I know, not from a local test. Items marked **[fixture]** need to be checked against real output.
+**Evidence basis:** I only read `docs/project/history/design.md` and `README.md`. I ran no commands and didn't check `pyproject.toml`, the lockfile or installed packages. Anything I say below about WeasyPrint, Matplotlib or Chromium comes from what I know, not from a local test. Items marked **[fixture]** need to be checked against real output.
 
 ## Correction to the current framing
 

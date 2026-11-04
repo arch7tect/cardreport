@@ -6,11 +6,11 @@
 
 
 Date: 2026-11-03. Status: A selected for v0.1 after a local comparative experiment and Claude review.
-Owner: Oleg Orlov. Current result: [P0 findings](p0-results.md) and
-[Claude checkpoint](reviews/2026-11-03-claude-p0.md). The user subsequently authorized
+Owner: Oleg Orlov. Current result: [P0 findings](../history/p0-results.md) and
+[Claude checkpoint](../history/reviews/2026-11-03-claude-p0.md). The user subsequently authorized
 autonomous implementation and routine internal choices. A provides direct measured
 overflow checks without a second layout engine. Final implementation verification
-is tracked in [implementation status](implementation-status.md).
+is tracked in [implementation status](../history/implementation-status.md).
 
 The sections below preserve the original decision criteria and candidate discussion;
 future-tense experiment/install statements describe the pre-implementation state.
@@ -23,7 +23,7 @@ The user wants a small CardReport API with cards, KPIs, constrained charts, rows
 and columns. Interactivity is unnecessary. The user explicitly asked to keep a
 JavaScript-free and browser-free option open and consult Claude.
 
-[Claude's comparison](reviews/2026-11-03-claude-backends.md) recommends testing
+[Claude's comparison](../history/reviews/2026-11-03-claude-backends.md) recommends testing
 static Python-generated SVG + Jinja2 + WeasyPrint first, with Plotly + Jinja2 +
 Chromium as fallback. This is advice based on document review, not tested evidence.
 The maintainer has not selected a final renderer. The external API remains the

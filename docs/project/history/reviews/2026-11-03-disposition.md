@@ -27,7 +27,7 @@ needed beyond completing these records. Optional new API features were deferred.
 
 Source: [backend review](2026-11-03-claude-backends.md).
 The user reopened the renderer choice during review. Claude recommends testing
-browser-free SVG/WeasyPrint first. See [backend decision](../backend-decision.md)
+browser-free SVG/WeasyPrint first. See [backend decision](../../decisions/backend-selection.md)
 for accepted advice, qualifications and untested claims. The recommendation to
 write custom chart/layout code is not automatically accepted. No final backend
 endorsement is implied by the initial baseline review.

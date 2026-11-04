@@ -6,7 +6,7 @@ from pathlib import Path
 from cardreport import Card, Currency, Report, Table, TableColumn
 
 
-def build_report():
+def build_report() -> Report:
     return Report("Account summary", mode="flow").add(
         Card(
             Table(
@@ -31,7 +31,7 @@ def build_report():
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("output"))
     parser.add_argument("--overwrite", action="store_true")

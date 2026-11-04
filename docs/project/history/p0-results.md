@@ -2,7 +2,7 @@
 
 > Update 2026-11-03: the owner authorized typed components, independent validation
 > and a provisional renderer extension with an experimental SVG/WeasyPrint path.
-> See [renderer extension](renderer-extension.md); the original decision below is historical.
+> See [renderer extension](../decisions/renderer-extension.md); the original decision below is historical.
 
 
 Date: 2026-11-03. Reproduction: experiments/rendering/compare.py and its uv.lock.

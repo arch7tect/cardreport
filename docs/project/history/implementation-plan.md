@@ -2,7 +2,7 @@
 
 > Update 2026-11-03: the owner authorized typed components, independent validation
 > and a provisional renderer extension with an experimental SVG/WeasyPrint path.
-> See [renderer extension](renderer-extension.md); the original decision below is historical.
+> See [renderer extension](../decisions/renderer-extension.md); the original decision below is historical.
 
 
 Date: 2026-11-03. Owner: Oleg Orlov.
@@ -24,7 +24,7 @@ renderer tests, remote or commits. Package installation/import/build were checke
 The owner opened the project in PyCharm and subsequently authorized end-to-end
 implementation, routine decisions and Claude reviews with minimal interruption.
 
-Contracts: [design](design.md), [backend decision gate](backend-decision.md),
+Contracts: [design](design.md), [backend decision gate](../decisions/backend-selection.md),
 [design review disposition](reviews/2026-11-03-disposition.md). The gate takes
 precedence over browser-specific details in the initial design. This plan refines
 the design's large Slice 1 into smaller milestones; it does not expand the scope.
@@ -60,7 +60,7 @@ README with exact reproduction commands. Share only synthetic input/expected
 results, not a general backend abstraction. Outputs and detailed observations go
 under ignored `local/rendering-comparison/<run-id>/` with a manifest of input,
 font, package and output hashes plus environment versions. Link a concise
-sanitized result in `docs/backend-decision.md`; preserve raw evidence unchanged.
+sanitized result in `docs/project/decisions/backend-selection.md`; preserve raw evidence unchanged.
 
 ### P0.1 — define fixtures and checks
 
@@ -68,7 +68,7 @@ Locate the original PDF through a confirmed user-provided attachment/path or the
 shared conversation's accessible attachment; do not assume a similarly named local
 file is the original. Preserve its bytes and record provenance/hash in ignored
 local evidence. Inspect pages and inventory KPI, charts, tables, captions, exact
-values, order and relative layout. Create `docs/reference-report.md` with a sanitized
+values, order and relative layout. Create `docs/project/history/reference-report.md` with a sanitized
 inventory, source identity and a checklist for visual comparison. Map every
 reference element to planned components/options: chart type/orientation/labels,
 KPI format/note, table columns/formats and card nesting. Record unsupported elements

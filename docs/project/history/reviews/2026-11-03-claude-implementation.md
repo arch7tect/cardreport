@@ -50,4 +50,4 @@ I found no blocker in the core design, but there are four fixes to make before a
 - **Overflow checks:** they run after fonts load and after two animation frames.
 - **Frozen inputs:** components store defensive copies, table rows are wrapped read-only, and cycles and depth are limited.
 - **Packaging:** assets live inside the package and aren't gitignored, so hatch will include them; `local/` and `output/` are excluded from the sdist.
-- **Reference docs:** `docs/reference-report.md` matches the example, including the deliberate 3-versus-2 discrepancy.
+- **Reference docs:** `docs/project/history/reference-report.md` matches the example, including the deliberate 3-versus-2 discrepancy.

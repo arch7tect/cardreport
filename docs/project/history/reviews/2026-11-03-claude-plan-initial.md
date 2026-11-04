@@ -1,4 +1,4 @@
-Read marker: in `docs/implementation-plan.md`, under **P0.2 — attempt B, then construct the A baseline**, the passage ends with *"Kaleido/Plotly static export is not a browser-free alternative."*
+Read marker: in `docs/project/history/implementation-plan.md`, under **P0.2 — attempt B, then construct the A baseline**, the passage ends with *"Kaleido/Plotly static export is not a browser-free alternative."*
 
 # Review of the CardReport implementation plan
 

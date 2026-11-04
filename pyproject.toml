@@ -47,7 +47,7 @@ dev = [
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src/cardreport", "tests/typing_cases.py"]
+files = ["src/cardreport", "tests/typing_cases.py", "examples", "scripts"]
 
 [[tool.mypy.overrides]]
 module = ["cardreport.model", "cardreport.document", "cardreport.renderers"]

@@ -21,7 +21,7 @@ Native libraries are caller-managed; tested on local macOS only.
 Strict mypy checks source and positive/negative consumer fixtures. Ruff lint and
 format are separate required checks. Shared tests exercise the supported subset
 across engines; Chromium-specific flow and lifecycle tests remain in place.
-See [renderer extension](renderer-extension.md) and README for current contracts.
+See [renderer extension](../decisions/renderer-extension.md) and README for current contracts.
 
 The sections below record the earlier Chromium milestone and are historical where
 superseded by this update. Final refactor verification: 80 tests, strict mypy, Ruff lint/format, package build
