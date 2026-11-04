@@ -1,10 +1,166 @@
-# Command-line examples
+# Command line
 
 [Documentation home](../../README.md) · [Python quickstart](quickstart.md)
 
-The primary API is Python. There is no installed `cardreport` CLI command; these
-are optional runners in a repository checkout. They call the same public builder
-and export methods used by applications.
+The Python API remains the primary integration interface. The installed CLI is
+useful for developing reports from a JSON template and named datasets without
+writing a Python runner. `python -m cardreport` and `cardreport` are equivalent;
+in a uv project, prefix either command with `uv run`.
+
+## Install and render
+
+```sh
+uv add cardreport
+python -m cardreport --help
+python -m cardreport render --help
+python -m cardreport render --template report.json --data data.json --output report.html
+```
+
+Default Chromium HTML generation needs only the core package. PDF output needs
+`uv add "cardreport[pdf]"` and `python -m playwright install chromium`. For the
+experimental engine, install `cardreport[weasyprint]` and follow its
+[native setup and supported features](renderers.md#weasyprint). There is no
+automatic engine fallback.
+
+## Complete CSV example
+
+The following files produce the same report as [Use from Python](../../README.md#use-from-python).
+Save them together, or use the ready-made [example directory](../../examples/cli/).
+
+`report.json` contains the presentation and the required data types:
+
+```json
+{
+  "format": "cardreport.template/1",
+  "datasets": {
+    "summary": {
+      "cardinality": "one",
+      "fields": {"total": {"type": "integer"}}
+    },
+    "calls": {
+      "cardinality": "many",
+      "fields": {
+        "result": {"type": "text"},
+        "count": {"type": "integer"}
+      }
+    }
+  },
+  "report": {
+    "title": "Call results",
+    "blocks": [
+      {"type": "card", "content": {
+        "type": "kpi", "label": "Total calls",
+        "value": {"bind": {"dataset": "summary", "field": "total"}}
+      }},
+      {"type": "row", "height_mm": 70, "children": [
+        {"type": "card", "content": {
+          "type": "bar", "dataset": "calls",
+          "category": "result", "value": "count"
+        }}
+      ]}
+    ]
+  }
+}
+```
+
+`summary.csv`:
+
+```csv
+total
+34
+```
+
+`calls.csv`:
+
+```csv
+result,count
+Answered,24
+No answer,10
+```
+
+Run from that directory:
+
+```sh
+python -m cardreport render --template report.json --csv summary.csv --csv calls.csv --output report.html
+python -m cardreport render --template report.json --csv summary.csv --csv calls.csv --output report.pdf
+```
+
+Dataset names are the filenames without the last suffix: `data/calls.csv` becomes
+`calls`. Names are case-sensitive and are not normalized. To use a differently
+named export, pass a name and path as two separate arguments:
+
+```sh
+python -m cardreport render --template report.json --csv summary.csv --csv-as calls exports/november.csv --output report.pdf
+```
+
+`--csv` and `--csv-as` are repeatable and may be combined. Both treat `=` literally;
+there is no `NAME=PATH` syntax. Quote arguments containing spaces, for example
+`--csv-as "calls = answered" "exports/November calls.csv"` when that dataset is
+declared in the template. For a name starting with `-`, use a matching filename
+and `--csv ./-name.csv`; argparse treats leading-hyphen alias arguments as options.
+Use JSON datasets for names that cannot be expressed as command arguments or
+filenames. Option names must be spelled in full. Paths are relative to the current working directory,
+not the template directory. Directories are not scanned.
+
+## JSON and CSV together
+
+`--data` accepts one [cardreport.data/1 bundle](datasets.md#data-json),
+including tagged decimal/date/datetime values. A matching [data.json](../../examples/cli/data.json)
+is provided for the example above. JSON and CSV may supply different datasets:
+
+```sh
+python -m cardreport render --template report.json --data summary-only.json --csv calls.csv --output report.html
+```
+
+The example [summary-only.json](../../examples/cli/summary-only.json) supplies `summary` only; it must not also supply `calls`.
+A name supplied twice, including once in JSON and once in CSV, is an error;
+argument order never silently overrides data. CSV names must be declared in the
+template because its schemas supply their column types. Extra datasets in JSON
+remain allowed, as in the Python API. Missing required datasets and invalid rows
+fail validation. A template with no datasets needs neither `--data` nor CSV options.
+
+## Options and errors
+
+| Option | Behavior |
+| --- | --- |
+| `--template PATH` | Required JSON presentation file (`cardreport.template/1`) |
+| `--data PATH` | Optional named dataset JSON bundle (`cardreport.data/1`) |
+| `--csv PATH` | CSV with dataset name inferred from its filename; repeatable |
+| `--csv-as NAME PATH` | CSV with an explicit dataset name; repeatable |
+| `--csv-encoding NAME` | All CSV files; default `utf-8`, use `utf-8-sig` for a BOM |
+| `--csv-delimiter CHAR` | One character for all CSV files; default comma |
+| `--csv-null TOKEN` | Repeatable null token for all CSV files; none by default |
+| `--output PATH` | Required `.html` or `.pdf` destination; suffix selects format |
+| `--renderer chromium\|weasyprint` | Default `chromium`, applies to HTML and PDF |
+| `--timeout SECONDS` | PDF export deadline in `(0, 300]`, default 30; unused for HTML |
+| `--overwrite` | Allow replacing an output; input files remain protected |
+
+CSV uses the existing [CSV conversion rules](datasets.md#one-csv-file): schema-based
+conversion, no type guessing or trimming, ISO input dates and preserved text codes.
+Empty strings are not null by default. To recognize both an empty cell and `\N`:
+
+```sh
+python -m cardreport render --template report.json --csv summary.csv --csv calls.csv --csv-null '' --csv-null '\N' --output report.html
+```
+
+Nullable fields are still required for null values. An invalid CSV row reports its
+dataset and file, plus available field/row details. Data rows are numbered from 1
+(excluding the header); template errors include available component paths. Existing input-size, row and
+cell limits apply. All inputs are loaded and bound before rendering; failed exports
+do not publish partial files. Parent output directories are created automatically.
+An existing output is preserved unless `--overwrite` is supplied. An input path,
+including a symlink or hard-link alias, cannot be used as output even with that flag.
+
+Success prints the output path to stdout. Expected failures print an error to
+stderr without a traceback. Exit codes: `0` success, `1` input/render/write failure,
+`2` invalid command arguments, `130` interruption. `python -m cardreport --version`
+prints the installed package version. The CLI never executes SQL or downloads
+rendering dependencies.
+
+## Repository example runners
+
+The following scripts are additional examples in a repository checkout, not
+requirements for the installed CLI. They call the public builder/export APIs.
 
 ## Prepare a checkout
 

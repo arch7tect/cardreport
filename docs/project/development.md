@@ -48,7 +48,7 @@ native WeasyPrint libraries and the pandas extra, even if you otherwise develop 
 Use `uv run python scripts/check_docs.py --links-only` for an offline navigation-only check.
 API signatures use `text` fences and are reference notation, not runnable
 Python. Network links are inventoried separately; offline checks do not claim remote
-availability. Shell setup commands are not executed by the checker.
+availability. The self-contained generic CLI examples are also executed against their published JSON/CSV fixtures. Shell dependency setup commands and repository runner commands are not executed by the checker.
 
 The default runtime suite skips optional WeasyPrint cases when its Python package
 is absent. Full verification requires both engines and pandas with no skips.

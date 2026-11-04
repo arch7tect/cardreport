@@ -149,6 +149,19 @@ Return `pdf` from your application, put it in storage, or use
 `report.write_pdf("report.pdf")` to save a file. Existing files are preserved by
 default. Reports reject content that does not fit rather than silently shrinking it.
 
+## Use from the command line
+
+Render the same template/data files without a Python runner:
+
+```sh
+python -m cardreport render --template report.json --data data.json --output report.pdf
+python -m cardreport render --template report.json --csv summary.csv --csv calls.csv --output report.html
+```
+
+CSV dataset names come from filenames; use `--csv-as NAME PATH` to rename one.
+The installed `cardreport` command is equivalent. See the
+[complete CLI example and options](https://github.com/arch7tect/cardreport/blob/main/docs/user/command-line.md).
+
 ## Documentation
 
 - [Quickstart](https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md) — build from application data; return strings/bytes.
@@ -160,7 +173,7 @@ default. Reports reject content that does not fit rather than silently shrinking
 - [API reference](https://github.com/arch7tect/cardreport/blob/main/docs/user/api.md) — signatures, defaults, constraints and errors.
 - [Renderers](https://github.com/arch7tect/cardreport/blob/main/docs/user/renderers.md) — installation, supported features and extensions.
 - [Examples and integration](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md) — the original report, tables and async code.
-- [Command-line examples](https://github.com/arch7tect/cardreport/blob/main/docs/user/command-line.md) — optional script runners.
+- [Command line](https://github.com/arch7tect/cardreport/blob/main/docs/user/command-line.md) — render JSON templates with JSON or CSV datasets using `python -m cardreport`.
 
 For architecture, decisions and contributing, see [project documentation](https://github.com/arch7tect/cardreport/blob/main/docs/project/README.md).
 

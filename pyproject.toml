@@ -1,6 +1,6 @@
 [project]
 name = "cardreport"
-version = "0.4.1"
+version = "0.5.0"
 description = "Composable Python reports with cards, constrained charts, and HTML-to-PDF output"
 readme = "README.md"
 authors = [{ name = "Oleg Orlov" }]
@@ -14,6 +14,9 @@ dependencies = [
     "langcodes>=3.5,<4",
     "plotly>=6.9,<7",
 ]
+
+[project.scripts]
+cardreport = "cardreport.cli:main"
 
 [project.urls]
 Repository = "https://github.com/arch7tect/cardreport"

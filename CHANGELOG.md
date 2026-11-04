@@ -5,6 +5,22 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.5.0 — 2026-11-05
+
+### Added
+
+- Render JSON templates from the terminal with `python -m cardreport render` or
+  the equivalent installed `cardreport` command, producing HTML or PDF.
+- Load named JSON datasets and CSV files together. CSV names default to filename
+  stems; `--csv-as NAME PATH` supplies an explicit name, including
+  names or paths containing spaces or equals signs.
+- Reuse template schemas for CSV types, with configurable encoding, delimiter and
+  null tokens. Reject duplicate dataset inputs and report errors without tracebacks.
+- Select Chromium or SVG/WeasyPrint and a PDF deadline. Preserve existing outputs
+  by default and protect input files even when output replacement is enabled.
+- Add a complete CLI guide, ready-to-run JSON/CSV examples and installed-command
+  checks in both core-only and full-extra packaging verification.
+
 ## 0.4.1 — 2026-11-04
 
 ### Examples and documentation

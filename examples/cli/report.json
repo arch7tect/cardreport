@@ -1,0 +1,31 @@
+{
+  "format": "cardreport.template/1",
+  "datasets": {
+    "summary": {
+      "cardinality": "one",
+      "fields": {"total": {"type": "integer"}}
+    },
+    "calls": {
+      "cardinality": "many",
+      "fields": {
+        "result": {"type": "text"},
+        "count": {"type": "integer"}
+      }
+    }
+  },
+  "report": {
+    "title": "Call results",
+    "blocks": [
+      {"type": "card", "content": {
+        "type": "kpi", "label": "Total calls",
+        "value": {"bind": {"dataset": "summary", "field": "total"}}
+      }},
+      {"type": "row", "height_mm": 70, "children": [
+        {"type": "card", "content": {
+          "type": "bar", "dataset": "calls",
+          "category": "result", "value": "count"
+        }}
+      ]}
+    ]
+  }
+}

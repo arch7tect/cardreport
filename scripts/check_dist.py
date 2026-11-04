@@ -15,6 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = {
     "py.typed",
+    "cli.py",
+    "__main__.py",
     "data.py",
     "formatting.py",
     "_chart_display.py",
@@ -56,6 +58,11 @@ def check_archives(directory: Path) -> Path:
         assert {
             prefix + "examples/" + name
             for name in [
+                "cli/report.json",
+                "cli/data.json",
+                "cli/summary.csv",
+                "cli/calls.csv",
+                "cli/summary-only.json",
                 "reference_template.json",
                 "reference_data.json",
                 "reference_data_second.json",
@@ -114,7 +121,55 @@ def installed_smoke(full: bool) -> None:
         from_csv(examples / "payments.csv", schema=DatasetSchema({})).rows[0][0]
         == "00123"
     )
+    with tempfile.TemporaryDirectory(prefix="cardreport-cli-") as directory:
+        work = Path(directory)
+        common = ["render", "--template", str(examples / "cli/report.json")]
+        for command, inputs, filename in (
+            (
+                [sys.executable, "-m", "cardreport"],
+                ["--data", str(examples / "cli/data.json")],
+                "json.html",
+            ),
+            (
+                [str(Path(sys.executable).with_name("cardreport"))],
+                [
+                    "--csv",
+                    str(examples / "cli/summary.csv"),
+                    "--csv-as",
+                    "calls",
+                    str(examples / "cli/calls.csv"),
+                ],
+                "csv.html",
+            ),
+        ):
+            subprocess.run(
+                command + common + inputs + ["--output", str(work / filename)],
+                check=True,
+                cwd=work,
+            )
+            assert "Total calls" in (work / filename).read_text()
     if not full:
+        with tempfile.TemporaryDirectory(prefix="cardreport-missing-pdf-") as directory:
+            destination = Path(directory) / "report.pdf"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "cardreport",
+                    "render",
+                    "--template",
+                    str(examples / "cli/report.json"),
+                    "--data",
+                    str(examples / "cli/data.json"),
+                    "--output",
+                    str(destination),
+                ],
+                cwd=directory,
+                capture_output=True,
+                text=True,
+            )
+            assert result.returncode == 1 and "cardreport[pdf]" in result.stderr
+            assert "Traceback" not in result.stderr and not destination.exists()
         for name in ("pandas", "numpy", "playwright", "weasyprint"):
             assert importlib.util.find_spec(name) is None
         try:

@@ -599,3 +599,12 @@ CSV fields parse as int (integer) or Decimal (number/decimal). CSV reads at most
 CSV I/O/decoding errors preserve the original exception as their cause.
 The pandas adapter imports pandas only when called; absence raises DependencyError.
 See [datasets](datasets.md) for null, index, precision, encoding and lexical rules.
+
+
+## Command-line interface
+
+The installed `cardreport` command and `python -m cardreport` use the same
+[documented CLI contract](command-line.md). They load template/data files, bind
+through this Python API and call the existing atomic file writers. Python
+applications should use ReportTemplate and Report directly rather than invoke
+the argument parser.

@@ -3,6 +3,9 @@
 import argparse
 import contextlib
 import re
+import shlex
+import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -93,6 +96,39 @@ def check_examples(paths: list[Path]) -> None:
     print(f"Executed {count} Python blocks in {len(paths)} documentation pages")
 
 
+def check_cli_examples() -> None:
+    """Run the self-contained CLI examples, excluding dependency setup/runners."""
+    page = (ROOT / "docs/user/command-line.md").read_text()
+    example = ROOT / "examples/cli"
+    for language, filename in (
+        ("json", "report.json"),
+        ("csv", "summary.csv"),
+        ("csv", "calls.csv"),
+    ):
+        assert f"```{language}\n{(example / filename).read_text().strip()}\n```" in page
+    count = 0
+    for block in FENCES.finditer(page):
+        if block.group(1).strip() != "sh":
+            continue
+        for line in block.group(2).splitlines():
+            if not line.startswith(
+                "python -m cardreport render --template report.json "
+            ):
+                continue
+            with tempfile.TemporaryDirectory(
+                prefix="cardreport-cli-docs-"
+            ) as directory:
+                work = Path(directory)
+                for source in example.iterdir():
+                    shutil.copyfile(source, work / source.name)
+                (work / "exports").mkdir()
+                shutil.copyfile(example / "calls.csv", work / "exports/november.csv")
+                command = shlex.split(line)
+                subprocess.run([sys.executable, *command[1:]], cwd=work, check=True)
+                count += 1
+    print(f"Executed {count} CLI documentation commands")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--links-only", action="store_true")
@@ -132,6 +168,7 @@ def main() -> None:
             datasets_from_json((examples / "operations_data.json").read_bytes())
         ).validate()
         print("Validated reference, Spanish and operations template/data JSON fixtures")
+        check_cli_examples()
         check_examples([ROOT / "README.md", *sorted(ROOT.glob("docs/user/*.md"))])
 
 

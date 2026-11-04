@@ -28,6 +28,7 @@ A snapshot contains no page coordinates. PDF deadlines start before validation.
 
 | Module | Responsibility |
 | --- | --- |
+| [cli.py](../../src/cardreport/cli.py) | Thin installed command: file inputs, explicit name resolution, public binding/export APIs |
 | [data.py](../../src/cardreport/data.py) | Immutable tables, schemas, bounded native and tagged JSON input |
 | [templates.py](../../src/cardreport/templates.py) | Closed JSON grammar and binding to existing components |
 | [_inputs.py](../../src/cardreport/_inputs.py) | Shared bounded parsing and located errors |
@@ -140,3 +141,16 @@ charts retain35mm. The browser also checks legend item coverage.
 
 Read [the user contract](../user/dashboards.md) for fill, chronology, palette limits,
 KPI no-wrap behavior, layout weights and backend capability differences.
+
+
+## Installed command line (0.5.0)
+
+`python -m cardreport` and the `cardreport` console entry point share `cli.main`.
+The command owns argument parsing and explicit file acquisition, then calls
+ReportTemplate, datasets_from_json, from_csv and Report.write_html/write_pdf.
+It uses the public read-only `ReportTemplate.datasets` schemas without duplicating
+template parsing. It rejects duplicate source names before reading CSV rows and
+retains extra-JSON-dataset behavior from bind. CSV filename stems are literal;
+`--csv-as NAME PATH` supports aliases without reserving `=` inside names/paths.
+Spaces and equals signs remain literal; ordinary shell/argparse argument constraints still apply. No directory discovery,
+source registry, SQL layer, render changes or new template version is introduced.
