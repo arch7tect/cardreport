@@ -58,9 +58,24 @@ verified separately after push. See [dashboard guide](../../../user/dashboards.m
 
 The first hosted attempt failed before checkout: GitHub reported that no hosted
 runner acquired the job and noted macOS ARM capacity constraints. A retry also
-remained queued; cancellation was requested. CI now selects the standard macOS 15 Intel
+remained queued; cancellation was requested. CI temporarily selected the standard macOS 15 Intel
 runner; all checks and publication gates are unchanged. This is an infrastructure
 workaround, not evidence of a code or test failure.
 An additional restricted Claude review found no blocker in the runner change;
 native layout, dependency installation and installed-wheel smoke remain mandatory
 hosted checks. Local ARM evidence does not imply hosted ARM coverage.
+
+The Intel run subsequently executed: dependencies, lint and types passed, but
+runtime had 275 passes and 11 failures in 915.8 seconds. Ten WeasyPrint chart
+exports exceeded the default 30-second deadline; the specific slowdown cause was
+not isolated. One cleanup test interrupted before Chromium launched because it
+assumed a one-second startup. Intel macOS remains unverified. CI returned to the
+original ARM runner without changing production deadlines or verification gates.
+The cleanup test now waits for worker, driver and browser with a bounded deadline,
+then injects a real subprocess timeout or KeyboardInterrupt. All process-tree
+assertions remain, and separate whole-export deadline tests are unchanged.
+A restricted Claude review agreed with this bounded recovery; hosted ARM success
+remains required before publication. Runner capacity may still delay the release.
+Local lint, types, links and focused deadline/cleanup tests passed. An additional
+probe delayed each real worker startup by two seconds; both timeout and interrupt
+cleanup paths passed without weakening process-tree assertions.

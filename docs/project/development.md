@@ -5,10 +5,11 @@
 Use Python 3.12+ and uv. Documents, code and comments are written in English.
 If using PyCharm, select `.venv/bin/python` for the checkout; keep `.idea` local.
 
-Hosted CI uses `macos-15-intel` and Python 3.12 for the complete check suite.
-The runner label avoids the observed ARM runner capacity failure during the 0.4.0
-release; local Apple Silicon checks remain separate evidence. Native library paths
-come from `brew --prefix`, not an architecture-specific path.
+Hosted CI uses `macos-15` (ARM) and Python 3.12 for the complete check suite.
+An Intel runner was tried during the 0.4.0 release after an ARM capacity failure.
+WeasyPrint chart exports exceeded the default 30-second deadline in that hosted
+run; the cause was not isolated, so Intel macOS remains unverified. CI returned
+to ARM with all checks intact. Native library paths come from `brew --prefix`.
 
 ## Setup
 
@@ -51,7 +52,7 @@ availability. Shell setup commands are not executed by the checker.
 
 The default runtime suite skips optional WeasyPrint cases when its Python package
 is absent. Full verification requires both engines and pandas with no skips.
-macOS/Python 3.12 is verified locally and in GitHub Actions; no Linux/Windows rendering support is claimed. The release workflow runs the same
+Apple Silicon macOS/Python 3.12 is verified locally and in GitHub Actions; no Linux/Windows rendering support is claimed. The release workflow runs the same
 checks on hosted macOS/Python 3.12 and blocks publication on failures or skipped tests.
 Verify both rendering success and deliberate errors, literal labels, text/vector
 output, native glyph bounds, file preservation and worker cleanup. Review output

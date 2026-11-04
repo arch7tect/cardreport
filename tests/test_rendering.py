@@ -223,25 +223,46 @@ def test_worker_timeout_and_interruption_cleanup(monkeypatch):
         "render_html",
         lambda doc: "<script>window.cardreport={ready:false}</script>",
     )
+    real_communicate = subprocess.Popen.communicate
+
+    def feed_until_browser(process, payload):
+        process.stdin.write(payload)
+        process.stdin.close()
+        process.stdin = None
+        deadline = time.monotonic() + 30
+        while True:
+            if process.poll() is not None:
+                pytest.fail("worker exited before browser launch")
+            try:
+                if len(psutil.Process(process.pid).children(recursive=True)) >= 2:
+                    return
+            except psutil.NoSuchProcess:
+                pytest.fail("worker exited before browser launch")
+            if time.monotonic() >= deadline:
+                pytest.fail("browser did not launch within 30 seconds")
+            time.sleep(0.05)
+
+    def time_out(process, payload, *args, **kwargs):
+        # Exercise cleanup after launch, independently of machine startup speed.
+        feed_until_browser(process, payload)
+        return real_communicate(process, timeout=0.1)
+
+    monkeypatch.setattr(subprocess.Popen, "communicate", time_out)
     with pytest.raises(RenderTimeoutError):
-        stalled.to_pdf(timeout=2)
+        stalled.to_pdf()
     assert len(observed) > 2, "test must reach browser/driver launch"
     assert not any(
         p.is_running() and p.status() != psutil.STATUS_ZOMBIE for p in observed
     )
     observed.clear()
 
-    def interrupt(process, *args, **kwargs):
-        # Feed the document so interruption reaches a live browser, not only stdin.read.
-        process.stdin.write(args[0])
-        process.stdin.close()
-        process.stdin = None
-        time.sleep(1)
+    def interrupt(process, payload, *args, **kwargs):
+        feed_until_browser(process, payload)
         raise KeyboardInterrupt
 
     monkeypatch.setattr(subprocess.Popen, "communicate", interrupt)
     with pytest.raises(KeyboardInterrupt):
-        stalled.to_pdf(timeout=5)
+        stalled.to_pdf()
     assert len(observed) > 2, "interrupt test must reach browser launch"
     assert not any(
         p.is_running() and p.status() != psutil.STATUS_ZOMBIE for p in observed

@@ -24,7 +24,7 @@ jobs:
           exit 1
   verify:
     if: github.event_name != 'workflow_dispatch'
-    runs-on: macos-15-intel
+    runs-on: macos-15
     timeout-minutes: 25
     permissions:
       contents: read
