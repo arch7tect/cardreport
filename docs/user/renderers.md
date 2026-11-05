@@ -61,30 +61,67 @@ but no Playwright/Chromium installation; opening that HTML still requires JavaSc
 
 ## WeasyPrint
 
-Install the optional extra in an existing uv project:
+Install the native libraries for your system, then the Python extra. CardReport
+requires Python 3.12 or newer and pins WeasyPrint 70.0 because its experimental
+geometry adapter depends on that version. The extra installs the matching Python
+packages; system packages supply Pango and its native dependencies.
+
+### Linux
+
+For Ubuntu 24.04+ or Debian 12+:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0
+```
+
+For Fedora 39+:
+
+```sh
+sudo dnf install -y pango
+```
+
+Then, in an existing uv project with Python 3.12+, install and inspect the runtime:
 
 ```sh
 uv add "cardreport[weasyprint]"
+uv run python -m weasyprint --info
 ```
 
-Or, from a checkout, use `uv sync --extra weasyprint --locked`. Follow the
-[WeasyPrint native-library installation guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation).
-On macOS, Pango must be installed. If the loader cannot find Homebrew libraries,
-set the path in the environment that starts your application, for example:
+For a CardReport checkout, use `uv sync --extra weasyprint --locked` instead of
+`uv add`. These native package lists follow the
+[upstream Linux instructions](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#linux)
+for installing Python wheels. That guide also covers other distributions and
+additional development packages needed when a dependency must build from source.
+The PDF example below checks the complete CardReport renderer on your machine.
+
+### macOS
+
+Install Pango with Homebrew and the Python extra:
+
+```sh
+brew install pango
+uv add "cardreport[weasyprint]"
+```
+
+If the loader cannot find Homebrew libraries, set the path in the environment
+that starts your application, for example:
 
 ```sh
 export DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib"
 ```
 
 CardReport does not install native libraries or modify environment variables.
-The extra pins WeasyPrint 70.0 because its experimental geometry adapter depends
-on that version. An incompatible adapter fails explicitly.
+An incompatible adapter fails explicitly.
+
+### Use the renderer
 
 ```python
 from cardreport import Card, KPI, Report, WeasyPrintRenderer
 
 report = Report("Summary").row(Card(KPI("Clients", 21)), height_mm=50)
 pdf = report.to_pdf(renderer=WeasyPrintRenderer())
+assert pdf.startswith(b"%PDF-")
 html = report.to_html(renderer=WeasyPrintRenderer())
 ```
 
