@@ -11,7 +11,8 @@ selectable and charts are vector graphics.
 
 Chromium is the default renderer. The experimental SVG/WeasyPrint renderer works
 without JavaScript or a browser, with a smaller supported feature set. Both can
-render the [original reference example](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#reference-report).
+render grouped/stacked bars, multiple line series and funnels, including the
+[series example](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#multiple-series-and-funnel). Both also render the [original reference example](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#reference-report).
 
 ## Reports in practice
 

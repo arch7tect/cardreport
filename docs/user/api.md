@@ -296,8 +296,9 @@ error. Its HTML legend supports bottom/left placement. Hiding category labels
 requires that legend; left placement also requires the category legend. See
 [dashboard layouts](dashboards.md#category-colors-and-a-left-legend). `date` is not a valid
 chart value format. Empty categories with matching empty values display "No data".
-WeasyPrint supports only one series; other bar modes/features are subject to the
-[renderer capability table](renderers.md#capabilities).
+Both engines support 1–8 series, grouped/stacked modes and both orientations.
+Stacking uses a signed cumulative base in series order. See the
+[renderer capability table](renderers.md#capabilities) for value-label fit rules.
 
 ```python
 from cardreport import BarChart
@@ -318,7 +319,7 @@ LineChart(x: Sequence[str | date | datetime],
           fill: Literal["none", "zero"] = "none")
 ```
 
-Chromium supports multiple series; WeasyPrint supports one. Exactly one of
+Both engines support 1–8 series. Exactly one of
 values/series, matching x lengths. Category axes
 require unique strings; date axes require dates or timezone-aware datetimes.
 Datetimes normalize to UTC; naive datetimes are rejected. None creates a gap,
@@ -351,7 +352,7 @@ Funnel(labels: Sequence[str], values: Sequence[Number],
        show_labels: bool = True, value_format: Format = "number")
 ```
 
-Chromium only. Unique stage labels and matching nonnegative values. Stages retain
+Both engines support Funnel. Unique stage labels and matching nonnegative values. Stages retain
 caller order; increases are allowed and no conversion rates are inferred.
 Other numeric/format rules match BarChart. A horizontal BarChart is an alternative
 when stages should be represented as independent bars.

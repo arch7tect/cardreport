@@ -18,15 +18,28 @@ ReportTemplate.bind have exactly these capabilities and geometric checks.
 | Weighted rows/columns | Yes | Yes |
 | Automatic flow / split tables | Yes | Unsupported |
 | Single-series bars | Yes | Yes |
-| Multi-series bars | Yes | Unsupported |
+| Multi-series bars (grouped / stacked) | Yes | Yes |
 | Single-series lines (axes, markers, fill) | Yes | Yes |
-| Multi-series lines / funnels | Yes | Unsupported |
+| Multi-series lines | Yes | Yes |
+| Funnel | Yes | Yes |
 | Category colors / left or bottom category legend | Yes | Yes |
 | Compact line charts in KPI cards | Yes | Yes |
 
-A one-series `series` mapping is also supported by WeasyPrint. Grouped/stacked mode
-has no multi-series distinction in that case. Unsupported features raise
-`UnsupportedFeatureError`; there is no automatic fallback to another renderer.
+Both engines support up to eight bar/line series with the same input order and
+colors. WeasyPrint uses a bottom HTML swatch legend for multiple series. Legend
+appearance, tick placement and value-label positions can differ between engines.
+Stacked bars accumulate signed values in series order (Plotly's stack semantics),
+not separate positive/negative stacks. WeasyPrint centers labels inside nonzero
+stack segments and rejects labels that do not fit. Zero-segment labels sit just after
+the cumulative position. All bar value labels, including single-series labels,
+are rejected if they cover another bar or collide with another label.
+This includes a zero label placed back inside a negative stack. Use more space or disable value labels when necessary.
+
+Funnel stages are centered horizontal bars with connectors, category labels and
+optional outside values; there is no numeric axis. Zero values and increases
+are supported. Zero fill for lines and category colors for bars still require
+one series in both engines. Automatic flow remains unsupported in WeasyPrint and
+raises `UnsupportedFeatureError`; there is no automatic fallback.
 Long unbreakable text may be rejected rather than wrapped by WeasyPrint.
 
 PDF is the authoritative checked result. Chromium HTML validates layout when

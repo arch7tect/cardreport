@@ -155,7 +155,7 @@ html = report.to_html()  # Axis labels: 4 nov 2026, 5 nov 2026
 In JSON templates, declare the bar category field as `date` or `datetime` and
 supply tagged values, e.g. `{"$type":"date","value":"2026-11-04"}`. This remains
 `cardreport.template/1` and `cardreport.data/1`.
-The WeasyPrint adapter supports single-series bars and lines. Its date-line ticks
+The WeasyPrint adapter supports multiple bar/line series and funnels. Its date-line ticks
 use sampled input dates with the same formatter, including ISO text without
 explicit settings. Chromium retains automatic date ticks when settings are omitted.
 

@@ -18,11 +18,13 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
     from matplotlib.figure import Figure
     from matplotlib.font_manager import FontProperties
     from matplotlib.layout_engine import ConstrainedLayoutEngine
+    from matplotlib.patches import Polygon, Rectangle
     from matplotlib.text import Text
     from matplotlib.ticker import FuncFormatter, MaxNLocator
 
     small = bool(spec.get("compact", False))
     is_line = spec.get("kind") == "line"
+    is_funnel = spec.get("kind") == "funnel"
     axes = spec.get("axes", True)
     if width < 40 or height < (10 if small else 35) * 96 / 25.4 - 1:
         raise LayoutOverflowError(f"{path}: chart has insufficient allocated space")
@@ -52,34 +54,40 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
         layout.set(w_pad=(3 if small else 12) / 96, h_pad=(3 if small else 8) / 96)
         canvas = FigureCanvasAgg(fig)
         ax = fig.subplots()
-        labels = []
+        labels: list[Text] = []
+        label_bars: list[tuple[Text, Rectangle, bool]] = []
+        all_bars: list[Rectangle] = []
+        label: Text
         horizontal = spec["horizontal"]
+        series = spec["series"]
+        stacked = spec.get("mode") == "stacked" and len(series) > 1
         if is_line:
             positions = spec["positions"]
-            values = [float("nan") if v is None else v for v in spec["values"]]
-            ax.plot(positions, values, color=spec["color"], linewidth=1.5)
-            sizes = spec["marker_sizes"]
-            points = [i for i, size in enumerate(sizes) if size]
-            ax.scatter(
-                [positions[i] for i in points],
-                [values[i] for i in points],
-                s=[(sizes[i] * 0.75) ** 2 for i in points],
-                color=spec["color"],
-                zorder=3,
-                clip_on=False,
-                linewidths=0,
-            )
-            if spec["fill"] == "zero":
-                for indices in segments(spec["values"]):
-                    if len(indices) < 2:
-                        continue
-                    ax.fill_between(
-                        [positions[i] for i in indices],
-                        [values[i] for i in indices],
-                        0,
-                        color=spec["fill_color"],
-                        zorder=1,
-                    )
+            for item in series:
+                values = [float("nan") if v is None else v for v in item["values"]]
+                ax.plot(positions, values, color=item["color"], linewidth=1.5)
+                sizes = item["marker_sizes"]
+                points = [i for i, size in enumerate(sizes) if size]
+                ax.scatter(
+                    [positions[i] for i in points],
+                    [values[i] for i in points],
+                    s=[(sizes[i] * 0.75) ** 2 for i in points],
+                    color=item["color"],
+                    zorder=3,
+                    clip_on=False,
+                    linewidths=0,
+                )
+                if spec["fill"] == "zero":
+                    for indices in segments(item["values"]):
+                        if len(indices) < 2:
+                            continue
+                        ax.fill_between(
+                            [positions[i] for i in indices],
+                            [values[i] for i in indices],
+                            0,
+                            color=spec["fill_color"],
+                            zorder=1,
+                        )
             ax.set_ylim(spec["y_range"])
             ax.set_xticks(spec["ticks"], spec["tick_labels"])
             ax.yaxis.set_major_formatter(
@@ -88,11 +96,108 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
             ax.set_xlim(spec["x_range"])
             if not axes:
                 ax.set_axis_off()
+        elif is_funnel:
+            item = series[0]
+            values = item["values"]
+            positions = list(range(len(values)))
+            for i in range(len(values) - 1):
+                left, right = values[i] / 2, values[i + 1] / 2
+                ax.add_patch(
+                    Polygon(
+                        [
+                            (-left, i + 0.4),
+                            (left, i + 0.4),
+                            (right, i + 0.6),
+                            (-right, i + 0.6),
+                        ],
+                        facecolor=item["color"],
+                        alpha=0.2,
+                        edgecolor="none",
+                        zorder=0,
+                    )
+                )
+            bars = ax.barh(
+                positions, values, left=[-v / 2 for v in values], color=item["color"]
+            )
+            ax.set_yticks(positions, spec["labels"])
+            ax.invert_yaxis()
+            extent = max(values) * 0.75 if max(values) else 1
+            ax.set_xlim(-extent, extent)
+            ax.xaxis.set_visible(False)
+            ax.spines[["bottom", "left"]].set_visible(False)
+            ax.tick_params(axis="y", length=0)
+            if spec["show_labels"]:
+                for i, value in enumerate(values):
+                    labels.append(
+                        ax.annotate(
+                            item["value_labels"][i],
+                            (value / 2, i),
+                            xytext=(4, 0),
+                            textcoords="offset points",
+                            ha="left",
+                            va="center",
+                            clip_on=False,
+                        )
+                    )
         else:
             positions = list(range(len(spec["labels"])))
-            colors = spec.get("colors") or spec["color"]
+            bases = [0.0] * len(positions)
+            bar_width = 0.8 if stacked else 0.8 / len(series)
+            for index, item in enumerate(series):
+                locations = [
+                    p + (0 if stacked else -0.4 + bar_width * (index + 0.5))
+                    for p in positions
+                ]
+                values = item["values"]
+                colors = spec.get("colors") or item["color"]
+                if horizontal:
+                    bars = ax.barh(
+                        locations, values, height=bar_width, left=bases, color=colors
+                    )
+                else:
+                    bars = ax.bar(
+                        locations, values, width=bar_width, bottom=bases, color=colors
+                    )
+                all_bars.extend(bars)
+                if spec["show_labels"]:
+                    if stacked:
+                        for i, (bar, value) in enumerate(
+                            zip(bars, values, strict=True)
+                        ):
+                            center = bases[i] + value / 2
+                            xy = (
+                                (center, locations[i])
+                                if horizontal
+                                else (locations[i], center)
+                            )
+                            label = ax.annotate(
+                                item["value_labels"][i],
+                                xy,
+                                xytext=(0, 0)
+                                if value
+                                else ((4, 0) if horizontal else (0, 4)),
+                                textcoords="offset points",
+                                clip_on=False,
+                                ha="center" if value or not horizontal else "left",
+                                va="center" if value or horizontal else "bottom",
+                            )
+                            labels.append(label)
+                            label_bars.append((label, bar, bool(value)))
+                    else:
+                        drawn = ax.bar_label(
+                            bars, labels=item["value_labels"], padding=4
+                        )
+                        labels.extend(drawn)
+                        label_bars.extend(
+                            (label, bar, False)
+                            for label, bar in zip(drawn, bars, strict=True)
+                        )
+                if stacked:
+                    # Match Plotly stack, not relative: one signed cumulative base.
+                    bases = [
+                        base + value for base, value in zip(bases, values, strict=True)
+                    ]
             if horizontal:
-                bars = ax.barh(positions, spec["values"], color=colors)
                 ax.set_yticks(positions, spec["labels"])
                 ax.invert_yaxis()
                 ax.xaxis.set_major_formatter(
@@ -100,7 +205,6 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
                 )
                 ax.margins(x=0.22)
             else:
-                bars = ax.bar(positions, spec["values"], color=colors)
                 ax.set_xticks(positions, spec["labels"])
                 ax.yaxis.set_major_formatter(
                     FuncFormatter(lambda v, _: format_value(v, fmt, formatting))
@@ -108,18 +212,14 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
                 ax.margins(y=0.22)
             if not spec.get("category_labels", True):
                 (ax.yaxis if horizontal else ax.xaxis).set_visible(False)
-            labels = (
-                ax.bar_label(bars, labels=spec["value_labels"], padding=4)
-                if spec["show_labels"]
-                else []
-            )
         if fmt == "integer":
             (ax.xaxis if horizontal else ax.yaxis).set_major_locator(
                 MaxNLocator(integer=True)
             )
         ax.spines[["top", "right"]].set_visible(False)
         ax.set_axisbelow(True)
-        ax.grid(axis="x" if horizontal else "y", alpha=0.2)
+        if not is_funnel:
+            ax.grid(axis="x" if horizontal else "y", alpha=0.2)
         ax.set_facecolor("none")
         fig.patch.set_alpha(0)
         # Force tick creation before applying the exact bundled font and literal text.
@@ -160,6 +260,29 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
                     and min(a.y1, b.y1) - max(a.y0, b.y0) > 1
                 ):
                     raise LayoutOverflowError(f"{path}: chart labels overlap")
+        for label, owner, inside in label_bars:
+            box = label.get_window_extent(renderer)
+            area = owner.get_window_extent(renderer)
+            if inside and (
+                box.x0 < area.x0 - 1
+                or box.x1 > area.x1 + 1
+                or box.y0 < area.y0 - 1
+                or box.y1 > area.y1 + 1
+            ):
+                raise LayoutOverflowError(
+                    f"{path}: stacked value label does not fit its segment"
+                )
+            for bar in all_bars:
+                if bar is owner:
+                    continue
+                other = bar.get_window_extent(renderer)
+                if (
+                    min(box.x1, other.x1) - max(box.x0, other.x0) > 1
+                    and min(box.y1, other.y1) - max(box.y0, other.y0) > 1
+                ):
+                    raise LayoutOverflowError(
+                        f"{path}: value label overlaps another bar"
+                    )
         fig.set_layout_engine("none")
         out = StringIO()
         fig.savefig(out, format="svg")

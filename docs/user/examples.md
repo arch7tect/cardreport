@@ -60,6 +60,27 @@ and [YAML datasets](../../examples/reference_data.yaml). Use the installed CLI o
 `ReportTemplate.from_yaml` with `datasets_from_yaml`; see the
 [YAML embedding guide](yaml-and-schemas.md).
 
+## Multiple series and funnel
+
+[series_report.py](../../examples/series_report.py) composes grouped bars, horizontal
+stacked bars, dated lines with a gap, and a funnel on one page. All values are
+synthetic. The same builder works with both renderers, without engine-specific
+chart options or renderer-library imports.
+
+```python
+from examples.series_report import build_report as build_series_report
+from cardreport import WeasyPrintRenderer
+
+report = build_series_report()
+pdf = report.to_pdf(renderer=WeasyPrintRenderer())
+assert pdf.startswith(b"%PDF-")
+```
+
+From a checkout, run `uv run --extra weasyprint python examples/series_report.py`;
+add `--renderer chromium` with the PDF extra installed to compare engines. Outputs
+are not overwritten unless `--overwrite` is supplied. See [renderer behavior](renderers.md#capabilities)
+for stacked value-label fit and legend differences.
+
 ## Spanish reference report
 
 [spanish_report.py](../../examples/spanish_report.py) binds

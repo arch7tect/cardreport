@@ -1,6 +1,6 @@
 [project]
 name = "cardreport"
-version = "0.7.1"
+version = "0.8.0"
 description = "Composable Python reports with cards, constrained charts, and HTML-to-PDF output"
 readme = "README.md"
 authors = [{ name = "Oleg Orlov" }]

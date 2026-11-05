@@ -4,7 +4,7 @@
 
 A small trend chart is an ordinary LineChart with axes hidden. Compose it with a
 KPI in a Column; the same chart can be used at full size with axes. Both renderers
-support single-series lines, including date coordinates, gaps and zero fill.
+support multiple line series, date coordinates and gaps. Zero fill requires one series.
 
 ## A KPI with a trend
 
@@ -126,5 +126,5 @@ pdf = report.to_pdf(renderer=WeasyPrintRenderer())
 ```
 
 For application embedding, load your own template and named datasets with
-[ReportTemplate](templates.md). The experimental renderer still rejects multiple
-line series, Funnel and automatic flow; it never falls back to a browser.
+[ReportTemplate](templates.md). Both engines support multiple bar/line series and Funnel. The experimental
+renderer still rejects automatic flow; it never falls back to a browser.

@@ -5,6 +5,26 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.8.0 — 2026-11-05
+
+### Added
+
+- WeasyPrint supports multiple bar series in grouped/stacked modes, in either
+  orientation, and multiple line series with dates, gaps and optional markers.
+- Funnel charts render as centered vector stages with connectors and optional
+  value labels in WeasyPrint.
+- Series legends reuse the measured HTML layout. Stacked values preserve signed
+  accumulation; labels must fit their segments and never silently shrink.
+- A complete synthetic multi-series/funnel example works with both engines.
+
+### Changed
+
+- Bar label checks now also reject text covering another bar, including
+  single-series charts and overlapping signed-stack segments.
+
+Public Python APIs and JSON/YAML schemas are unchanged. Automatic table flow
+remains available only with Chromium.
+
 ## 0.7.1 — 2026-11-05
 
 ### Fixed

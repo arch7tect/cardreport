@@ -17,13 +17,22 @@ from ._chart_display import (
     line_range,
     line_x_range,
     marker_sizes,
+    series_colors,
 )
 from .document import ReportDocument
-from .html import chart_frame, empty_chart, render_block, render_header, render_styles
+from .html import (
+    chart_frame,
+    empty_chart,
+    legend_frame,
+    render_block,
+    render_header,
+    render_styles,
+)
 from .model import (
     BarChart,
     Chart,
     DependencyError,
+    Funnel,
     LineChart,
     PageBreak,
     UnsupportedFeatureError,
@@ -33,10 +42,9 @@ from .validation import MAX_PAGES
 
 
 class WeasyPrintRenderer:
-    """Experimental: dashboard cards, text, tables and single-series bars/lines.
+    """Experimental: dashboard cards, text, tables, bars, lines and funnels.
 
-    Funnel charts, multi-series charts and automatic flow are explicitly
-    unsupported. Uses pinned WeasyPrint 70.0 private box measurements with a
+    Automatic flow is explicitly unsupported. Uses pinned WeasyPrint 70.0 private box measurements with a
     fail-closed canary. Native libraries must be installed by the caller.
     Static HTML is a preview; its layout in other browsers is not guaranteed.
     """
@@ -55,29 +63,35 @@ class WeasyPrintRenderer:
         charts: dict[str, object] = {}
 
         def chart(obj: Chart, path: str, definite: bool) -> str:
-            if (
-                not isinstance(obj, (BarChart, LineChart))
-                or len(doc.charts[path].series) != 1
-            ):
-                raise UnsupportedFeatureError(
-                    f"{path}: WeasyPrintRenderer currently supports single-series BarChart and LineChart only"
-                )
             data = doc.charts[path]
             attrs = f'data-kind="{type(obj).__name__}" data-path="{path}"'
             if empty(obj, data):
                 return empty_chart(obj, data, path, doc.empty_text)
             payload: dict[str, object] = {
-                "kind": "line" if isinstance(obj, LineChart) else "bar",
+                "kind": "line"
+                if isinstance(obj, LineChart)
+                else "funnel"
+                if isinstance(obj, Funnel)
+                else "bar",
                 "compact": compact(obj, data),
                 "labels": data.category_labels or data.labels,
                 "formatting": asdict(doc.formatting)
                 if doc.formatting is not None
                 else None,
-                "values": data.series[0].values,
-                "value_labels": data.series[0].labels,
-                "horizontal": isinstance(obj, BarChart)
-                and obj.orientation == "horizontal",
-                "show_labels": isinstance(obj, BarChart) and obj.show_labels,
+                "series": [
+                    {
+                        "values": item.values,
+                        "value_labels": item.labels,
+                        "color": series_colors(doc.theme)[i],
+                        "marker_sizes": marker_sizes(item.values, obj.markers)
+                        if isinstance(obj, LineChart)
+                        else [],
+                    }
+                    for i, item in enumerate(data.series)
+                ],
+                "horizontal": isinstance(obj, Funnel)
+                or (isinstance(obj, BarChart) and obj.orientation == "horizontal"),
+                "show_labels": isinstance(obj, (BarChart, Funnel)) and obj.show_labels,
                 "font_size": doc.theme.font_size_pt,
                 "color": doc.theme.accent,
                 "text_color": doc.theme.text,
@@ -95,7 +109,6 @@ class WeasyPrintRenderer:
                     x_range=line_x_range(positions, dates=obj.x_kind == "date"),
                     axes=obj.axes,
                     fill=obj.fill,
-                    marker_sizes=marker_sizes(data.series[0].values, obj.markers),
                     y_range=line_range(data, obj.fill),
                     fill_color=fill_color(doc.theme.accent, doc.theme.card_background),
                     positions=date_positions(data.labels)
@@ -108,14 +121,28 @@ class WeasyPrintRenderer:
                     if obj.x_kind == "date"
                     else data.labels,
                 )
-            else:
+            elif isinstance(obj, BarChart):
                 payload.update(
+                    mode=obj.mode,
                     category_labels=obj.category_labels,
                     colors=category_colors(obj, doc.theme, len(data.labels)),
                 )
             charts[path] = payload
             small = " compact-chart" if compact(obj, data) else ""
             plot = f'<div class="chart{small}" {attrs} data-chart="{path}" data-definite="{str(definite).lower()}"><!--chart:{path}--></div>'
+            if (
+                isinstance(obj, (BarChart, LineChart))
+                and obj.legend
+                and len(data.series) > 1
+            ):
+                return legend_frame(
+                    tuple(item.name for item in data.series),
+                    series_colors(doc.theme)[: len(data.series)],
+                    "bottom",
+                    path,
+                    definite,
+                    plot,
+                )
             return chart_frame(obj, data, doc.theme, path, definite, plot)
 
         segments: list[str] = []

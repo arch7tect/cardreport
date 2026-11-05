@@ -83,6 +83,7 @@ def check_archives(directory: Path) -> Path:
                 "operations_report.py",
                 "operations_template.json",
                 "operations_data.json",
+                "series_report.py",
             ]
         } <= source_names
         metadata_file = archive.extractfile(prefix + "PKG-INFO")
@@ -232,15 +233,30 @@ def installed_smoke(full: bool) -> None:
         else:
             raise AssertionError("missing pandas extra must fail clearly")
     else:
+        import runpy
+
         import pandas as pd
         from pypdf import PdfReader
 
         from cardreport import ChromiumRenderer, WeasyPrintRenderer
 
+        series_report = runpy.run_path(str(examples / "series_report.py"))[
+            "build_report"
+        ]
+
         assert from_pandas(pd.DataFrame({"x": [1]}), schema=DatasetSchema({})).rows == (
             (1,),
         )
         for renderer in (ChromiumRenderer(), WeasyPrintRenderer()):
+            series_pdf = PdfReader(
+                io.BytesIO(series_report().to_pdf(renderer=renderer))
+            )
+            assert len(series_pdf.pages) == 1 and not list(series_pdf.pages[0].images)
+            series_text = series_pdf.pages[0].extract_text()
+            assert all(
+                label in series_text
+                for label in ("Previous", "Current", "Converted", "335")
+            )
             pdf = PdfReader(io.BytesIO(report.to_pdf(renderer=renderer)))
             assert len(pdf.pages) == 1 and not list(pdf.pages[0].images)
             assert "Campaign progress" in pdf.pages[0].extract_text()

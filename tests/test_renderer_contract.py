@@ -185,9 +185,6 @@ def test_invalid_x_kind_has_correct_error():
     "report",
     [
         Report(mode="flow"),
-        Report().add(Funnel(["a"], [1])),
-        Report().add(LineChart(["a"], series={"A": [1], "B": [2]})),
-        Report().add(BarChart(["a"], series={"A": [1], "B": [2]})),
     ],
 )
 def test_weasy_unsupported_is_explicit(report):
@@ -229,11 +226,11 @@ def test_weasy_static_html():
     assert "<svg" in html and "<script" not in html and "Plotly" not in html
 
 
-def test_funnel_must_fit():
+def test_funnel_must_fit(renderer):
     report = Report(page=Page(orientation="landscape")).row(
         Card(Funnel(["Start", "Finish"], [10, 5])), height_mm=100
     )
-    assert "Start" in text(pdf(report, ChromiumRenderer()))
+    assert "Start" in text(pdf(report, renderer))
 
 
 def test_page_limit_is_layout_error(renderer):
@@ -330,8 +327,7 @@ def test_svg_font_rewrite_preserves_text_and_ignores_local_rc():
 
     spec = {
         "labels": ["'DejaVu Sans'"],
-        "values": [1],
-        "value_labels": ["1"],
+        "series": [{"values": [1], "value_labels": ["1"], "color": "#20a6c4"}],
         "horizontal": True,
         "show_labels": True,
         "font_size": 10,

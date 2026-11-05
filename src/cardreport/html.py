@@ -143,13 +143,24 @@ def chart_frame(
         return plot
     labels = data.category_labels or data.labels
     colors = category_colors(obj, theme, len(labels))
+    return legend_frame(labels, colors, obj.legend_position, path, definite, plot)
+
+
+def legend_frame(
+    labels: tuple[str, ...],
+    colors: tuple[str, ...],
+    position: str,
+    path: str,
+    definite: bool,
+    plot: str,
+) -> str:
     items = "".join(
         f'<div class="legend-item" data-path="{path}.legend.{i}"><span class="legend-swatch" style="background:{color}"></span><span>{escape(label)}</span></div>'
         for i, (label, color) in enumerate(zip(labels, colors, strict=True))
     )
-    columns = 1 if obj.legend_position == "left" else min(3, len(labels))
+    columns = 1 if position == "left" else min(3, len(labels))
     legend = f'<div class="category-legend" data-path="{path}.legend" style="grid-template-columns:repeat({columns},minmax(0,1fr))">{items}</div>'
-    return f'<div class="chart-frame legend-{obj.legend_position}" data-path="{path}.frame" data-definite="{str(definite).lower()}" data-legend-count="{len(labels)}">{legend}{plot}</div>'
+    return f'<div class="chart-frame legend-{position}" data-path="{path}.frame" data-definite="{str(definite).lower()}" data-legend-count="{len(labels)}">{legend}{plot}</div>'
 
 
 def render_header(report: ReportDocument) -> str:

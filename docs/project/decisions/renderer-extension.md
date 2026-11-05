@@ -29,11 +29,22 @@ implementation review; privacy-reviewed initial commit and public GitHub push.
 
 ## Implemented experimental subset
 
-WeasyPrintRenderer supports dashboards, explicit pages, cards, text, KPI, unsplit
-tables, weighted Row/Column layouts and single-series BarChart. It rejects flow,
-LineChart, Funnel and multi-series bars with UnsupportedFeatureError. The reference
-uses horizontal bars for its contact funnel and therefore needs no unsupported
-component. Native CSS owns measurement; no separate geometry engine was added.
+The initial prototype supported single-series bars. Version 0.4.0 added lines;
+0.8.0 adds up to eight series for grouped/stacked bars and lines, plus Funnel.
+Dashboard/explicit pages, cards, text, KPI, unsplit tables and weighted Row/Column
+layouts remain supported. Automatic flow still raises UnsupportedFeatureError.
+
+The existing SVG adapter loops over normalized series; no chart framework or
+public API/schema changes are needed. Multi-series legends reuse the measured
+HTML category-legend frame only on the WeasyPrint path. Chromium remains unchanged.
+Bars use signed cumulative bases for stack parity. Nonzero stacked value labels
+are centered and must fit their segment; zero labels follow the cumulative
+position. All value labels must not cover other bars, including overlapping
+signed-stack segments. Text collision/viewport checks,
+actual PDF glyph bounds and font identity checks remain mandatory.
+Funnel uses centered stage bars and connector polygons, with a hidden value axis
+matching the Chromium probe. Empty/zero/increasing stages keep input semantics.
+Native CSS owns layout; no separate geometry engine was added.
 
 WeasyPrint 70.0 private boxes are accessed only in `_weasy_boxes.py`. Canaries check
 vertical and horizontal overflow. The adapter checks principal element bounds,

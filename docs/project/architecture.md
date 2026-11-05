@@ -66,7 +66,7 @@ It owns native layout and checks; it does not reuse Chromium pagination code.
 The [box adapter](../../src/cardreport/_weasy_boxes.py) isolates private WeasyPrint
 70.0 geometry. Positive/negative bundled-font canaries fail closed on incompatibility.
 Two document layout passes measure placeholders and verify final SVG placement.
-[Matplotlib SVG bars](../../src/cardreport/_svg_charts.py) use isolated default settings
+[Matplotlib SVG charts](../../src/cardreport/_svg_charts.py) use isolated default settings
 and the bundled font. A separate native SVG preflight checks actual PDF glyph bounds
 with pdfplumber, because Matplotlib and native text metrics can differ.
 [PDF checks](../../src/cardreport/_pdf_checks.py) recurse through form resources and
@@ -137,10 +137,12 @@ finite; no backend options or geometry framework enter the public API.
 Category legends use shared escaped HTML around a single chart plot. The same
 ordered label/color mapping feeds both backends. Grid allocates the remaining plot
 rectangle, and both layout engines inspect wrapper, legend items and plot bounds.
-SVG gains ordinary single-series lines as well as compact lines. Native glyph
+SVG supports ordinary and compact lines. Since 0.8.0 it also renders multiple
+bar/line series and centered funnel stages. Series legends reuse the existing
+measured HTML frame on the WeasyPrint path; Chromium retains Plotly legends. Native glyph
 preflight explicitly permits no text only for hidden-axis lines; labelled charts
 still require text. Plot-only compact containers have a 10mm floor; ordinary
-charts retain35mm. The browser also checks legend item coverage.
+charts retain 35 mm. The browser also checks legend item coverage.
 
 Read [the user contract](../user/dashboards.md) for fill, chronology, palette limits,
 KPI no-wrap behavior, layout weights and backend capability differences.
