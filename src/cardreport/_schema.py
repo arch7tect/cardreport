@@ -3,7 +3,7 @@
 import json
 import re
 from functools import cache
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import best_match
@@ -45,3 +45,31 @@ def scalar_pattern(kind: str) -> re.Pattern[str]:
     schema = _validator("data").schema
     assert isinstance(schema, dict)
     return re.compile(schema["$defs"][kind]["pattern"])
+
+
+class DataShape(NamedTuple):
+    root_keys: frozenset[str]
+    root_required: frozenset[str]
+    format: str
+    dataset_keys: frozenset[str]
+    cell_keys: frozenset[str]
+    cell_kinds: frozenset[str]
+
+
+@cache
+def data_shape() -> DataShape:
+    """Read the fixed data envelope, not a general interpretation of JSON Schema."""
+    schema = _validator("data").schema
+    assert isinstance(schema, dict)
+    dataset = schema["$defs"]["dataset"]
+    cell = schema["$defs"]["typedCell"]
+    assert set(dataset["required"]) == set(dataset["properties"])
+    assert set(cell["required"]) == set(cell["properties"])
+    return DataShape(
+        frozenset(schema["properties"]),
+        frozenset(schema["required"]),
+        schema["properties"]["format"]["const"],
+        frozenset(dataset["properties"]),
+        frozenset(cell["properties"]),
+        frozenset(cell["properties"]["$type"]["enum"]),
+    )

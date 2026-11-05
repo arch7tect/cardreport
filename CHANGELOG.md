@@ -5,6 +5,18 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.7.1 — 2026-11-05
+
+### Fixed
+
+- Remove the full JSON Schema data walk that slowed loading in 0.7.0. The concrete
+  decoder reads cached key/type metadata and scalar patterns from the same schema.
+- Validate decoded values once during Dataset construction; retain row/column,
+  value and aggregate limits, located errors, and binding validation.
+- Keep full template validation and exported schema documents unchanged. No
+  validation-disabling option or separate envelope schema is needed.
+- Add malformed-input parity tests and a repeatable JSON/YAML loading benchmark.
+
 ## 0.7.0 — 2026-11-05
 
 ### Changed

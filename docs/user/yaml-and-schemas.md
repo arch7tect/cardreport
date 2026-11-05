@@ -156,11 +156,16 @@ versioned URL or the installed schema instead of a moving main-branch URL.
 
 ## What validation checks
 
-Since 0.7.0, the packaged schemas are also the runtime structural contract.
-The JSON/YAML loaders use standard `jsonschema` validation against those exact
-resources: fields, required keys, enums and local constraints have no separate
-transport rule list. Validation runs offline; input `$schema` never selects a
-different validator. Byte, nesting and expansion guards run before validation.
+Templates use standard `jsonschema` validation against the packaged template
+schema. Since 0.7.1, data loading uses a concrete decoder: it reads allowed keys,
+required keys and typed-cell kinds once from the data schema, and shares its
+scalar patterns. It checks the envelope and typed-cell spelling while decoding;
+`Dataset` checks the resulting values once. There is no full-schema walk over
+every data cell. The full data schema remains available for editors and external
+validators. The schema files themselves are unchanged from 0.7.0.
+
+Both paths work offline; input `$schema` never selects a different validator.
+Byte, nesting and expansion guards remain. No flag to disable validation is needed.
 
 Native Python models and binding additionally check references, types,
 cardinality, row keys versus columns, calendar validity, resource totals and

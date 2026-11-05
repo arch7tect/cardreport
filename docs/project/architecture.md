@@ -31,7 +31,7 @@ A snapshot contains no page coordinates. PDF deadlines start before validation.
 | [cli.py](../../src/cardreport/cli.py) | Thin installed command: file inputs, explicit name resolution, public binding/export APIs |
 | [_yaml.py](../../src/cardreport/_yaml.py) | Bounded standard ruamel.yaml loading/dumping |
 | [schemas](../../src/cardreport/schemas/) | Structural contract shared by loaders and editors |
-| [_schema.py](../../src/cardreport/_schema.py) | Cached offline validation and safe located errors |
+| [_schema.py](../../src/cardreport/_schema.py) | Offline template validation, safe errors and cached data metadata |
 | [data.py](../../src/cardreport/data.py) | Immutable tables, schemas, bounded native and tagged JSON input |
 | [templates.py](../../src/cardreport/templates.py) | Closed JSON grammar and binding to existing components |
 | [_inputs.py](../../src/cardreport/_inputs.py) | Shared bounded parsing and located errors |
@@ -165,10 +165,12 @@ JSON and YAML feed the same template constructor and internal data tree codec.
 Standard ruamel.yaml owns parsing, scalar resolution, merges and emission. The
 small wrapper bounds composed alias graphs before construction; it does not
 reimplement the YAML language. Native YAML date/datetime cells normalize to the
-existing portable tagged JSON representation. Since 0.7.0, the same packaged schemas validate transport structure at runtime
-and in editors. `_schema.py` uses the standard cached Draft 2020-12 validator
-with a non-retrieving registry. Native model and binding semantics remain in
-Python. CSV scalar parsing shares the schema lexical patterns. Component unions
-use conditional branches to avoid repeated recursive traversal; byte/tree and
-component bounds run before schema validation. CLI validate and schema share the installed API. See the
+existing portable tagged JSON representation. Templates use the standard cached
+Draft 2020-12 validator with a non-retrieving registry. Since 0.7.1, the data decoder
+reads fixed key/type metadata and scalar patterns from the full data schema once.
+It validates transport shape while decoding, then Dataset validates values once;
+only cross-dataset totals are checked after construction. This avoids the 0.7.0
+full-schema per-cell pass. Binding retains its checks for caller-supplied datasets
+and stricter limits. Native model semantics stay in Python. Template component
+bounds precede recursive schema checks. CLI validate and schema share the installed API. See the
 [decision](decisions/yaml-and-json-schema.md) and [user contract](../user/yaml-and-schemas.md).

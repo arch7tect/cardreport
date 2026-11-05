@@ -17,7 +17,7 @@ from ._inputs import (
     name,
     parse_scalar,
 )
-from ._schema import validate_structure
+from ._schema import data_shape
 from .model import ValidationError, Value, number
 
 type FieldType = Literal["text", "integer", "number", "decimal", "date", "datetime"]
@@ -285,16 +285,37 @@ def validate_bundle(
             raise DataError("bundle cell/text limit exceeded", dataset=key)
 
 
-def _decode(value: object) -> Value:
-    if isinstance(value, dict):
-        obj = mapping(value)
-        kind, text = obj["$type"], obj["value"]
-        try:
-            parsed = parse_scalar(cast(str, text), cast(str, kind))
-        except ValueError as exc:
-            raise ValueError("invalid typed cell lexical format") from exc
-        return cell(parsed)
-    return cell(value)
+def _decode(value: object) -> object:
+    if not isinstance(value, dict):
+        return value
+    shape = data_shape()
+    if value.keys() != shape.cell_keys:
+        raise ValueError("invalid typed cell keys")
+    kind, text = value["$type"], value["value"]
+    if not isinstance(kind, str) or kind not in shape.cell_kinds:
+        raise ValueError("invalid typed cell kind")
+    if not isinstance(text, str) or len(text) > DEFAULT_LIMITS.max_string_chars:
+        raise ValueError("invalid or excessive typed cell text")
+    try:
+        return parse_scalar(text, kind)
+    except ValueError as exc:
+        raise ValueError("invalid typed cell lexical format") from exc
+
+
+def _records(
+    rows: list[object], columns: tuple[str, ...]
+) -> Iterable[Sequence[object]]:
+    column_keys = set(columns)
+    for i, row in enumerate(rows):
+        if not isinstance(row, dict) or row.keys() != column_keys:
+            raise DataError("row keys do not match columns", row=i)
+        decoded: list[object] = []
+        for col in columns:
+            try:
+                decoded.append(_decode(row[col]))
+            except (ValueError, TypeError) as exc:
+                raise DataError(str(exc), row=i, field=col) from exc
+        yield decoded
 
 
 def _transport_dates(value: object) -> object:
@@ -308,41 +329,55 @@ def _transport_dates(value: object) -> object:
 
 
 def _bundle_from_tree(tree: object, limits: DataLimits) -> dict[str, Dataset]:
-    validate_structure("data", tree)
-    root = mapping(tree)
-    raw = mapping(root["datasets"])
-    if len(raw) > limits.max_datasets:
-        raise ValueError("dataset count limit exceeded")
+    shape = data_shape()
+    try:
+        root = mapping(tree)
+        if not shape.root_required <= root.keys() or not root.keys() <= shape.root_keys:
+            raise ValueError("missing required or unknown data keys")
+        if root["format"] != shape.format:
+            raise ValueError("unsupported data format")
+        if "$schema" in root and not isinstance(root["$schema"], str):
+            raise ValueError("$schema must be a string")
+        raw = mapping(root["datasets"])
+        if len(raw) > limits.max_datasets:
+            raise ValueError("dataset count limit exceeded")
+        for key in raw:
+            name(key)
+    except ValueError as exc:
+        raise DataError(str(exc)) from exc
     result: dict[str, Dataset] = {}
+    cells = text_bytes = 0
     for key, value in raw.items():
-
-        def rows(raw_rows: object) -> Iterable[Mapping[str, object]]:
-            for i, row in enumerate(array(raw_rows)):
-                try:
-                    raw_row = mapping(row)
-                except ValueError as exc:
-                    raise DataError(str(exc), row=i) from exc
-                decoded: dict[str, object] = {}
-                for col, v in raw_row.items():
-                    try:
-                        decoded[col] = _decode(v)
-                    except (ValueError, TypeError, DataError) as exc:
-                        raise DataError(str(exc), row=i, field=col) from exc
-                yield decoded
-
         try:
             ds = mapping(value)
-            columns = tuple(name(c) for c in array(ds["columns"]))
-            result[key] = Dataset.from_dicts(
-                rows(ds["rows"]), columns=columns, limits=limits
+            if ds.keys() != shape.dataset_keys:
+                raise ValueError("missing required or unknown dataset keys")
+            raw_columns, raw_rows = array(ds["columns"]), array(ds["rows"])
+            if len(raw_columns) > limits.max_columns or len(raw_rows) > limits.max_rows:
+                raise ValueError("dataset row/column limit exceeded")
+            columns = tuple(name(c) for c in raw_columns)
+            cells += len(raw_rows) * len(columns)
+            if cells > limits.max_cells:
+                raise DataError("bundle cell limit exceeded")
+
+            dataset = Dataset(columns, _records(raw_rows, columns), limits=limits)
+            # The newly created Dataset already checked every value with these limits.
+            # Only cross-dataset totals remain; do not repeat cell validation here.
+            text_bytes += sum(
+                len(v.encode("utf-8"))
+                for row in dataset.rows
+                for v in row
+                if isinstance(v, str)
             )
+            if text_bytes > limits.max_text_bytes:
+                raise DataError("bundle text byte limit exceeded")
+            result[key] = dataset
         except DataError as exc:
             raise DataError(
                 str(exc), dataset=key, row=exc.row, field=exc.field
             ) from exc
         except (ValueError, TypeError) as exc:
             raise DataError(str(exc), dataset=key) from exc
-    validate_bundle(result, limits)
     return result
 
 

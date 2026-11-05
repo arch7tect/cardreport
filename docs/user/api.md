@@ -620,8 +620,10 @@ the argument parser.
 json_schema(kind: Literal["template", "data"]) -> str
 ```
 
-Returns the installed JSON Schema 2020-12 text used by the JSON/YAML loaders
-and external editors, without network access. Invalid kinds raise ValueError.
+Returns installed JSON Schema 2020-12 text without network access. Templates
+validate against it directly. The data decoder reads its fixed key/type metadata
+and scalar patterns; Dataset validates values. Full data schema validation is
+available to external editors and tools. Invalid kinds raise ValueError.
 Structural errors retain `TemplateError`/`DataError` and their location attributes;
 message wording is not stable. Native model and binding semantics remain separate. Both interchange envelopes accept optional string `$schema`
 metadata. See [YAML and JSON Schema](yaml-and-schemas.md) for scalar conversion,

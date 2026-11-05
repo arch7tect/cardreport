@@ -42,3 +42,5 @@ current user API specification. No report evidence or original source PDF is pub
 Language, formatting and template compatibility are described in the
 [architecture](architecture.md#report-display-context) and [user contract](../user/localization.md).
 User-facing release history lives in [What’s new](../../CHANGELOG.md).
+
+- [Data loading performance](data-loading-performance.md): reproducible load/bind measurements and the 0.7.1 fix.

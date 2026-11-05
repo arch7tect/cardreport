@@ -66,6 +66,9 @@ preserve exact values and scale. Datetime text uses seconds, optional 1–6 frac
 digits and an explicit offset or Z. Nested cells and generic `default=str` encoding
 are unsupported. The data codec does not require a template.
 
+The loader validates transport structure while decoding and Dataset validates
+values; it does not run a full JSON Schema check on every cell. The allowed-key
+and typed-kind sets and scalar patterns come from the packaged data schema.
 Dataset/codec errors are DataError. DatasetSchema.validate also raises DataError;
 ReportTemplate.bind wraps data-contract failures as BindingError. Errors provide
 optional dataset/row/field/template_path attributes without including cell contents.
@@ -152,3 +155,5 @@ with sqlite3.connect(":memory:") as connection:
 
 Constructors consume bounded rows and create a snapshot; database-driver buffering
 is outside their control. Named SQL execution and CSV-directory loaders are deferred.
+
+For reproducible loading measurements, see [data loading performance](../project/data-loading-performance.md).
