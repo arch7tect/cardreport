@@ -1,0 +1,16 @@
+format: cardreport.data/1
+datasets:
+  summary:
+    columns:
+    - total
+    rows:
+    - total: 34
+  calls:
+    columns:
+    - result
+    - count
+    rows:
+    - result: Answered
+      count: 24
+    - result: No answer
+      count: 10

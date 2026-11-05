@@ -1,0 +1,901 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.6.0/src/cardreport/schemas/template-1.json",
+  "title": "CardReport template/1",
+  "description": "Presentation and required dataset contracts. Binding and rendering perform additional semantic and layout checks.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "const": "cardreport.template/1"
+    },
+    "datasets": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/name"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/dataset"
+      },
+      "maxProperties": 32
+    },
+    "report": {
+      "$ref": "#/$defs/report"
+    }
+  },
+  "required": [
+    "format",
+    "datasets",
+    "report"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Literal, case-sensitive name; not a path or expression."
+    },
+    "binding": {
+      "type": "object",
+      "properties": {
+        "bind": {
+          "type": "object",
+          "properties": {
+            "dataset": {
+              "$ref": "#/$defs/name"
+            },
+            "field": {
+              "$ref": "#/$defs/name"
+            }
+          },
+          "required": [
+            "dataset",
+            "field"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "bind"
+      ],
+      "additionalProperties": false,
+      "description": "Scalar reference to a field in a one-row dataset."
+    },
+    "text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/binding"
+        }
+      ]
+    },
+    "optionalText": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "format": {
+      "anyOf": [
+        {
+          "enum": [
+            "number",
+            "integer",
+            "percent",
+            "date"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "currency": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currency"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "numericFormat": {
+      "anyOf": [
+        {
+          "enum": [
+            "number",
+            "integer",
+            "percent"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "currency": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currency"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "field": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "text",
+            "integer",
+            "number",
+            "decimal",
+            "date",
+            "datetime"
+          ]
+        },
+        "nullable": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "dataset": {
+      "type": "object",
+      "properties": {
+        "cardinality": {
+          "enum": [
+            "one",
+            "many"
+          ]
+        },
+        "fields": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/name"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/field"
+          },
+          "maxProperties": 100
+        }
+      },
+      "required": [
+        "cardinality",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "weights": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 10000
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "textComponent": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "text"
+        },
+        "text": {
+          "$ref": "#/$defs/text"
+        },
+        "style": {
+          "enum": [
+            "body",
+            "heading",
+            "caption"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "additionalProperties": false,
+      "description": "Literal or bound text."
+    },
+    "kpi": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "kpi"
+        },
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "value": {
+          "$ref": "#/$defs/binding"
+        },
+        "format": {
+          "$ref": "#/$defs/format"
+        },
+        "note": {
+          "$ref": "#/$defs/optionalText"
+        }
+      },
+      "required": [
+        "type",
+        "label",
+        "value"
+      ],
+      "additionalProperties": false,
+      "description": "One scalar value with a label and optional note."
+    },
+    "tableColumn": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/format"
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "table": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "table"
+        },
+        "dataset": {
+          "$ref": "#/$defs/name"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tableColumn"
+          }
+        },
+        "empty_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "dataset",
+        "columns"
+      ],
+      "additionalProperties": false,
+      "description": "Rows from a named dataset; columns select and format fields."
+    },
+    "series": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "bar": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "bar"
+        },
+        "dataset": {
+          "$ref": "#/$defs/name"
+        },
+        "category": {
+          "$ref": "#/$defs/name"
+        },
+        "value": {
+          "$ref": "#/$defs/name"
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/series"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "legend": {
+          "type": "boolean"
+        },
+        "orientation": {
+          "enum": [
+            "vertical",
+            "horizontal"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "grouped",
+            "stacked"
+          ]
+        },
+        "color_by": {
+          "enum": [
+            "series",
+            "category"
+          ]
+        },
+        "legend_position": {
+          "enum": [
+            "bottom",
+            "left"
+          ]
+        },
+        "category_labels": {
+          "type": "boolean"
+        },
+        "show_labels": {
+          "type": "boolean"
+        },
+        "value_format": {
+          "$ref": "#/$defs/numericFormat"
+        }
+      },
+      "required": [
+        "type",
+        "dataset",
+        "category"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "value"
+          ],
+          "not": {
+            "required": [
+              "series"
+            ]
+          }
+        },
+        {
+          "required": [
+            "series"
+          ],
+          "not": {
+            "required": [
+              "value"
+            ]
+          }
+        }
+      ],
+      "description": "Numeric bars grouped by a text, date or datetime field."
+    },
+    "line": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "line"
+        },
+        "dataset": {
+          "$ref": "#/$defs/name"
+        },
+        "x": {
+          "$ref": "#/$defs/name"
+        },
+        "value": {
+          "$ref": "#/$defs/name"
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/series"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "legend": {
+          "type": "boolean"
+        },
+        "x_kind": {
+          "enum": [
+            "category",
+            "date"
+          ]
+        },
+        "axes": {
+          "type": "boolean"
+        },
+        "markers": {
+          "type": "boolean"
+        },
+        "fill": {
+          "enum": [
+            "none",
+            "zero"
+          ]
+        },
+        "value_format": {
+          "$ref": "#/$defs/numericFormat"
+        }
+      },
+      "required": [
+        "type",
+        "dataset",
+        "x"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "value"
+          ],
+          "not": {
+            "required": [
+              "series"
+            ]
+          }
+        },
+        {
+          "required": [
+            "series"
+          ],
+          "not": {
+            "required": [
+              "value"
+            ]
+          }
+        }
+      ],
+      "description": "Numeric series, optionally with gaps, over categories or dates."
+    },
+    "funnel": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "funnel"
+        },
+        "dataset": {
+          "$ref": "#/$defs/name"
+        },
+        "category": {
+          "$ref": "#/$defs/name"
+        },
+        "value": {
+          "$ref": "#/$defs/name"
+        },
+        "show_labels": {
+          "type": "boolean"
+        },
+        "value_format": {
+          "$ref": "#/$defs/numericFormat"
+        }
+      },
+      "required": [
+        "type",
+        "dataset",
+        "category",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "row": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "row"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        },
+        "widths": {
+          "$ref": "#/$defs/weights"
+        },
+        "height_mm": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "children"
+      ],
+      "additionalProperties": false
+    },
+    "column": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "column"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        },
+        "heights": {
+          "$ref": "#/$defs/weights"
+        }
+      },
+      "required": [
+        "type",
+        "children"
+      ],
+      "additionalProperties": false
+    },
+    "content": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/textComponent"
+        },
+        {
+          "$ref": "#/$defs/kpi"
+        },
+        {
+          "$ref": "#/$defs/table"
+        },
+        {
+          "$ref": "#/$defs/bar"
+        },
+        {
+          "$ref": "#/$defs/line"
+        },
+        {
+          "$ref": "#/$defs/funnel"
+        },
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "$ref": "#/$defs/column"
+        }
+      ]
+    },
+    "card": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "card"
+        },
+        "content": {
+          "$ref": "#/$defs/content"
+        },
+        "title": {
+          "$ref": "#/$defs/optionalText"
+        }
+      },
+      "required": [
+        "type",
+        "content"
+      ],
+      "additionalProperties": false,
+      "description": "Container with optional title; direct content cannot be another card."
+    },
+    "component": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/textComponent"
+        },
+        {
+          "$ref": "#/$defs/kpi"
+        },
+        {
+          "$ref": "#/$defs/table"
+        },
+        {
+          "$ref": "#/$defs/bar"
+        },
+        {
+          "$ref": "#/$defs/line"
+        },
+        {
+          "$ref": "#/$defs/funnel"
+        },
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "$ref": "#/$defs/column"
+        },
+        {
+          "$ref": "#/$defs/card"
+        }
+      ]
+    },
+    "pageBreak": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "page_break"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "block": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/component"
+        },
+        {
+          "$ref": "#/$defs/pageBreak"
+        }
+      ]
+    },
+    "page": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "anyOf": [
+            {
+              "enum": [
+                "A4",
+                "A3",
+                "Letter"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 40,
+                "maximum": 1000
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "orientation": {
+          "enum": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        "margin_mm": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "background": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "card_background": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "text": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "gap_mm": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "padding_mm": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "font_size_pt": {
+          "type": "number",
+          "minimum": 9,
+          "maximum": 24
+        },
+        "chart_height_mm": {
+          "type": "number",
+          "minimum": 35,
+          "maximum": 200
+        },
+        "kpi_value_size_pt": {
+          "type": "number",
+          "minimum": 12,
+          "maximum": 72
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "formatting": {
+      "type": "object",
+      "properties": {
+        "decimal": {
+          "enum": [
+            ".",
+            ","
+          ]
+        },
+        "group": {
+          "enum": [
+            ",",
+            ".",
+            "'",
+            "space",
+            "none"
+          ]
+        },
+        "number_decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "percent_decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "currency_decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "date_format": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "datetime_format": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locale": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "report": {
+      "type": "object",
+      "properties": {
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          }
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "subtitle": {
+          "$ref": "#/$defs/text"
+        },
+        "mode": {
+          "enum": [
+            "dashboard",
+            "flow"
+          ]
+        },
+        "page": {
+          "$ref": "#/$defs/page"
+        },
+        "theme": {
+          "$ref": "#/$defs/theme"
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "formatting": {
+          "$ref": "#/$defs/formatting"
+        },
+        "empty_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "blocks"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

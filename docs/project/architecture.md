@@ -29,6 +29,8 @@ A snapshot contains no page coordinates. PDF deadlines start before validation.
 | Module | Responsibility |
 | --- | --- |
 | [cli.py](../../src/cardreport/cli.py) | Thin installed command: file inputs, explicit name resolution, public binding/export APIs |
+| [_yaml.py](../../src/cardreport/_yaml.py) | Bounded standard ruamel.yaml loading/dumping |
+| [schemas](../../src/cardreport/schemas/) | Packaged structural JSON Schema resources |
 | [data.py](../../src/cardreport/data.py) | Immutable tables, schemas, bounded native and tagged JSON input |
 | [templates.py](../../src/cardreport/templates.py) | Closed JSON grammar and binding to existing components |
 | [_inputs.py](../../src/cardreport/_inputs.py) | Shared bounded parsing and located errors |
@@ -154,3 +156,15 @@ retains extra-JSON-dataset behavior from bind. CSV filename stems are literal;
 `--csv-as NAME PATH` supports aliases without reserving `=` inside names/paths.
 Spaces and equals signs remain literal; ordinary shell/argparse argument constraints still apply. No directory discovery,
 source registry, SQL layer, render changes or new template version is introduced.
+
+
+## YAML and JSON Schema (0.6.0)
+
+JSON and YAML feed the same template constructor and internal data tree codec.
+Standard ruamel.yaml owns parsing, scalar resolution, merges and emission. The
+small wrapper bounds composed alias graphs before construction; it does not
+reimplement the YAML language. Native YAML date/datetime cells normalize to the
+existing portable tagged JSON representation. Formal schemas describe structure
+for editors/external validators, with runtime semantics still checked by existing
+code. CLI validate and schema share the installed API. See the
+[decision](decisions/yaml-and-json-schema.md) and [user contract](../user/yaml-and-schemas.md).

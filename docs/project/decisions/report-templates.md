@@ -1,6 +1,7 @@
 # JSON templates and named datasets
 
-Status: implemented and verified in version 0.2.0.
+Status: implemented and verified in version 0.2.0. YAML/schema deferrals below
+are superseded by the [0.6.0 decision](yaml-and-json-schema.md).
 Date: 2026-11-04. [Review and disposition](../history/reviews/2026-11-04-template-architecture.md).
 Owner: Oleg Orlov. This document records the reviewed extension contract.
 The current Python API is

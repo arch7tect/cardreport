@@ -5,6 +5,8 @@
 All development uses main. `project.version` in pyproject.toml is the only version
 input; uv.lock, package metadata and tags derive from it. A user-authorized version
 increase requests publication. Ordinary main changes run CI without a new release.
+When a packaged JSON Schema changes, update its `$id` to the new release tag;
+unchanged schema revisions retain their original IDs.
 Only canonical X.Y.Z versions are supported: patch for fixes/packaging, minor for
 features and incompatible changes while the project is 0.x. No CI version-writing
 bot, release branches or generated development versions are used.

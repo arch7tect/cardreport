@@ -103,7 +103,7 @@ def load_json(source: str | bytes, max_bytes: int) -> object:
     return result
 
 
-def check_tree(value: object) -> None:
+def check_tree(value: object, *, allow_dates: bool = False) -> None:
     # Iterative traversal bounds native trees too, including cycles.
     stack = [(value, 0)]
     count = 0
@@ -116,6 +116,8 @@ def check_tree(value: object) -> None:
             stack.extend((v, depth + 1) for v in mapping(item).values())
         elif isinstance(item, (list, tuple)):
             stack.extend((v, depth + 1) for v in array(item))
+        elif allow_dates and type(item) in (date, datetime):
+            continue
         elif type(item) not in (str, int, float, bool, type(None)):
             raise ValueError("expected JSON-compatible input")
 
@@ -156,3 +158,8 @@ def parse_scalar(text: str, kind: str) -> str | int | Decimal | date:
             raise ValueError("invalid datetime offset")
         return datetime.fromisoformat(text)
     raise ValueError(f"expected {kind} in the documented lexical format")
+
+
+def schema_metadata(root: Mapping[str, object]) -> None:
+    if "$schema" in root and not isinstance(root["$schema"], str):
+        raise ValueError("$schema must be a string")

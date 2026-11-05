@@ -551,6 +551,8 @@ DatasetSchema(fields: Mapping[str, FieldSpec], cardinality: Literal["one", "many
 DatasetSchema.validate(dataset: Dataset) -> None
 
 datasets_from_json(source: str | bytes, *, limits=DataLimits()) -> dict[str, Dataset]
+datasets_from_yaml(source: str | bytes, *, limits=DataLimits()) -> dict[str, Dataset]
+datasets_to_yaml(data: Mapping[str, Dataset], *, limits=DataLimits()) -> str
 datasets_to_json(data: Mapping[str, Dataset], *, limits=DataLimits()) -> str
 ```
 
@@ -566,8 +568,10 @@ No constructor stores a connection or a lazy iterator.
 ReportTemplate(spec: Mapping[str, object])
 ReportTemplate.from_dict(spec: Mapping[str, object]) -> ReportTemplate
 ReportTemplate.from_json(source: str | bytes) -> ReportTemplate
+ReportTemplate.from_yaml(source: str | bytes) -> ReportTemplate
 ReportTemplate.to_dict() -> dict[str, object]
 ReportTemplate.to_json() -> str
+ReportTemplate.to_yaml() -> str
 ReportTemplate.datasets: Mapping[str, DatasetSchema]  # read-only
 ReportTemplate.bind(data: Mapping[str, Dataset], *, limits=DataLimits()) -> Report
 ```
@@ -608,3 +612,15 @@ The installed `cardreport` command and `python -m cardreport` use the same
 through this Python API and call the existing atomic file writers. Python
 applications should use ReportTemplate and Report directly rather than invoke
 the argument parser.
+
+
+## JSON Schema resources
+
+```text
+json_schema(kind: Literal["template", "data"]) -> str
+```
+
+Returns installed JSON Schema 2020-12 text without network access. Invalid kinds
+raise ValueError. Both interchange envelopes accept optional string `$schema`
+metadata. See [YAML and JSON Schema](yaml-and-schemas.md) for scalar conversion,
+serialization, editor setup and the distinction between structural/semantic checks.

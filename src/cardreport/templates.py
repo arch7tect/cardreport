@@ -20,6 +20,7 @@ from ._inputs import (
     mapping,
     name,
     plain_tree,
+    schema_metadata,
 )
 from .data import (
     DEFAULT_LIMITS,
@@ -563,7 +564,8 @@ class ReportTemplate:
             if len(encoded.encode("utf-8")) > MAX_TEMPLATE_BYTES:
                 raise ValueError("template byte limit exceeded")
             root = mapping(load_json(encoded, MAX_TEMPLATE_BYTES))
-            keys(root, {"format", "datasets", "report"}, set())
+            keys(root, {"format", "datasets", "report"}, {"$schema"})
+            schema_metadata(root)
             if root["format"] != "cardreport.template/1":
                 raise ValueError("unsupported template format")
             contracts = schemas(root["datasets"])
@@ -600,6 +602,23 @@ class ReportTemplate:
             return cls(mapping(load_json(source, MAX_TEMPLATE_BYTES)))
         except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
             raise TemplateError("invalid template JSON") from exc
+
+    @classmethod
+    def from_yaml(cls, source: str | bytes) -> "ReportTemplate":
+        from ._yaml import load_yaml
+
+        try:
+            return cls(mapping(load_yaml(source, MAX_TEMPLATE_BYTES)))
+        except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
+            raise TemplateError("invalid template YAML") from exc
+
+    def to_yaml(self) -> str:
+        from ._yaml import dump_yaml
+
+        try:
+            return dump_yaml(self.to_dict(), MAX_TEMPLATE_BYTES)
+        except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
+            raise TemplateError("unable to serialize template YAML") from exc
 
     def to_dict(self) -> dict[str, object]:
         return mapping(load_json(self._encoded, MAX_TEMPLATE_BYTES))

@@ -5,6 +5,22 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.6.0 — 2026-11-05
+
+### Added
+
+- Read and write report templates and named datasets as YAML through the Python
+  API and CLI, using standard ruamel.yaml safe loading and dumping.
+- Support YAML comments, multiline text, anchors and merges, with bounded input
+  expansion. Native YAML date/datetime cells share the existing Dataset model;
+  exact decimal values retain the portable typed-cell notation.
+- Ship JSON Schema 2020-12 documents for template/1 and data/1, with offline
+  `json_schema()` access and optional root `$schema` editor metadata.
+- Add `cardreport validate` for template/data checks without rendering and
+  `cardreport schema` for local schema export. Mix JSON, YAML and CSV sources.
+- Add a YAML version of the original reference report, an embedding/editor guide,
+  and codec, schema, CLI and installed-package verification.
+
 ## 0.5.0 — 2026-11-05
 
 ### Added

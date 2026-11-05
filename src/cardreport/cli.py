@@ -1,9 +1,10 @@
-"""Render a JSON template with named JSON or CSV datasets."""
+"""Render and validate JSON/YAML templates with named datasets."""
 
 import argparse
 import sys
 from importlib.metadata import version
 from pathlib import Path
+from typing import Literal
 
 from . import (
     DataError,
@@ -12,6 +13,8 @@ from . import (
     ReportTemplate,
     WeasyPrintRenderer,
     datasets_from_json,
+    datasets_from_yaml,
+    json_schema,
 )
 from ._inputs import LocatedError
 from .adapters.csv import from_csv
@@ -20,6 +23,8 @@ from .templates import MAX_TEMPLATE_BYTES
 
 
 class _Arguments(argparse.Namespace):
+    command: str
+    kind: Literal["template", "data"]
     template: Path
     data: Path | None
     csv: list[Path]
@@ -54,45 +59,21 @@ def _parser() -> argparse.ArgumentParser:
         prog="cardreport", description=__doc__, allow_abbrev=False
     )
     parser.add_argument("--version", action="version", version=version("cardreport"))
-    render = parser.add_subparsers(dest="command", required=True).add_parser(
-        "render", help="render a JSON template to HTML or PDF", allow_abbrev=False
+    commands = parser.add_subparsers(dest="command", required=True)
+    render = commands.add_parser(
+        "render", help="render to HTML or PDF", allow_abbrev=False
     )
-    render.add_argument(
-        "--template", type=Path, required=True, help="template JSON file"
+    _input_arguments(render)
+    validate = commands.add_parser(
+        "validate",
+        help="validate template and optional data; no layout check",
+        allow_abbrev=False,
     )
-    render.add_argument("--data", type=Path, help="cardreport.data/1 JSON bundle")
-    render.add_argument(
-        "--csv",
-        type=Path,
-        action="append",
-        default=[],
-        metavar="PATH",
-        help="CSV file; dataset name is its filename without the last suffix (repeatable)",
+    _input_arguments(validate)
+    schema = commands.add_parser(
+        "schema", help="print an installed JSON Schema", allow_abbrev=False
     )
-    render.add_argument(
-        "--csv-as",
-        nargs=2,
-        action="append",
-        default=[],
-        metavar=("NAME", "PATH"),
-        help="CSV file with an explicit dataset name (repeatable)",
-    )
-    render.add_argument(
-        "--csv-encoding", default="utf-8", help="all CSV files (default: utf-8)"
-    )
-    render.add_argument(
-        "--csv-delimiter",
-        type=_delimiter,
-        default=",",
-        help="all CSV files (default: comma)",
-    )
-    render.add_argument(
-        "--csv-null",
-        action="append",
-        default=[],
-        metavar="TOKEN",
-        help="CSV null token (repeatable; none by default)",
-    )
+    schema.add_argument("kind", choices=("template", "data"))
     render.add_argument(
         "--output", type=Path, required=True, help="destination .html or .pdf"
     )
@@ -111,6 +92,47 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _input_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--template", type=Path, required=True, help="template JSON or YAML file"
+    )
+    parser.add_argument(
+        "--data", type=Path, help="cardreport.data/1 JSON or YAML bundle"
+    )
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="CSV file; dataset name is its filename without the last suffix (repeatable)",
+    )
+    parser.add_argument(
+        "--csv-as",
+        nargs=2,
+        action="append",
+        default=[],
+        metavar=("NAME", "PATH"),
+        help="CSV file with an explicit dataset name (repeatable)",
+    )
+    parser.add_argument(
+        "--csv-encoding", default="utf-8", help="all CSV files (default: utf-8)"
+    )
+    parser.add_argument(
+        "--csv-delimiter",
+        type=_delimiter,
+        default=",",
+        help="all CSV files (default: comma)",
+    )
+    parser.add_argument(
+        "--csv-null",
+        action="append",
+        default=[],
+        metavar="TOKEN",
+        help="CSV null token (repeatable; none by default)",
+    )
+
+
 def _read(path: Path, limit: int) -> bytes:
     with path.open("rb") as source:
         payload = source.read(limit + 1)
@@ -119,25 +141,20 @@ def _read(path: Path, limit: int) -> bytes:
     return payload
 
 
-def _render(args: _Arguments) -> Path:
-    suffix = args.output.suffix.lower()
-    if suffix not in (".html", ".pdf"):
-        raise ValueError("--output must end in .html or .pdf")
-    csv_inputs = [(path.stem, path) for path in args.csv]
-    csv_inputs.extend((name, Path(path)) for name, path in args.csv_as)
-    inputs = [args.template, *(path for _, path in csv_inputs)]
-    if args.data is not None:
-        inputs.append(args.data)
-    for source in inputs:
-        if args.output.resolve() == source.resolve() or (
-            args.output.exists() and source.exists() and args.output.samefile(source)
-        ):
-            raise ValueError(f"output must not replace an input file: {source}")
-    if not args.overwrite and (args.output.exists() or args.output.is_symlink()):
-        raise FileExistsError(
-            f"{args.output}: output exists; use --overwrite to replace it"
-        )
-    template = ReportTemplate.from_json(_read(args.template, MAX_TEMPLATE_BYTES))
+def _csv_inputs(args: _Arguments) -> list[tuple[str, Path]]:
+    return [(path.stem, path) for path in args.csv] + [
+        (name, Path(path)) for name, path in args.csv_as
+    ]
+
+
+def _load_inputs(args: _Arguments) -> tuple[ReportTemplate, dict[str, Dataset]]:
+    csv_inputs = _csv_inputs(args)
+    read_template = (
+        ReportTemplate.from_yaml
+        if args.template.suffix.lower() in (".yaml", ".yml")
+        else ReportTemplate.from_json
+    )
+    template = read_template(_read(args.template, MAX_TEMPLATE_BYTES))
     sources: dict[str, Path] = {}
     for name, path in csv_inputs:
         if name not in template.datasets:
@@ -151,7 +168,11 @@ def _render(args: _Arguments) -> Path:
             )
         sources[name] = path
     datasets: dict[str, Dataset] = (
-        datasets_from_json(_read(args.data, DEFAULT_LIMITS.max_json_bytes))
+        (
+            datasets_from_yaml
+            if args.data.suffix.lower() in (".yaml", ".yml")
+            else datasets_from_json
+        )(_read(args.data, DEFAULT_LIMITS.max_json_bytes))
         if args.data is not None
         else {}
     )
@@ -175,6 +196,27 @@ def _render(args: _Arguments) -> Path:
                 field=exc.field,
                 template_path=exc.template_path,
             ) from exc.__cause__
+    return template, datasets
+
+
+def _render(args: _Arguments) -> Path:
+    suffix = args.output.suffix.lower()
+    if suffix not in (".html", ".pdf"):
+        raise ValueError("--output must end in .html or .pdf")
+    csv_inputs = _csv_inputs(args)
+    inputs = [args.template, *(path for _, path in csv_inputs)]
+    if args.data is not None:
+        inputs.append(args.data)
+    for source in inputs:
+        if args.output.resolve() == source.resolve() or (
+            args.output.exists() and source.exists() and args.output.samefile(source)
+        ):
+            raise ValueError(f"output must not replace an input file: {source}")
+    if not args.overwrite and (args.output.exists() or args.output.is_symlink()):
+        raise FileExistsError(
+            f"{args.output}: output exists; use --overwrite to replace it"
+        )
+    template, datasets = _load_inputs(args)
     report = template.bind(datasets)
     renderer = WeasyPrintRenderer() if args.renderer == "weasyprint" else None
     if suffix == ".pdf":
@@ -213,6 +255,17 @@ def main(argv: list[str] | None = None) -> int:
     args = _Arguments()
     _parser().parse_args(argv, namespace=args)
     try:
+        if args.command == "schema":
+            print(json_schema(args.kind), end="")
+            return 0
+        if args.command == "validate":
+            template, datasets = _load_inputs(args)
+            if args.data is not None or args.csv or args.csv_as:
+                template.bind(datasets)
+                print("Template and data valid; layout has not been checked")
+            else:
+                print("Template valid; data and layout have not been checked")
+            return 0
         path = _render(args)
     except (ReportError, OSError, ValueError) as exc:
         print(f"cardreport: error: {_error_message(exc)}", file=sys.stderr)

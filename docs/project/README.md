@@ -13,6 +13,8 @@ should begin with the [quickstart](../user/quickstart.md) and [API reference](..
 - [Development](development.md) — setup, checks, packaging and documentation maintenance.
 - [Renderer extension decision](decisions/renderer-extension.md) — current extension scope.
 
+- [YAML and schema decision](decisions/yaml-and-json-schema.md) — standard library integration and shared contracts.
+
 ## Decisions and history
 
 - [Release automation review](history/reviews/2026-11-04-release-automation.md) — implementation findings and verification.

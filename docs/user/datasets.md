@@ -71,6 +71,9 @@ ReportTemplate.bind wraps data-contract failures as BindingError. Errors provide
 optional dataset/row/field/template_path attributes without including cell contents.
 See [API](api.md#datasets-and-data-json) for signatures and import locations.
 
+YAML uses the same envelope with `datasets_from_yaml` and `datasets_to_yaml`;
+see [YAML types and schema validation](yaml-and-schemas.md).
+
 ## One CSV file
 
 `from_csv` uses the standard library and an explicit schema. In a checkout, this

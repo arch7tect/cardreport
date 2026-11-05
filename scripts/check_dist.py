@@ -4,6 +4,7 @@ import argparse
 import email
 import importlib.util
 import io
+import json
 import subprocess
 import sys
 import tarfile
@@ -16,6 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS = {
     "py.typed",
     "cli.py",
+    "_yaml.py",
+    "schemas/__init__.py",
+    "schemas/template-1.json",
+    "schemas/data-1.json",
     "__main__.py",
     "data.py",
     "formatting.py",
@@ -59,6 +64,10 @@ def check_archives(directory: Path) -> Path:
             prefix + "examples/" + name
             for name in [
                 "cli/report.json",
+                "cli/report.yaml",
+                "cli/data.yaml",
+                "reference_template.yaml",
+                "reference_data.yaml",
                 "cli/data.json",
                 "cli/summary.csv",
                 "cli/calls.csv",
@@ -96,12 +105,32 @@ def installed_smoke(full: bool) -> None:
         DependencyError,
         ReportTemplate,
         datasets_from_json,
+        datasets_from_yaml,
+        json_schema,
     )
     from cardreport.adapters.csv import from_csv
     from cardreport.adapters.pandas import from_pandas
 
     assert cardreport.__file__ is not None and "site-packages" in cardreport.__file__
+    completed = subprocess.run(
+        [sys.executable, "-m", "cardreport", "schema", "data"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout)["title"] == "CardReport data/1"
     examples = ROOT / "examples"
+
+    assert (
+        json.loads(json_schema("template"))["properties"]["format"]["const"]
+        == "cardreport.template/1"
+    )
+    yaml_template = ReportTemplate.from_yaml(
+        (examples / "reference_template.yaml").read_bytes()
+    )
+    yaml_data = datasets_from_yaml((examples / "reference_data.yaml").read_bytes())
+    assert "Campaign progress" in yaml_template.bind(yaml_data).to_html()
     template = ReportTemplate.from_json(
         (examples / "reference_template.json").read_bytes()
     )
@@ -148,6 +177,19 @@ def installed_smoke(full: bool) -> None:
                 cwd=work,
             )
             assert "Total calls" in (work / filename).read_text()
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "cardreport",
+            "validate",
+            "--template",
+            str(examples / "reference_template.yaml"),
+            "--data",
+            str(examples / "reference_data.yaml"),
+        ],
+        check=True,
+    )
     if not full:
         with tempfile.TemporaryDirectory(prefix="cardreport-missing-pdf-") as directory:
             destination = Path(directory) / "report.pdf"

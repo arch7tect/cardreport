@@ -151,13 +151,15 @@ default. Reports reject content that does not fit rather than silently shrinking
 
 ## Use from the command line
 
-Render the same template/data files without a Python runner:
+Render JSON or YAML template/data files without a Python runner:
 
 ```sh
 python -m cardreport render --template report.json --data data.json --output report.pdf
 python -m cardreport render --template report.json --csv summary.csv --csv calls.csv --output report.html
 ```
 
+Use `.yaml` or `.yml` for either input; JSON, YAML and CSV can be mixed.
+`python -m cardreport validate` checks inputs without rendering.
 CSV dataset names come from filenames; use `--csv-as NAME PATH` to rename one.
 The installed `cardreport` command is equivalent. See the
 [complete CLI example and options](https://github.com/arch7tect/cardreport/blob/main/docs/user/command-line.md).
@@ -167,6 +169,7 @@ The installed `cardreport` command is equivalent. See the
 - [Quickstart](https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md) — build from application data; return strings/bytes.
 - [KPI dashboards](https://github.com/arch7tect/cardreport/blob/main/docs/user/dashboards.md) — compact charts, category legends and larger KPI values.
 - [Templates](https://github.com/arch7tect/cardreport/blob/main/docs/user/templates.md) — JSON presentation with separate named datasets.
+- [YAML and JSON Schema](https://github.com/arch7tect/cardreport/blob/main/docs/user/yaml-and-schemas.md) — YAML embedding, types, formal schemas and editor setup.
 - [Datasets](https://github.com/arch7tect/cardreport/blob/main/docs/user/datasets.md) — native Python data and typed JSON storage.
 - [User guide](https://github.com/arch7tect/cardreport/blob/main/docs/user/guide.md) — cards, layout, formatting and multiple pages.
 - [Language and display formats](https://github.com/arch7tect/cardreport/blob/main/docs/user/localization.md) — report language tags, custom dates, number precision and the Spanish example.

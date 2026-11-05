@@ -39,8 +39,8 @@ pdf = report.to_pdf()
 next_report = template.bind({"summary": Dataset.single({"total": 57})})
 ```
 
-Use `ReportTemplate.from_json(text)` for a stored template. `to_dict()` and
-`to_json()` return its validated definition; editing a returned dict cannot mutate
+Use `ReportTemplate.from_json(text)` or `ReportTemplate.from_yaml(text)` for a stored template. `to_dict()` and
+`to_json()`/`to_yaml()` return its validated definition; editing a returned dict cannot mutate
 the template. Native data use Dataset, stored data use datasets_from_json. Template
 and data versions are separate. Neither envelope contains connection credentials.
 
@@ -51,7 +51,7 @@ only the installed public API. No separate JSON files are needed for that exampl
 
 ## Vocabulary and bindings
 
-The envelope has exactly format, datasets and report. Report requires blocks (an array, possibly empty) and accepts optional
+The envelope requires format, datasets and report, and accepts optional string `$schema` editor metadata. Report requires blocks (an array, possibly empty) and accepts optional
 title/subtitle/mode/page/theme/language/formatting/empty_text with the [Python API](api.md)'s defaults. Each dataset
 has fields and cardinality one/many. Fields require type and optionally nullable
 (default false); all declared datasets and fields are required at bind, even when
@@ -108,7 +108,7 @@ experimental renderer retain their [documented limits](renderers.md#capabilities
 
 Template JSON is limited to 1 MiB and nesting depth 64; the constructed component
 tree also obeys the existing depth/count limits. The format is provisional, version
-1; unsupported versions fail explicitly. YAML and JSON Schema files are deferred.
+1; unsupported versions fail explicitly. YAML read/write and formal JSON Schema files are available; see [YAML and schemas](yaml-and-schemas.md).
 
 ## Display settings
 

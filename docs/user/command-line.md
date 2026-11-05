@@ -3,7 +3,7 @@
 [Documentation home](../../README.md) · [Python quickstart](quickstart.md)
 
 The Python API remains the primary integration interface. The installed CLI is
-useful for developing reports from a JSON template and named datasets without
+useful for developing reports from a JSON or YAML template and named datasets without
 writing a Python runner. `python -m cardreport` and `cardreport` are equivalent;
 in a uv project, prefix either command with `uv run`.
 
@@ -104,7 +104,7 @@ not the template directory. Directories are not scanned.
 
 ## JSON and CSV together
 
-`--data` accepts one [cardreport.data/1 bundle](datasets.md#data-json),
+`--data` accepts one JSON or YAML [cardreport.data/1 bundle](datasets.md#data-json),
 including tagged decimal/date/datetime values. A matching [data.json](../../examples/cli/data.json)
 is provided for the example above. JSON and CSV may supply different datasets:
 
@@ -119,12 +119,44 @@ template because its schemas supply their column types. Extra datasets in JSON
 remain allowed, as in the Python API. Missing required datasets and invalid rows
 fail validation. A template with no datasets needs neither `--data` nor CSV options.
 
+## YAML, validation and schema export
+
+The ready-made [example directory](../../examples/cli/) also contains `report.yaml`,
+`data.yaml` and `summary-only.yaml`. Each input is selected independently:
+`.yaml`/`.yml` (case-insensitive) uses YAML; all other suffixes keep the JSON behavior.
+Quote string dates, leading-zero identifiers and typed-cell string values as
+explained in [YAML and schemas](yaml-and-schemas.md).
+
+```sh
+python -m cardreport render --template report.yaml --data data.yaml --output report.html
+python -m cardreport render --template report.yaml --data summary-only.yaml --csv calls.csv --output report.pdf
+python -m cardreport validate --template report.yaml
+python -m cardreport validate --template report.yaml --data data.json
+python -m cardreport schema template
+python -m cardreport schema data
+```
+
+`validate` accepts the same source/CSV options as render and takes no output,
+renderer or timeout. Without sources it checks the template definition and
+bindings against declared fields; with sources it also binds actual datasets.
+Its success message states what was checked. It never starts a browser or measures
+layout. The `schema` command prints the installed JSON Schema to stdout; redirect
+it to a local file to configure your editor. Both commands work in a core-only
+installation. Neither command downloads schemas or dependencies.
+
+From a repository checkout, the complete reference works directly with both engines:
+
+```sh
+python -m cardreport render --template examples/reference_template.yaml --data examples/reference_data.yaml --output output/reference-yaml.pdf
+python -m cardreport render --template examples/reference_template.yaml --data examples/reference_data.yaml --renderer weasyprint --output output/reference-yaml-weasyprint.pdf
+```
+
 ## Options and errors
 
 | Option | Behavior |
 | --- | --- |
-| `--template PATH` | Required JSON presentation file (`cardreport.template/1`) |
-| `--data PATH` | Optional named dataset JSON bundle (`cardreport.data/1`) |
+| `--template PATH` | Required JSON/YAML presentation file (`cardreport.template/1`) |
+| `--data PATH` | Optional named dataset JSON/YAML bundle (`cardreport.data/1`) |
 | `--csv PATH` | CSV with dataset name inferred from its filename; repeatable |
 | `--csv-as NAME PATH` | CSV with an explicit dataset name; repeatable |
 | `--csv-encoding NAME` | All CSV files; default `utf-8`, use `utf-8-sig` for a BOM |

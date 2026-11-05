@@ -8,7 +8,17 @@ from decimal import Decimal
 from types import MappingProxyType
 from typing import Literal
 
-from ._inputs import DataError, array, keys, load_json, mapping, name, parse_scalar
+from ._inputs import (
+    DataError,
+    array,
+    check_tree,
+    keys,
+    load_json,
+    mapping,
+    name,
+    parse_scalar,
+    schema_metadata,
+)
 from .model import ValidationError, Value, number
 
 type FieldType = Literal["text", "integer", "number", "decimal", "date", "datetime"]
@@ -293,51 +303,69 @@ def _decode(value: object) -> Value:
     return cell(value)
 
 
+def _bundle_from_tree(tree: object, limits: DataLimits) -> dict[str, Dataset]:
+    root = mapping(tree)
+    keys(root, {"format", "datasets"}, {"$schema"})
+    schema_metadata(root)
+    if root["format"] != "cardreport.data/1":
+        raise ValueError("unsupported data format")
+    raw = mapping(root["datasets"])
+    if len(raw) > limits.max_datasets:
+        raise ValueError("dataset count limit exceeded")
+    result: dict[str, Dataset] = {}
+    for key, value in raw.items():
+
+        def rows(raw_rows: object) -> Iterable[Mapping[str, object]]:
+            for i, row in enumerate(array(raw_rows)):
+                try:
+                    raw_row = mapping(row)
+                except ValueError as exc:
+                    raise DataError(str(exc), row=i) from exc
+                decoded: dict[str, object] = {}
+                for col, v in raw_row.items():
+                    try:
+                        decoded[col] = _decode(v)
+                    except (ValueError, TypeError, DataError) as exc:
+                        raise DataError(str(exc), row=i, field=col) from exc
+                yield decoded
+
+        try:
+            ds = mapping(value)
+            keys(ds, {"columns", "rows"}, set())
+            columns = tuple(name(c) for c in array(ds["columns"]))
+            result[key] = Dataset.from_dicts(
+                rows(ds["rows"]), columns=columns, limits=limits
+            )
+        except DataError as exc:
+            raise DataError(
+                str(exc), dataset=key, row=exc.row, field=exc.field
+            ) from exc
+        except (ValueError, TypeError) as exc:
+            raise DataError(str(exc), dataset=key) from exc
+    validate_bundle(result, limits)
+    return result
+
+
 def datasets_from_json(
     source: str | bytes, *, limits: DataLimits = DEFAULT_LIMITS
 ) -> dict[str, Dataset]:
     try:
-        root = mapping(load_json(source, limits.max_json_bytes))
-        keys(root, {"format", "datasets"}, set())
-        if root["format"] != "cardreport.data/1":
-            raise ValueError("unsupported data format")
-        raw = mapping(root["datasets"])
-        if len(raw) > limits.max_datasets:
-            raise ValueError("dataset count limit exceeded")
-        result: dict[str, Dataset] = {}
-        for key, value in raw.items():
-
-            def rows(raw_rows: object) -> Iterable[Mapping[str, object]]:
-                for i, row in enumerate(array(raw_rows)):
-                    try:
-                        raw_row = mapping(row)
-                    except ValueError as exc:
-                        raise DataError(str(exc), row=i) from exc
-                    decoded: dict[str, object] = {}
-                    for col, v in raw_row.items():
-                        try:
-                            decoded[col] = _decode(v)
-                        except (ValueError, TypeError, DataError) as exc:
-                            raise DataError(str(exc), row=i, field=col) from exc
-                    yield decoded
-
-            try:
-                ds = mapping(value)
-                keys(ds, {"columns", "rows"}, set())
-                columns = tuple(name(c) for c in array(ds["columns"]))
-                result[key] = Dataset.from_dicts(
-                    rows(ds["rows"]), columns=columns, limits=limits
-                )
-            except DataError as exc:
-                raise DataError(
-                    str(exc), dataset=key, row=exc.row, field=exc.field
-                ) from exc
-            except (ValueError, TypeError) as exc:
-                raise DataError(str(exc), dataset=key) from exc
-        validate_bundle(result, limits)
-        return result
+        return _bundle_from_tree(load_json(source, limits.max_json_bytes), limits)
     except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
         raise DataError("invalid data JSON") from exc
+
+
+def datasets_from_yaml(
+    source: str | bytes, *, limits: DataLimits = DEFAULT_LIMITS
+) -> dict[str, Dataset]:
+    from ._yaml import load_yaml
+
+    try:
+        tree = load_yaml(source, limits.max_json_bytes)
+        check_tree(tree, allow_dates=True)
+        return _bundle_from_tree(tree, limits)
+    except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
+        raise DataError("invalid data YAML") from exc
 
 
 def _encode(value: Value) -> object:
@@ -350,30 +378,42 @@ def _encode(value: Value) -> object:
     return value
 
 
+def _bundle_to_tree(
+    data: Mapping[str, Dataset], limits: DataLimits
+) -> dict[str, object]:
+    validate_bundle(data, limits)
+    return {
+        "format": "cardreport.data/1",
+        "datasets": {
+            key: {
+                "columns": list(ds.columns),
+                "rows": [
+                    {col: _encode(v) for col, v in zip(ds.columns, row, strict=True)}
+                    for row in ds.rows
+                ],
+            }
+            for key, ds in data.items()
+        },
+    }
+
+
 def datasets_to_json(
     data: Mapping[str, Dataset], *, limits: DataLimits = DEFAULT_LIMITS
 ) -> str:
-    validate_bundle(data, limits)
     result = json.dumps(
-        {
-            "format": "cardreport.data/1",
-            "datasets": {
-                key: {
-                    "columns": ds.columns,
-                    "rows": [
-                        {
-                            col: _encode(v)
-                            for col, v in zip(ds.columns, row, strict=True)
-                        }
-                        for row in ds.rows
-                    ],
-                }
-                for key, ds in data.items()
-            },
-        },
-        ensure_ascii=False,
-        allow_nan=False,
+        _bundle_to_tree(data, limits), ensure_ascii=False, allow_nan=False
     )
     if len(result.encode("utf-8")) > limits.max_json_bytes:
         raise DataError("data JSON byte limit exceeded")
     return result
+
+
+def datasets_to_yaml(
+    data: Mapping[str, Dataset], *, limits: DataLimits = DEFAULT_LIMITS
+) -> str:
+    from ._yaml import dump_yaml
+
+    try:
+        return dump_yaml(_bundle_to_tree(data, limits), limits.max_json_bytes)
+    except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
+        raise DataError("unable to serialize data YAML") from exc

@@ -8,7 +8,9 @@ from .data import (
     FieldSpec,
     FieldType,
     datasets_from_json,
+    datasets_from_yaml,
     datasets_to_json,
+    datasets_to_yaml,
 )
 from .document import ChartData, ChartSeries, ReportDocument
 from .formatting import Formatting
@@ -43,6 +45,7 @@ from .model import (
     Value,
 )
 from .renderers import ChromiumRenderer, Renderer
+from .schemas import json_schema
 from .templates import ReportTemplate
 from .weasyprint import WeasyPrintRenderer
 
@@ -58,6 +61,9 @@ __all__ = [
     "FieldSpec",
     "FieldType",
     "datasets_from_json",
+    "datasets_from_yaml",
+    "datasets_to_yaml",
+    "json_schema",
     "datasets_to_json",
     "WeasyPrintRenderer",
     "ReportDocument",

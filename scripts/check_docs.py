@@ -111,9 +111,17 @@ def check_cli_examples() -> None:
         if block.group(1).strip() != "sh":
             continue
         for line in block.group(2).splitlines():
-            if not line.startswith(
-                "python -m cardreport render --template report.json "
+            if not line.startswith("python -m cardreport "):
+                continue
+            command = shlex.split(line)
+            if (
+                command[3] not in ("render", "validate", "schema")
+                or "--help" in command
             ):
+                continue
+            if "--template" in command and command[
+                command.index("--template") + 1
+            ] not in ("report.json", "report.yaml"):
                 continue
             with tempfile.TemporaryDirectory(
                 prefix="cardreport-cli-docs-"
@@ -124,7 +132,20 @@ def check_cli_examples() -> None:
                 (work / "exports").mkdir()
                 shutil.copyfile(example / "calls.csv", work / "exports/november.csv")
                 command = shlex.split(line)
-                subprocess.run([sys.executable, *command[1:]], cwd=work, check=True)
+                completed = subprocess.run(
+                    [sys.executable, *command[1:]],
+                    cwd=work,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                if command[3] == "schema":
+                    import json
+
+                    assert (
+                        json.loads(completed.stdout)["$schema"]
+                        == "https://json-schema.org/draft/2020-12/schema"
+                    )
                 count += 1
     print(f"Executed {count} CLI documentation commands")
 

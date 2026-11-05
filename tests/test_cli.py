@@ -374,3 +374,103 @@ def test_top_level_options_are_not_abbreviated():
     with pytest.raises(SystemExit) as exc:
         main(["--vers"])
     assert exc.value.code == 2
+
+
+def test_yaml_cli_and_validation(files, capsys):
+    template = ReportTemplate.from_json((files / "report.json").read_bytes())
+    (files / "report.yml").write_text(template.to_yaml())
+    from cardreport import datasets_from_json, datasets_to_yaml
+
+    (files / "data.yaml").write_text(
+        datasets_to_yaml(datasets_from_json((files / "data.json").read_bytes()))
+    )
+    assert main(["validate", "--template", str(files / "report.yml")]) == 0
+    assert "data and layout have not" in capsys.readouterr().out
+    assert (
+        main(
+            [
+                "validate",
+                "--template",
+                str(files / "report.yml"),
+                "--data",
+                str(files / "data.yaml"),
+            ]
+        )
+        == 0
+    )
+    assert "Template and data valid" in capsys.readouterr().out
+    assert (
+        main(
+            [
+                "render",
+                "--template",
+                str(files / "report.yml"),
+                "--data",
+                str(files / "data.yaml"),
+                "--output",
+                str(files / "yaml.html"),
+            ]
+        )
+        == 0
+    )
+    assert "Total calls" in (files / "yaml.html").read_text()
+    assert (
+        main(
+            [
+                "validate",
+                "--template",
+                str(files / "report.yml"),
+                "--csv",
+                str(files / "summary.csv"),
+                "--csv",
+                str(files / "calls.csv"),
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "validate",
+                "--template",
+                str(files / "report.yml"),
+                "--csv",
+                str(files / "summary.csv"),
+            ]
+        )
+        == 1
+    )
+    assert "missing required dataset" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("kind", ["template", "data"])
+def test_schema_command(kind, capsys):
+    assert main(["schema", kind]) == 0
+    output = capsys.readouterr()
+    assert (
+        json.loads(output.out)["$schema"]
+        == "https://json-schema.org/draft/2020-12/schema"
+    )
+    assert not output.err
+
+
+def test_validate_does_not_render(files, monkeypatch):
+    from cardreport import Report
+
+    def fail(*args, **kwargs):
+        raise AssertionError("validation must not render")
+
+    monkeypatch.setattr(Report, "to_html", fail)
+    monkeypatch.setattr(Report, "to_pdf", fail)
+    assert (
+        main(
+            [
+                "validate",
+                "--template",
+                str(files / "report.json"),
+                "--data",
+                str(files / "data.json"),
+            ]
+        )
+        == 0
+    )

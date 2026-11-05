@@ -26,7 +26,10 @@ from cardreport import (
     TableColumn,
     Text,
     datasets_from_json,
+    datasets_from_yaml,
     datasets_to_json,
+    datasets_to_yaml,
+    json_schema,
 )
 from cardreport.adapters.csv import from_csv
 from cardreport.adapters.pandas import from_pandas
@@ -77,3 +80,13 @@ LineChart([date(2026, 11, 4)], [1], axes=False, markers=False, fill="zero")
 LineChart(["a"], [1], fill=True)  # type: ignore[arg-type]
 BarChart(["a"], [1], color_by="category", legend_position="left", category_labels=False)
 BarChart(["a"], [1], color_by="value")  # type: ignore[arg-type]
+
+
+assert_type(ReportTemplate.from_yaml("{}"), ReportTemplate)
+assert_type(template.to_yaml(), str)
+assert_type(
+    datasets_from_yaml(datasets_to_yaml({"summary": native})), dict[str, Dataset]
+)
+assert_type(json_schema("template"), str)
+json_schema("other")  # type: ignore[arg-type]
+ReportTemplate.from_yaml({})  # type: ignore[arg-type]

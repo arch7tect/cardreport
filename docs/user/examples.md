@@ -55,6 +55,11 @@ retaining rates. Both use the same presentation, which produces the same normali
 model as the original Python builder. [Dataset adapters](datasets.md) can replace
 the JSON inputs with CSV or pandas snapshots; the template is unchanged.
 
+The same report is available as [YAML presentation](../../examples/reference_template.yaml)
+and [YAML datasets](../../examples/reference_data.yaml). Use the installed CLI or
+`ReportTemplate.from_yaml` with `datasets_from_yaml`; see the
+[YAML embedding guide](yaml-and-schemas.md).
+
 ## Spanish reference report
 
 [spanish_report.py](../../examples/spanish_report.py) binds
