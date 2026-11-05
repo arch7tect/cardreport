@@ -15,13 +15,11 @@ from ._inputs import (
     TemplateError,
     array,
     check_tree,
-    keys,
     load_json,
     mapping,
-    name,
     plain_tree,
-    schema_metadata,
 )
+from ._schema import validate_structure
 from .data import (
     DEFAULT_LIMITS,
     DataLimits,
@@ -37,6 +35,7 @@ from .model import (
     BarChart,
     Block,
     Card,
+    CardContent,
     Column,
     Component,
     Currency,
@@ -61,18 +60,6 @@ from .model import (
 MAX_TEMPLATE_BYTES = 1024 * 1024
 
 
-def string(value: object) -> str:
-    if not isinstance(value, str):
-        raise ValueError("expected text")
-    return value
-
-
-def boolean(value: object) -> bool:
-    if type(value) is not bool:
-        raise ValueError("expected boolean")
-    return value
-
-
 def numeric(value: object) -> float:
     return number(value, "setting")
 
@@ -81,44 +68,59 @@ def weights(value: object) -> list[float] | None:
     return None if value is None else [numeric(v) for v in array(value)]
 
 
-def choice[T: str](value: object, options: tuple[T, ...]) -> T:
-    if value not in options:
-        raise ValueError("invalid option")
-    return value
-
-
 def fmt(value: object) -> Format:
     if isinstance(value, dict):
         obj = mapping(value)
-        keys(obj, {"currency"}, set())
-        result: Format = Currency(string(obj["currency"]))
+        result: Format = Currency(cast(str, obj["currency"]))
     else:
-        result = cast(Format, choice(value, ("number", "integer", "percent", "date")))
+        result = cast(Format, value)
     check_format(result, "format")
     return result
 
 
 def schemas(value: object) -> Mapping[str, DatasetSchema]:
     raw = mapping(value)
-    if len(raw) > DEFAULT_LIMITS.max_datasets:
-        raise ValueError("dataset schema count exceeded")
     result: dict[str, DatasetSchema] = {}
     for dataset, value in raw.items():
-        name(dataset)
         obj = mapping(value)
-        keys(obj, {"cardinality", "fields"}, set())
         fields: dict[str, FieldSpec] = {}
         for field, spec in mapping(obj["fields"]).items():
             raw_field = mapping(spec)
-            keys(raw_field, {"type"}, {"nullable"})
-            fields[name(field)] = FieldSpec(
-                cast(FieldType, string(raw_field["type"])),
-                boolean(raw_field.get("nullable", False)),
+            fields[field] = FieldSpec(
+                cast(FieldType, raw_field["type"]),
+                cast(bool, raw_field.get("nullable", False)),
             )
         result[dataset] = DatasetSchema(
-            fields, choice(obj["cardinality"], ("one", "many"))
+            fields, cast(Literal["one", "many"], obj["cardinality"])
         )
     return MappingProxyType(result)
+
+
+def _component_limits(report: object) -> None:
+    # Bound traversal before the recursive schema validator runs.
+    blocks = report.get("blocks") if isinstance(report, dict) else None
+    if not isinstance(blocks, list):
+        return
+    stack = [(block, f"report.blocks[{i}]", 0) for i, block in enumerate(blocks)]
+    count = 0
+    while stack:
+        node, path, depth = stack.pop()
+        count += 1
+        if count > 500 or depth > 12:
+            raise TemplateError(
+                "template component count/depth limit exceeded", template_path=path
+            )
+        if not isinstance(node, dict):
+            continue
+        if node.get("type") == "card" and "content" in node:
+            stack.append((node["content"], path + ".content", depth + 1))
+        elif node.get("type") in ("row", "column"):
+            children = node.get("children")
+            if isinstance(children, list):
+                stack.extend(
+                    (child, f"{path}.children[{i}]", depth + 1)
+                    for i, child in enumerate(children)
+                )
 
 
 class _Builder:
@@ -128,7 +130,6 @@ class _Builder:
         self.contracts, self.data = contracts, data
         self.paths: dict[str, str] = {}
         self.table_sources: dict[str, str] = {}
-        self.count = 0
         self.location = "report"
 
     def field(self, dataset: str, field: str) -> FieldSpec:
@@ -163,10 +164,8 @@ class _Builder:
         if text and (isinstance(value, str) or (optional and value is None)):
             return value
         obj = mapping(value)
-        keys(obj, {"bind"}, set())
         ref = mapping(obj["bind"])
-        keys(ref, {"dataset", "field"}, set())
-        dataset, field = name(ref["dataset"]), name(ref["field"])
+        dataset, field = cast(str, ref["dataset"]), cast(str, ref["field"])
         spec = self.field(dataset, field)
         if self.contracts[dataset].cardinality != "one":
             raise ValueError("scalar binding requires cardinality one")
@@ -183,46 +182,28 @@ class _Builder:
     def text(self, value: object, *, optional: bool = False) -> str | None:
         return cast(str | None, self.scalar(value, text=True, optional=optional))
 
-    def children(
-        self, value: object, path: str, generated: str, depth: int
-    ) -> list[Component]:
+    def children(self, value: object, path: str, generated: str) -> list[Component]:
         children: list[Component] = []
         for i, child in enumerate(array(value)):
-            block = self.node(
-                child, f"{path}.children[{i}]", f"{generated}.{i}", depth + 1
-            )
-            if isinstance(block, PageBreak):
-                raise ValueError("PageBreak must be top-level")
-            children.append(block)
+            block = self.node(child, f"{path}.children[{i}]", f"{generated}.{i}")
+            children.append(cast(Component, block))
         return children
 
-    def node(self, value: object, path: str, generated: str, depth: int = 0) -> Block:
+    def node(self, value: object, path: str, generated: str) -> Block:
         self.location = path
         self.paths[generated] = path
-        self.count += 1
-        if self.count > 500 or depth > 12:
-            raise ValueError("template component count/depth limit exceeded")
         obj = mapping(value)
         kind = obj.get("type")
         if kind == "page_break":
-            keys(obj, {"type"}, set())
             return PageBreak()
         if kind == "card":
-            keys(obj, {"type", "content"}, {"title"})
             title = self.text(obj.get("title"), optional=True)
             content = self.node(
-                obj["content"], path + ".content", generated + ".content", depth + 1
+                obj["content"], path + ".content", generated + ".content"
             )
-            if isinstance(content, (Card, PageBreak)):
-                raise ValueError("invalid direct card content")
-            return Card(content, title=title)
+            return Card(cast(CardContent, content), title=title)
         if kind in ("row", "column"):
-            keys(
-                obj,
-                {"type", "children"},
-                {"widths", "height_mm"} if kind == "row" else {"heights"},
-            )
-            children = self.children(obj["children"], path, generated, depth)
+            children = self.children(obj["children"], path, generated)
             self.location = path
             if kind == "row":
                 height = obj.get("height_mm")
@@ -233,13 +214,11 @@ class _Builder:
                 )
             return Column(*children, heights=weights(obj.get("heights")))
         if kind == "text":
-            keys(obj, {"type", "text"}, {"style"})
             return Text(
                 cast(str, self.text(obj["text"])),
-                choice(obj.get("style", "body"), ("body", "heading", "caption")),
+                cast(Literal["body", "heading", "caption"], obj.get("style", "body")),
             )
         if kind == "kpi":
-            keys(obj, {"type", "label", "value"}, {"format", "note"})
             format = fmt(obj.get("format", "number"))
             return KPI(
                 cast(str, self.text(obj["label"])),
@@ -248,24 +227,24 @@ class _Builder:
                 self.text(obj.get("note"), optional=True),
             )
         if kind == "table":
-            keys(obj, {"type", "dataset", "columns"}, {"empty_text"})
-            dataset = name(obj["dataset"])
+            dataset = cast(str, obj["dataset"])
             if dataset not in self.contracts:
                 raise ValueError("table names an undeclared dataset")
             columns: list[TableColumn] = []
             for raw in array(obj["columns"]):
                 col = mapping(raw)
-                keys(col, {"key", "label"}, {"format", "align", "width"})
-                key = name(col["key"])
+                key = cast(str, col["key"])
                 format = fmt(col.get("format", "number"))
                 self.format_type(self.field(dataset, key), format)
                 width = col.get("width")
                 columns.append(
                     TableColumn(
                         key,
-                        string(col["label"]),
+                        cast(str, col["label"]),
                         format,
-                        choice(col.get("align", "left"), ("left", "center", "right")),
+                        cast(
+                            Literal["left", "center", "right"], col.get("align", "left")
+                        ),
                         None if width is None else numeric(width),
                     )
                 )
@@ -278,30 +257,14 @@ class _Builder:
             return Table(
                 columns,
                 rows,
-                None if obj.get("empty_text") is None else string(obj["empty_text"]),
+                None if obj.get("empty_text") is None else cast(str, obj["empty_text"]),
             )
         if kind in ("bar", "line", "funnel"):
             axis = "x" if kind == "line" else "category"
-            options = {"value_format", "value"}
-            if kind != "funnel":
-                options |= {"series", "legend"}
-            if kind != "line":
-                options |= {"show_labels"}
-            if kind == "bar":
-                options |= {
-                    "orientation",
-                    "mode",
-                    "color_by",
-                    "legend_position",
-                    "category_labels",
-                }
-            if kind == "line":
-                options |= {"x_kind", "axes", "markers", "fill"}
-            keys(obj, {"type", "dataset", axis}, options)
-            dataset, axis_field = name(obj["dataset"]), name(obj[axis])
+            dataset, axis_field = cast(str, obj["dataset"]), cast(str, obj[axis])
             axis_spec = self.field(dataset, axis_field)
-            x_kind: Literal["category", "date"] = choice(
-                obj.get("x_kind", "category"), ("category", "date")
+            x_kind: Literal["category", "date"] = cast(
+                Literal["category", "date"], obj.get("x_kind", "category")
             )
             allowed = (
                 ("text", "date", "datetime")
@@ -312,20 +275,15 @@ class _Builder:
             )
             if axis_spec.type not in allowed or axis_spec.nullable:
                 raise ValueError("incompatible category/x field")
-            if ("value" in obj) == ("series" in obj):
-                raise ValueError("chart requires exactly one of value or series")
             specs = (
                 [{"field": obj["value"], "label": ""}]
                 if "value" in obj
                 else array(obj["series"])
             )
-            if not 1 <= len(specs) <= 8:
-                raise ValueError("chart requires 1..8 series")
             series: dict[str, list[Number | None]] = {}
             for raw in specs:
                 spec = mapping(raw)
-                keys(spec, {"field", "label"}, set())
-                field, label = name(spec["field"]), string(spec["label"])
+                field, label = cast(str, spec["field"]), cast(str, spec["label"])
                 field_spec = self.field(dataset, field)
                 if field_spec.type not in ("integer", "number", "decimal") or (
                     field_spec.nullable and kind != "line"
@@ -336,18 +294,16 @@ class _Builder:
                 series[label] = cast(list[Number | None], self.values(dataset, field))
             x = self.values(dataset, axis_field)
             format = fmt(obj.get("value_format", "number"))
-            if format == "date":
-                raise ValueError("charts require numeric display format")
             if kind == "line":
                 return LineChart(
                     cast(list[str | date | datetime], x),
                     values=next(iter(series.values())) if "value" in obj else None,
                     series=series if "series" in obj else None,
                     x_kind=x_kind,
-                    axes=boolean(obj.get("axes", True)),
-                    markers=boolean(obj.get("markers", True)),
-                    fill=choice(obj.get("fill", "none"), ("none", "zero")),
-                    legend=boolean(obj.get("legend", True)),
+                    axes=cast(bool, obj.get("axes", True)),
+                    markers=cast(bool, obj.get("markers", True)),
+                    fill=cast(Literal["none", "zero"], obj.get("fill", "none")),
+                    legend=cast(bool, obj.get("legend", True)),
                     value_format=format,
                 )
             numbers = cast(dict[str, list[Number]], series)
@@ -356,130 +312,65 @@ class _Builder:
                     cast(list[str | date | datetime], x),
                     values=next(iter(numbers.values())) if "value" in obj else None,
                     series=numbers if "series" in obj else None,
-                    orientation=choice(
-                        obj.get("orientation", "vertical"), ("vertical", "horizontal")
+                    orientation=cast(
+                        Literal["vertical", "horizontal"],
+                        obj.get("orientation", "vertical"),
                     ),
-                    mode=choice(obj.get("mode", "grouped"), ("grouped", "stacked")),
-                    color_by=choice(
-                        obj.get("color_by", "series"), ("series", "category")
+                    mode=cast(
+                        Literal["grouped", "stacked"], obj.get("mode", "grouped")
                     ),
-                    legend_position=choice(
-                        obj.get("legend_position", "bottom"), ("bottom", "left")
+                    color_by=cast(
+                        Literal["series", "category"], obj.get("color_by", "series")
                     ),
-                    category_labels=boolean(obj.get("category_labels", True)),
-                    show_labels=boolean(obj.get("show_labels", False)),
-                    legend=boolean(obj.get("legend", True)),
+                    legend_position=cast(
+                        Literal["bottom", "left"], obj.get("legend_position", "bottom")
+                    ),
+                    category_labels=cast(bool, obj.get("category_labels", True)),
+                    show_labels=cast(bool, obj.get("show_labels", False)),
+                    legend=cast(bool, obj.get("legend", True)),
                     value_format=format,
                 )
             return Funnel(
                 cast(list[str], x),
                 next(iter(numbers.values())),
-                show_labels=boolean(obj.get("show_labels", True)),
+                show_labels=cast(bool, obj.get("show_labels", True)),
                 value_format=format,
             )
         raise ValueError("unknown component type")
 
     def build(self, value: object) -> Report:
         obj = mapping(value)
-        keys(
-            obj,
-            {"blocks"},
-            {
-                "title",
-                "subtitle",
-                "mode",
-                "page",
-                "theme",
-                "language",
-                "formatting",
-                "empty_text",
-            },
-        )
         page = mapping(obj.get("page", {}))
-        keys(page, set(), {"size", "orientation", "margin_mm"})
         size = page.get("size", "A4")
         page_size: Literal["A4", "A3", "Letter"] | tuple[float, float]
         if isinstance(size, (list, tuple)):
             dimensions = array(size)
-            if len(dimensions) != 2:
-                raise ValueError("page needs two dimensions")
             page_size = (numeric(dimensions[0]), numeric(dimensions[1]))
         else:
-            page_size = cast(
-                Literal["A4", "A3", "Letter"], choice(size, ("A4", "A3", "Letter"))
-            )
+            page_size = cast(Literal["A4", "A3", "Letter"], size)
         theme = mapping(obj.get("theme", {}))
-        keys(
-            theme,
-            set(),
-            {
-                "accent",
-                "background",
-                "card_background",
-                "text",
-                "gap_mm",
-                "padding_mm",
-                "font_size_pt",
-                "chart_height_mm",
-                "kpi_value_size_pt",
-            },
-        )
         formatting = None
         if "formatting" in obj:
             self.location = "report.formatting"
             raw = mapping(obj["formatting"])
-            keys(
-                raw,
-                set(),
-                {
-                    "decimal",
-                    "group",
-                    "number_decimals",
-                    "percent_decimals",
-                    "currency_decimals",
-                    "date_format",
-                    "datetime_format",
-                    "locale",
-                },
-            )
-
-            def digits(key: str, default: int) -> int:
-                value = raw.get(key, default)
-                if isinstance(value, bool) or not isinstance(value, int):
-                    raise ValidationError(f"formatting.{key}: expected integer")
-                return value
-
-            def optional_string(key: str) -> str | None:
-                value = raw.get(key)
-                if value is None:
-                    return None
-                if not isinstance(value, str):
-                    raise ValidationError(f"formatting.{key}: expected text or null")
-                return value
-
-            def display_choice[T: str](
-                key: str, default: T, options: tuple[T, ...]
-            ) -> T:
-                try:
-                    return choice(raw.get(key, default), options)
-                except ValueError as exc:
-                    raise ValidationError(f"formatting.{key}: invalid option") from exc
 
             formatting = Formatting(
-                decimal=display_choice("decimal", ".", (".", ",")),
-                group=display_choice("group", ",", (",", ".", "'", "space", "none")),
-                number_decimals=digits("number_decimals", 2),
-                percent_decimals=digits("percent_decimals", 1),
-                currency_decimals=digits("currency_decimals", 2),
-                date_format=optional_string("date_format"),
-                datetime_format=optional_string("datetime_format"),
-                locale=optional_string("locale"),
+                decimal=cast(Literal[".", ","], raw.get("decimal", ".")),
+                group=cast(
+                    Literal[",", ".", "'", "space", "none"], raw.get("group", ",")
+                ),
+                number_decimals=cast(int, raw.get("number_decimals", 2)),
+                percent_decimals=cast(int, raw.get("percent_decimals", 1)),
+                currency_decimals=cast(int, raw.get("currency_decimals", 2)),
+                date_format=cast(str | None, raw.get("date_format")),
+                datetime_format=cast(str | None, raw.get("datetime_format")),
+                locale=cast(str | None, raw.get("locale")),
             )
         self.location = "report.language"
-        language = string(obj.get("language", "en"))
+        language = cast(str, obj.get("language", "en"))
         self.location = "report.empty_text"
         empty_text = (
-            None if obj.get("empty_text") is None else string(obj["empty_text"])
+            None if obj.get("empty_text") is None else cast(str, obj["empty_text"])
         )
         self.location = "report"
         report = Report(
@@ -488,17 +379,20 @@ class _Builder:
             language=language,
             formatting=formatting,
             empty_text=empty_text,
-            mode=choice(obj.get("mode", "dashboard"), ("dashboard", "flow")),
+            mode=cast(Literal["dashboard", "flow"], obj.get("mode", "dashboard")),
             page=Page(
                 page_size,
-                choice(page.get("orientation", "portrait"), ("portrait", "landscape")),
+                cast(
+                    Literal["portrait", "landscape"],
+                    page.get("orientation", "portrait"),
+                ),
                 numeric(page.get("margin_mm", 10)),
             ),
             theme=Theme(
-                accent=string(theme.get("accent", "#20a6c4")),
-                background=string(theme.get("background", "#f5f5f5")),
-                card_background=string(theme.get("card_background", "#ffffff")),
-                text=string(theme.get("text", "#222222")),
+                accent=cast(str, theme.get("accent", "#20a6c4")),
+                background=cast(str, theme.get("background", "#f5f5f5")),
+                card_background=cast(str, theme.get("card_background", "#ffffff")),
+                text=cast(str, theme.get("text", "#222222")),
                 gap_mm=numeric(theme.get("gap_mm", 4)),
                 padding_mm=numeric(theme.get("padding_mm", 4)),
                 font_size_pt=numeric(theme.get("font_size_pt", 10)),
@@ -564,13 +458,13 @@ class ReportTemplate:
             if len(encoded.encode("utf-8")) > MAX_TEMPLATE_BYTES:
                 raise ValueError("template byte limit exceeded")
             root = mapping(load_json(encoded, MAX_TEMPLATE_BYTES))
-            keys(root, {"format", "datasets", "report"}, {"$schema"})
-            schema_metadata(root)
-            if root["format"] != "cardreport.template/1":
-                raise ValueError("unsupported template format")
+            _component_limits(root.get("report"))
+            validate_structure("template", root)
             contracts = schemas(root["datasets"])
             builder = _Builder(contracts, None)
             builder.build(root["report"])
+        except TemplateError:
+            raise
         except (
             ValueError,
             TypeError,

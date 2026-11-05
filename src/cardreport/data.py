@@ -6,19 +6,18 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timezone
 from decimal import Decimal
 from types import MappingProxyType
-from typing import Literal
+from typing import Literal, cast
 
 from ._inputs import (
     DataError,
     array,
     check_tree,
-    keys,
     load_json,
     mapping,
     name,
     parse_scalar,
-    schema_metadata,
 )
+from ._schema import validate_structure
 from .model import ValidationError, Value, number
 
 type FieldType = Literal["text", "integer", "number", "decimal", "date", "datetime"]
@@ -289,26 +288,28 @@ def validate_bundle(
 def _decode(value: object) -> Value:
     if isinstance(value, dict):
         obj = mapping(value)
-        keys(obj, {"$type", "value"}, set())
         kind, text = obj["$type"], obj["value"]
-        if kind not in ("decimal", "date", "datetime") or not isinstance(text, str):
-            raise ValueError("invalid typed cell")
-        if len(text) > DEFAULT_LIMITS.max_string_chars:
-            raise ValueError("typed cell text limit exceeded")
         try:
-            parsed = parse_scalar(text, str(kind))
+            parsed = parse_scalar(cast(str, text), cast(str, kind))
         except ValueError as exc:
             raise ValueError("invalid typed cell lexical format") from exc
         return cell(parsed)
     return cell(value)
 
 
+def _transport_dates(value: object) -> object:
+    if isinstance(value, dict):
+        return {k: _transport_dates(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_transport_dates(v) for v in value]
+    if type(value) in (date, datetime):
+        return _encode(cast(date, value))
+    return value
+
+
 def _bundle_from_tree(tree: object, limits: DataLimits) -> dict[str, Dataset]:
+    validate_structure("data", tree)
     root = mapping(tree)
-    keys(root, {"format", "datasets"}, {"$schema"})
-    schema_metadata(root)
-    if root["format"] != "cardreport.data/1":
-        raise ValueError("unsupported data format")
     raw = mapping(root["datasets"])
     if len(raw) > limits.max_datasets:
         raise ValueError("dataset count limit exceeded")
@@ -331,7 +332,6 @@ def _bundle_from_tree(tree: object, limits: DataLimits) -> dict[str, Dataset]:
 
         try:
             ds = mapping(value)
-            keys(ds, {"columns", "rows"}, set())
             columns = tuple(name(c) for c in array(ds["columns"]))
             result[key] = Dataset.from_dicts(
                 rows(ds["rows"]), columns=columns, limits=limits
@@ -363,7 +363,7 @@ def datasets_from_yaml(
     try:
         tree = load_yaml(source, limits.max_json_bytes)
         check_tree(tree, allow_dates=True)
-        return _bundle_from_tree(tree, limits)
+        return _bundle_from_tree(_transport_dates(tree), limits)
     except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
         raise DataError("invalid data YAML") from exc
 

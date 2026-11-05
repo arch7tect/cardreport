@@ -144,7 +144,7 @@ key, but existing documents without it remain unchanged. For example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.6.0/src/cardreport/schemas/template-1.json",
+  "$schema": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.7.0/src/cardreport/schemas/template-1.json",
   "format": "cardreport.template/1",
   "datasets": {},
   "report": {"blocks": [{"type": "text", "text": "Hello"}]}
@@ -156,12 +156,21 @@ versioned URL or the installed schema instead of a moving main-branch URL.
 
 ## What validation checks
 
-The formal schemas check structure, enums, unknown properties and many local
-constraints. Existing parsers/binding additionally check references, types,
+Since 0.7.0, the packaged schemas are also the runtime structural contract.
+The JSON/YAML loaders use standard `jsonschema` validation against those exact
+resources: fields, required keys, enums and local constraints have no separate
+transport rule list. Validation runs offline; input `$schema` never selects a
+different validator. Byte, nesting and expansion guards run before validation.
+
+Native Python models and binding additionally check references, types,
 cardinality, row keys versus columns, calendar validity, resource totals and
 component relationships. JSON Schema treats `1.0` as an integer, whereas some
 Python API settings require an actual integer; the runtime remains authoritative.
-Schema validity does not guarantee layout fit or renderer support.
+Schema validity does not guarantee layout fit or renderer support. Native Python
+construction keeps its own validation; it does not require a JSON round trip.
+Structural failures raise `TemplateError` or `DataError`, with a template path
+or dataset/row/field when available. Messages identify the failed constraint
+without echoing report contents; exact message wording is not a stable API.
 
 For external validation of YAML data with native dates/datetimes, normalize it
 through `datasets_from_yaml` then `datasets_to_json` first. Generic JSON Schema

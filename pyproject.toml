@@ -1,6 +1,6 @@
 [project]
 name = "cardreport"
-version = "0.6.0"
+version = "0.7.0"
 description = "Composable Python reports with cards, constrained charts, and HTML-to-PDF output"
 readme = "README.md"
 authors = [{ name = "Oleg Orlov" }]
@@ -11,8 +11,10 @@ dependencies = [
     "babel>=2.17,<3",
     "fonttools>=4.59,<5",
     "jinja2>=3.1,<4",
+    "jsonschema>=4.26,<5",
     "langcodes>=3.5,<4",
     "plotly>=6.9,<7",
+    "referencing>=0.37,<1",
     "ruamel-yaml>=0.19.1,<0.20",
 ]
 
@@ -57,7 +59,7 @@ dev = [
     "pytest>=9.2.0",
     "ruff>=0.17.3",
     "pandas-stubs>=3.1.0.261029",
-    "jsonschema>=4.26,<5",
+    "types-jsonschema>=4.26.0.20261006",
 ]
 
 [tool.mypy]

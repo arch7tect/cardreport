@@ -620,7 +620,9 @@ the argument parser.
 json_schema(kind: Literal["template", "data"]) -> str
 ```
 
-Returns installed JSON Schema 2020-12 text without network access. Invalid kinds
-raise ValueError. Both interchange envelopes accept optional string `$schema`
+Returns the installed JSON Schema 2020-12 text used by the JSON/YAML loaders
+and external editors, without network access. Invalid kinds raise ValueError.
+Structural errors retain `TemplateError`/`DataError` and their location attributes;
+message wording is not stable. Native model and binding semantics remain separate. Both interchange envelopes accept optional string `$schema`
 metadata. See [YAML and JSON Schema](yaml-and-schemas.md) for scalar conversion,
 serialization, editor setup and the distinction between structural/semantic checks.

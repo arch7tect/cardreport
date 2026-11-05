@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.6.0/src/cardreport/schemas/template-1.json",
+  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.7.0/src/cardreport/schemas/template-1.json",
   "title": "CardReport template/1",
   "description": "Presentation and required dataset contracts. Binding and rendering perform additional semantic and layout checks.",
   "type": "object",
@@ -587,30 +587,18 @@
       "additionalProperties": false
     },
     "content": {
-      "oneOf": [
+      "allOf": [
         {
-          "$ref": "#/$defs/textComponent"
+          "properties": {
+            "type": {
+              "not": {
+                "const": "card"
+              }
+            }
+          }
         },
         {
-          "$ref": "#/$defs/kpi"
-        },
-        {
-          "$ref": "#/$defs/table"
-        },
-        {
-          "$ref": "#/$defs/bar"
-        },
-        {
-          "$ref": "#/$defs/line"
-        },
-        {
-          "$ref": "#/$defs/funnel"
-        },
-        {
-          "$ref": "#/$defs/row"
-        },
-        {
-          "$ref": "#/$defs/column"
+          "$ref": "#/$defs/component"
         }
       ]
     },
@@ -635,33 +623,160 @@
       "description": "Container with optional title; direct content cannot be another card."
     },
     "component": {
-      "oneOf": [
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "text",
+            "kpi",
+            "table",
+            "bar",
+            "line",
+            "funnel",
+            "row",
+            "column",
+            "card"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "allOf": [
         {
-          "$ref": "#/$defs/textComponent"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/textComponent"
+          }
         },
         {
-          "$ref": "#/$defs/kpi"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "kpi"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/kpi"
+          }
         },
         {
-          "$ref": "#/$defs/table"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "table"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/table"
+          }
         },
         {
-          "$ref": "#/$defs/bar"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "bar"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/bar"
+          }
         },
         {
-          "$ref": "#/$defs/line"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "line"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/line"
+          }
         },
         {
-          "$ref": "#/$defs/funnel"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "funnel"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/funnel"
+          }
         },
         {
-          "$ref": "#/$defs/row"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "row"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/row"
+          }
         },
         {
-          "$ref": "#/$defs/column"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "column"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/column"
+          }
         },
         {
-          "$ref": "#/$defs/card"
+          "if": {
+            "properties": {
+              "type": {
+                "const": "card"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/card"
+          }
         }
       ]
     },
@@ -678,14 +793,23 @@
       "additionalProperties": false
     },
     "block": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/component"
+      "if": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "page_break"
+          }
         },
-        {
-          "$ref": "#/$defs/pageBreak"
-        }
-      ]
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/pageBreak"
+      },
+      "else": {
+        "$ref": "#/$defs/component"
+      }
     },
     "page": {
       "type": "object",
@@ -730,19 +854,19 @@
       "properties": {
         "accent": {
           "type": "string",
-          "pattern": "^#[0-9a-fA-F]{6}$"
+          "pattern": "^#[0-9a-fA-F]{6}(?![\\s\\S])"
         },
         "background": {
           "type": "string",
-          "pattern": "^#[0-9a-fA-F]{6}$"
+          "pattern": "^#[0-9a-fA-F]{6}(?![\\s\\S])"
         },
         "card_background": {
           "type": "string",
-          "pattern": "^#[0-9a-fA-F]{6}$"
+          "pattern": "^#[0-9a-fA-F]{6}(?![\\s\\S])"
         },
         "text": {
           "type": "string",
-          "pattern": "^#[0-9a-fA-F]{6}$"
+          "pattern": "^#[0-9a-fA-F]{6}(?![\\s\\S])"
         },
         "gap_mm": {
           "type": "number",

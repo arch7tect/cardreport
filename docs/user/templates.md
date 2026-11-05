@@ -95,7 +95,8 @@ composition remains available for applications that do not need templates.
 
 ## Validation and errors
 
-TemplateError rejects unknown versions/keys, incompatible bindings and structural
+The packaged JSON Schema defines the transport structure and is used during
+loading. TemplateError rejects unknown versions/keys, incompatible bindings and structural
 settings. BindingError reports missing/type/cardinality/data errors, then wraps
 existing semantic validation failures. Both derive from ValidationError. Error
 locations may identify a dataset, zero-based row, field or template_path; unknown locations are

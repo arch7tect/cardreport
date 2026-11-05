@@ -29,7 +29,7 @@ def validator(kind):
 @pytest.mark.parametrize("kind", ["template", "data"])
 def test_metaschemas_and_packaged_identity(kind):
     schema = validator(kind).schema
-    assert schema["$id"].endswith(f"/v0.6.0/src/cardreport/schemas/{kind}-1.json")
+    assert schema["$id"].endswith(f"/v0.7.0/src/cardreport/schemas/{kind}-1.json")
     assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
     with pytest.raises(ValueError):
         json_schema("unknown")
@@ -227,3 +227,302 @@ def test_all_component_variants():
         spec["report"]["blocks"] = [node]
         validator("template").validate(spec)
         ReportTemplate.from_dict(spec)
+
+
+def test_structure_comes_from_the_packaged_schema(monkeypatch):
+    from cardreport import _schema
+
+    schema = json.loads(json_schema("template"))
+    schema["$defs"]["report"]["properties"]["editor_note"] = {"type": "string"}
+    original = _schema.json_schema
+    monkeypatch.setattr(
+        _schema,
+        "json_schema",
+        lambda kind: json.dumps(schema) if kind == "template" else original(kind),
+    )
+    _schema._validator.cache_clear()
+    try:
+        spec = {
+            "format": "cardreport.template/1",
+            "datasets": {},
+            "report": {"blocks": [], "editor_note": "Design note"},
+        }
+        assert ReportTemplate(spec).to_dict() == spec
+        spec["report"]["editor_note"] = 42
+        with pytest.raises(TemplateError) as error:
+            ReportTemplate(spec)
+        assert error.value.template_path == "report.editor_note"
+    finally:
+        _schema._validator.cache_clear()
+
+
+@pytest.mark.parametrize("syntax", ["json", "yaml"])
+def test_structural_error_paths_and_redaction(syntax):
+    from cardreport._yaml import dump_yaml
+
+    def encode(value):
+        return json.dumps(value) if syntax == "json" else dump_yaml(value, 100000)
+
+    load_template = getattr(ReportTemplate, "from_" + syntax)
+    load_data = datasets_from_json if syntax == "json" else datasets_from_yaml
+    spec = {
+        "format": "cardreport.template/1",
+        "datasets": {},
+        "report": {
+            "blocks": [
+                {
+                    "type": "row",
+                    "children": [
+                        {"type": "text", "text": "x", "style": "PRIVATE_VALUE"}
+                    ],
+                }
+            ]
+        },
+    }
+    with pytest.raises(TemplateError) as error:
+        load_template(encode(spec))
+    assert error.value.template_path == "report.blocks[0].children[0].style"
+    assert "PRIVATE_VALUE" not in str(error.value)
+    data = {
+        "format": "cardreport.data/1",
+        "datasets": {
+            "a.b": {
+                "columns": ["c.d"],
+                "rows": [{"c.d": {"$type": "date", "value": "PRIVATE_VALUE"}}],
+            }
+        },
+    }
+    with pytest.raises(DataError) as error:
+        load_data(encode(data))
+    assert (error.value.dataset, error.value.row, error.value.field) == (
+        "a.b",
+        0,
+        "c.d",
+    )
+    assert "PRIVATE_VALUE" not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "kind,value",
+    [
+        ("decimal", "12.50\n"),
+        ("date", "2026-11-05\n"),
+        ("datetime", "2026-11-05T00:00:00Z\n"),
+    ],
+)
+def test_typed_scalar_grammar_rejects_trailing_newlines(kind, value):
+    data = {
+        "format": "cardreport.data/1",
+        "datasets": {
+            "x": {"columns": ["v"], "rows": [{"v": {"$type": kind, "value": value}}]}
+        },
+    }
+    assert not validator("data").is_valid(data)
+    with pytest.raises(DataError):
+        datasets_from_json(json.dumps(data))
+
+
+def test_integer_settings_retain_native_type_semantics():
+    spec = {
+        "format": "cardreport.template/1",
+        "datasets": {},
+        "report": {"blocks": [], "formatting": {"number_decimals": 2.0}},
+    }
+    # JSON Schema integers include 2.0; the Python model requires an actual int.
+    validator("template").validate(spec)
+    with pytest.raises(TemplateError) as error:
+        ReportTemplate(spec)
+    assert error.value.template_path == "report.formatting.number_decimals"
+
+
+def test_schema_metadata_never_triggers_network(monkeypatch):
+    import socket
+    import urllib.request
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("validation attempted network access")
+
+    monkeypatch.setattr(socket, "create_connection", unexpected)
+    monkeypatch.setattr(urllib.request, "urlopen", unexpected)
+    spec = {
+        "$schema": "https://invalid.example/schema",
+        "format": "cardreport.template/1",
+        "datasets": {},
+        "report": {"blocks": []},
+    }
+    ReportTemplate(spec)
+    data = {
+        "$schema": "https://invalid.example/schema",
+        "format": "cardreport.data/1",
+        "datasets": {},
+    }
+    assert datasets_from_json(json.dumps(data)) == {}
+
+
+def test_component_limits_precede_schema_recursion(monkeypatch):
+    import cardreport.templates as templates
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("schema validation ran before resource limits")
+
+    monkeypatch.setattr(templates, "validate_structure", unexpected)
+    for blocks in ([{"type": "text", "text": "x"}] * 501,):
+        with pytest.raises(TemplateError, match="count/depth"):
+            ReportTemplate(
+                {
+                    "format": "cardreport.template/1",
+                    "datasets": {},
+                    "report": {"blocks": blocks},
+                }
+            )
+    node = {"type": "text", "text": "x"}
+    for _ in range(14):
+        node = {"type": "column", "children": [node]}
+    with pytest.raises(TemplateError, match="count/depth"):
+        ReportTemplate(
+            {
+                "format": "cardreport.template/1",
+                "datasets": {},
+                "report": {"blocks": [node]},
+            }
+        )
+
+
+def test_deep_valid_template_does_not_expand_alternative_branches():
+    import subprocess
+    import sys
+
+    # Earlier recursive oneOf alternatives revisited the same children exponentially.
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            """
+from cardreport import ReportTemplate
+node = {"type": "text", "text": "x"}
+for _ in range(12):
+    node = {"type": "column", "children": [node]}
+ReportTemplate({"format": "cardreport.template/1", "datasets": {}, "report": {"blocks": [node]}})
+""",
+        ],
+        check=True,
+        timeout=15,
+    )
+
+
+def test_native_literal_options_match_transport_schema():
+    from typing import get_args, get_type_hints
+
+    from cardreport import (
+        BarChart,
+        DatasetSchema,
+        FieldSpec,
+        Formatting,
+        LineChart,
+        Page,
+        Report,
+        TableColumn,
+        Text,
+    )
+    from cardreport.model import Format
+
+    defs = validator("template").schema["$defs"]
+    pairs = [
+        (Text, "style", "textComponent", "style"),
+        (TableColumn, "align", "tableColumn", "align"),
+        (Page, "orientation", "page", "orientation"),
+        (DatasetSchema, "cardinality", "dataset", "cardinality"),
+        (FieldSpec, "type", "field", "type"),
+        (Formatting, "decimal", "formatting", "decimal"),
+        (Formatting, "group", "formatting", "group"),
+        *[
+            (BarChart, key, "bar", key)
+            for key in ("orientation", "mode", "color_by", "legend_position")
+        ],
+        *[(LineChart, key, "line", key) for key in ("x_kind", "fill")],
+    ]
+    for model, field, definition, prop in pairs:
+        annotation = get_type_hints(model)[field]
+        annotation = getattr(annotation, "__value__", annotation)
+        assert set(get_args(annotation)) == set(
+            defs[definition]["properties"][prop]["enum"]
+        )
+    assert set(
+        get_args(
+            get_type_hints(Report.__init__, localns={"Formatting": Formatting})["mode"]
+        )
+    ) == set(defs["report"]["properties"]["mode"]["enum"])
+    assert set(get_args(get_args(Format.__value__)[0])) == set(
+        defs["format"]["anyOf"][0]["enum"]
+    )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "format: cardreport.data/1\ndatasets: {x: {columns: [v], rows: [{v: 2026-11-05T12:00:00}]}}",
+        "format: cardreport.data/1\ndatasets: {x: {columns: [v], rows: [{v: {$type: date, value: 2026-11-05}}]}}",
+    ],
+)
+def test_yaml_native_scalars_keep_locations_on_rejection(source):
+    with pytest.raises(DataError) as error:
+        datasets_from_yaml(source)
+    assert (error.value.dataset, error.value.row, error.value.field) == ("x", 0, "v")
+
+
+def test_external_schema_missing_type_chains_remain_bounded():
+    import subprocess
+    import sys
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            """
+import json
+from jsonschema import Draft202012Validator
+from cardreport import json_schema
+node = {"text": "x"}
+for _ in range(24):
+    node = {"children": [node]}
+spec = {"format": "cardreport.template/1", "datasets": {}, "report": {"blocks": [node]}}
+errors = list(Draft202012Validator(json.loads(json_schema("template"))).iter_errors(spec))
+assert errors
+""",
+        ],
+        check=True,
+        timeout=15,
+    )
+
+
+def test_schema_caps_match_native_limits():
+    from cardreport import DataLimits
+
+    caps = DataLimits()
+    template = validator("template").schema
+    data = validator("data").schema
+    for schema in (template, data):
+        assert schema["properties"]["datasets"]["maxProperties"] == caps.max_datasets
+    fields = template["$defs"]["dataset"]["properties"]["fields"]
+    dataset = data["$defs"]["dataset"]["properties"]
+    assert fields["maxProperties"] == dataset["columns"]["maxItems"] == caps.max_columns
+    assert dataset["rows"]["items"]["maxProperties"] == caps.max_columns
+    assert dataset["rows"]["maxItems"] == caps.max_rows
+    for definition in ("cell", "decimal", "date", "datetime"):
+        assert data["$defs"][definition]["maxLength"] == caps.max_string_chars
+    formats = template["$defs"]
+    assert set(formats["numericFormat"]["anyOf"][0]["enum"]) == set(
+        formats["format"]["anyOf"][0]["enum"]
+    ) - {"date"}
+
+
+def test_theme_colour_schema_rejects_trailing_newline():
+    spec = {
+        "format": "cardreport.template/1",
+        "datasets": {},
+        "report": {"blocks": [], "theme": {"accent": "#aabbcc\n"}},
+    }
+    assert not validator("template").is_valid(spec)
+    with pytest.raises(TemplateError) as error:
+        ReportTemplate(spec)
+    assert error.value.template_path == "report.theme.accent"

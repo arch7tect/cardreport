@@ -5,6 +5,22 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.7.0 — 2026-11-05
+
+### Changed
+
+- Use the packaged JSON Schemas to validate JSON/YAML input structure at runtime,
+  removing parallel field and option rules from transport loaders.
+- Share typed date, datetime and decimal lexical rules with CSV parsing. Keep
+  native Python model checks, binding semantics and resource limits intact.
+- Include jsonschema and referencing in the core installation. Validation stays
+  offline and does not fetch input `$schema` URLs.
+- Report structural failures through the existing error classes and location
+  attributes without including input values. Error wording may differ from 0.6.0.
+- Validate nested components and data cells through conditional schema branches,
+  and reject oversized component trees before recursive schema validation.
+- Clarify the shared runtime/editor contract in the API and YAML documentation.
+
 ## 0.6.0 — 2026-11-05
 
 ### Added

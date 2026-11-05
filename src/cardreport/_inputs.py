@@ -59,11 +59,6 @@ def array(value: object) -> list[object]:
     return list(cast(list[object] | tuple[object, ...], value))
 
 
-def keys(obj: Mapping[str, object], required: set[str], optional: set[str]) -> None:
-    if not required <= obj.keys() or obj.keys() - required - optional:
-        raise ValueError("missing required or unknown object keys")
-
-
 def name(value: object) -> str:
     if not isinstance(value, str) or not 1 <= len(value) <= 100:
         raise ValueError("expected a nonempty name up to 100 characters")
@@ -132,34 +127,25 @@ def plain_tree(value: object) -> object:
 
 
 INTEGER = re.compile(r"[+-]?[0-9]+\Z")
-DECIMAL = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\Z")
-DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
-DATETIME = re.compile(
-    r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
-    r"(?:\.[0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})\Z"
-)
 
 
 def parse_scalar(text: str, kind: str) -> str | int | Decimal | date:
+    from ._schema import scalar_pattern
+
     if kind == "text":
         return text
     if kind == "integer" and INTEGER.fullmatch(text):
         return int(text)
-    if kind in ("number", "decimal") and DECIMAL.fullmatch(text):
+    if kind in ("number", "decimal") and scalar_pattern("decimal").fullmatch(text):
         try:
             return Decimal(text)
         except InvalidOperation:
             pass
-    if kind == "date" and DATE.fullmatch(text):
+    if kind == "date" and scalar_pattern("date").fullmatch(text):
         return date.fromisoformat(text)
-    if kind == "datetime" and DATETIME.fullmatch(text):
+    if kind == "datetime" and scalar_pattern("datetime").fullmatch(text):
         # fromisoformat accepts out-of-range offset minutes by normalizing them.
         if text[-1] != "Z" and (int(text[-5:-3]) > 23 or int(text[-2:]) > 59):
             raise ValueError("invalid datetime offset")
         return datetime.fromisoformat(text)
     raise ValueError(f"expected {kind} in the documented lexical format")
-
-
-def schema_metadata(root: Mapping[str, object]) -> None:
-    if "$schema" in root and not isinstance(root["$schema"], str):
-        raise ValueError("$schema must be a string")

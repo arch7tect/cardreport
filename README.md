@@ -169,7 +169,7 @@ The installed `cardreport` command is equivalent. See the
 - [Quickstart](https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md) — build from application data; return strings/bytes.
 - [KPI dashboards](https://github.com/arch7tect/cardreport/blob/main/docs/user/dashboards.md) — compact charts, category legends and larger KPI values.
 - [Templates](https://github.com/arch7tect/cardreport/blob/main/docs/user/templates.md) — JSON presentation with separate named datasets.
-- [YAML and JSON Schema](https://github.com/arch7tect/cardreport/blob/main/docs/user/yaml-and-schemas.md) — YAML embedding, types, formal schemas and editor setup.
+- [YAML and JSON Schema](https://github.com/arch7tect/cardreport/blob/main/docs/user/yaml-and-schemas.md) — YAML embedding, shared runtime/editor schemas and editor setup.
 - [Datasets](https://github.com/arch7tect/cardreport/blob/main/docs/user/datasets.md) — native Python data and typed JSON storage.
 - [User guide](https://github.com/arch7tect/cardreport/blob/main/docs/user/guide.md) — cards, layout, formatting and multiple pages.
 - [Language and display formats](https://github.com/arch7tect/cardreport/blob/main/docs/user/localization.md) — report language tags, custom dates, number precision and the Spanish example.

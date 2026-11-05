@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.6.0/src/cardreport/schemas/data-1.json",
+  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.7.0/src/cardreport/schemas/data-1.json",
   "title": "CardReport data/1",
-  "description": "Named datasets using JSON-compatible cells. For native YAML dates, call datasets_from_yaml then datasets_to_json before external schema validation.",
+  "description": "Structural contract used by the runtime and editors for named datasets. The YAML loader normalizes native date cells to this typed JSON representation.",
   "type": "object",
   "properties": {
     "$schema": {
@@ -35,82 +35,99 @@
       "description": "Literal, case-sensitive name; not a path or expression."
     },
     "typedCell": {
-      "oneOf": [
+      "type": "object",
+      "properties": {
+        "$type": {
+          "enum": [
+            "decimal",
+            "date",
+            "datetime"
+          ]
+        },
+        "value": {}
+      },
+      "required": [
+        "$type",
+        "value"
+      ],
+      "additionalProperties": false,
+      "allOf": [
         {
-          "type": "object",
-          "properties": {
-            "$type": {
-              "const": "decimal"
+          "if": {
+            "properties": {
+              "$type": {
+                "const": "decimal"
+              }
             },
-            "value": {
-              "type": "string",
-              "maxLength": 10000,
-              "pattern": "^[+-]?(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?$"
-            }
+            "required": [
+              "$type"
+            ]
           },
-          "required": [
-            "$type",
-            "value"
-          ],
-          "additionalProperties": false
+          "then": {
+            "properties": {
+              "value": {
+                "$ref": "#/$defs/decimal"
+              }
+            }
+          }
         },
         {
-          "type": "object",
-          "properties": {
-            "$type": {
-              "const": "date"
+          "if": {
+            "properties": {
+              "$type": {
+                "const": "date"
+              }
             },
-            "value": {
-              "type": "string",
-              "maxLength": 10000,
-              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
-            }
+            "required": [
+              "$type"
+            ]
           },
-          "required": [
-            "$type",
-            "value"
-          ],
-          "additionalProperties": false
+          "then": {
+            "properties": {
+              "value": {
+                "$ref": "#/$defs/date"
+              }
+            }
+          }
         },
         {
-          "type": "object",
-          "properties": {
-            "$type": {
-              "const": "datetime"
+          "if": {
+            "properties": {
+              "$type": {
+                "const": "datetime"
+              }
             },
-            "value": {
-              "type": "string",
-              "maxLength": 10000,
-              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})$"
-            }
+            "required": [
+              "$type"
+            ]
           },
-          "required": [
-            "$type",
-            "value"
-          ],
-          "additionalProperties": false
+          "then": {
+            "properties": {
+              "value": {
+                "$ref": "#/$defs/datetime"
+              }
+            }
+          }
         }
       ],
       "description": "Lossless decimal, date or timezone-aware datetime; value must be a string."
     },
     "cell": {
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string",
-          "maxLength": 10000
-        },
-        {
-          "type": "number",
-          "minimum": -1000000000000000.0,
-          "maximum": 1000000000000000.0
-        },
-        {
-          "$ref": "#/$defs/typedCell"
-        }
-      ]
+      "type": [
+        "null",
+        "string",
+        "number",
+        "object"
+      ],
+      "maxLength": 10000,
+      "minimum": -1000000000000000.0,
+      "maximum": 1000000000000000.0,
+      "if": {
+        "type": "object"
+      },
+      "then": {
+        "$ref": "#/$defs/typedCell"
+      }
     },
     "dataset": {
       "type": "object",
@@ -144,6 +161,21 @@
       ],
       "additionalProperties": false,
       "description": "Rows must have exactly the column keys; the runtime checks this relationship."
+    },
+    "decimal": {
+      "type": "string",
+      "maxLength": 10000,
+      "pattern": "^[+-]?(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?(?![\\s\\S])"
+    },
+    "date": {
+      "type": "string",
+      "maxLength": 10000,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(?![\\s\\S])"
+    },
+    "datetime": {
+      "type": "string",
+      "maxLength": 10000,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})(?![\\s\\S])"
     }
   }
 }

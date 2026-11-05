@@ -18,6 +18,7 @@ ASSETS = {
     "py.typed",
     "cli.py",
     "_yaml.py",
+    "_schema.py",
     "schemas/__init__.py",
     "schemas/template-1.json",
     "schemas/data-1.json",
@@ -104,6 +105,7 @@ def installed_smoke(full: bool) -> None:
         DatasetSchema,
         DependencyError,
         ReportTemplate,
+        TemplateError,
         datasets_from_json,
         datasets_from_yaml,
         json_schema,
@@ -126,6 +128,15 @@ def installed_smoke(full: bool) -> None:
         json.loads(json_schema("template"))["properties"]["format"]["const"]
         == "cardreport.template/1"
     )
+    try:
+        ReportTemplate.from_json(
+            '{"format":"cardreport.template/1","datasets":{},'
+            '"report":{"blocks":[],"mode":"unknown"}}'
+        )
+    except TemplateError as exc:
+        assert exc.template_path == "report.mode"
+    else:
+        raise AssertionError("installed schema validation did not run")
     yaml_template = ReportTemplate.from_yaml(
         (examples / "reference_template.yaml").read_bytes()
     )
