@@ -114,6 +114,35 @@ export DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib"
 CardReport does not install native libraries or modify environment variables.
 An incompatible adapter fails explicitly.
 
+### Windows
+
+For native Windows x64, use 64-bit Windows Python 3.12+ and install
+[MSYS2](https://www.msys2.org/) with its default directory, `C:\msys64`.
+In the **MSYS2 UCRT64** terminal, install Pango:
+
+```sh
+pacman -S mingw-w64-ucrt-x86_64-pango
+```
+
+Close that terminal. In **PowerShell**, open your existing uv project and run:
+
+```powershell
+$env:WEASYPRINT_DLL_DIRECTORIES = "C:\msys64\ucrt64\bin"
+uv add "cardreport[weasyprint]"
+uv run python -m weasyprint --info
+```
+
+Adjust the DLL directory if MSYS2 is installed elsewhere. The environment setting
+applies to this PowerShell session and its child processes; configure it in your
+IDE or service environment when launching the application there. For a checkout,
+replace `uv add` with `uv sync --extra weasyprint --locked`.
+
+These steps follow the [upstream Windows Python-library installation guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows).
+CardReport imports the Python library, so a standalone WeasyPrint executable
+does not supply its dependencies. Run the PDF example below to check the complete
+renderer; CardReport has not yet been verified on Windows. For WSL, follow the
+[Linux instructions](#linux) inside the distribution.
+
 ### Use the renderer
 
 ```python
