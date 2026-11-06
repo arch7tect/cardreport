@@ -104,6 +104,32 @@ between rows, repeating headings and the card title. A table inside Row/Column
 cannot split. Other blocks move whole to the next page; a block or row taller
 than an empty page is rejected. The report title cannot be stranded alone on a page.
 
+### Dashboards across pages
+
+Use `mode="flow"` when rows of cards should move to the next page automatically.
+Keep a table at the top level as `Card(Table(...))`, without a fixed row height,
+to let its records continue across pages. Explicit `new_page()` calls still force
+breaks in flow mode. Flow does not shrink rows or rebalance their contents to
+reach a requested page count; dashboard mode keeps your explicit page layout.
+
+The [flow dashboard example](../../examples/flow_dashboard.py) combines KPI cards,
+a row of charts, a long table and a final KPI row without manual page breaks:
+
+```python
+from examples.flow_dashboard import build_report as build_flow_dashboard
+
+dashboard = build_flow_dashboard()
+pdf = dashboard.to_pdf()
+assert pdf.startswith(b"%PDF-")
+```
+
+For portrait A4 with 10 mm margins, the page body is 190 × 277 mm. The report
+heading, row gaps, card padding and card titles also consume space. `height_mm`
+allocates the whole row, not just its plotting area. A wider column may help long
+category labels more than a taller row. `validate()` checks the model, while
+Chromium `to_html()` returns a document whose geometry checks run when opened in
+a browser; `to_pdf()` waits for those checks and raises any layout error.
+
 ## Choose an output
 
 - `to_html()` / `to_pdf()` return values for application integration.

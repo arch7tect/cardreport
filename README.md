@@ -56,6 +56,9 @@ Keep your application’s uv.lock to pin the installed version. For HTML-only us
 browser-install command. See [installation and quickstart](https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md)
 for local checkouts, wheels and how to embed exports.
 
+For browser-free PDF export, follow the [WeasyPrint setup](https://github.com/arch7tect/cardreport/blob/main/docs/user/renderers.md#weasyprint),
+including native libraries and the library search path on macOS.
+
 ## Use from Python
 
 ### 1. Python components
@@ -168,7 +171,7 @@ The installed `cardreport` command is equivalent. See the
 ## Documentation
 
 - [Quickstart](https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md) — build from application data; return strings/bytes.
-- [KPI dashboards](https://github.com/arch7tect/cardreport/blob/main/docs/user/dashboards.md) — compact charts, category legends and larger KPI values.
+- [KPI dashboards](https://github.com/arch7tect/cardreport/blob/main/docs/user/dashboards.md) — compact charts, category legends and larger KPI values; [multi-page dashboards](https://github.com/arch7tect/cardreport/blob/main/docs/user/guide.md#dashboards-across-pages) use flow to carry whole rows and split tables.
 - [Templates](https://github.com/arch7tect/cardreport/blob/main/docs/user/templates.md) — JSON presentation with separate named datasets.
 - [YAML and JSON Schema](https://github.com/arch7tect/cardreport/blob/main/docs/user/yaml-and-schemas.md) — YAML embedding, schemas, data validation and editor setup.
 - [Datasets](https://github.com/arch7tect/cardreport/blob/main/docs/user/datasets.md) — native Python data and typed JSON storage.

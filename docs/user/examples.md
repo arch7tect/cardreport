@@ -60,6 +60,15 @@ and [YAML datasets](../../examples/reference_data.yaml). Use the installed CLI o
 `ReportTemplate.from_yaml` with `datasets_from_yaml`; see the
 [YAML embedding guide](yaml-and-schemas.md).
 
+## Flow dashboard
+
+For a dashboard that flows across pages, see the [flow dashboard guide](guide.md#dashboards-across-pages)
+and [runnable example](../../examples/flow_dashboard.py).
+
+```sh
+uv run --extra pdf python examples/flow_dashboard.py
+```
+
 ## Multiple series and funnel
 
 [series_report.py](../../examples/series_report.py) composes grouped bars, horizontal

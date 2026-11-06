@@ -19,7 +19,9 @@ def main() -> None:
         from weasyprint.text.fonts import FontConfiguration
     except (ImportError, OSError) as exc:
         raise DependencyError(
-            "WeasyPrint native libraries unavailable; see README native-library setup"
+            f"WeasyPrint could not load its dependencies: {exc}\n"
+            "Setup: https://github.com/arch7tect/cardreport/blob/main/"
+            "docs/user/renderers.md#weasyprint"
         ) from exc
     from ._svg_charts import render_svg
     from ._weasy_boxes import inspect, verify_adapter

@@ -84,6 +84,7 @@ def check_archives(directory: Path) -> Path:
                 "operations_template.json",
                 "operations_data.json",
                 "series_report.py",
+                "flow_dashboard.py",
             ]
         } <= source_names
         metadata_file = archive.extractfile(prefix + "PKG-INFO")
@@ -243,6 +244,13 @@ def installed_smoke(full: bool) -> None:
         series_report = runpy.run_path(str(examples / "series_report.py"))[
             "build_report"
         ]
+        flow_report = runpy.run_path(str(examples / "flow_dashboard.py"))[
+            "build_report"
+        ]
+        flow_pdf = PdfReader(io.BytesIO(flow_report().to_pdf()))
+        assert len(flow_pdf.pages) > 1
+        flow_text = "\n".join(page.extract_text() for page in flow_pdf.pages)
+        assert all(flow_text.count(f"REQ-{i:03d}") == 1 for i in range(1, 121))
 
         assert from_pandas(pd.DataFrame({"x": [1]}), schema=DatasetSchema({})).rows == (
             (1,),

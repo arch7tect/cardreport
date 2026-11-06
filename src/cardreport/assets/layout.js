@@ -6,6 +6,45 @@
   const tolerance = 1; // CSS pixels, only for fractional layout rounding.
   const fail = (element, reason) => {const e=new Error((element.dataset.path || 'report') + ': ' + reason);e.name='LayoutOverflowError';throw e;};
   const rect = e => e.getBoundingClientRect();
+  const visibleText = e => getComputedStyle(e).visibility !== 'hidden' && rect(e).width && rect(e).height;
+  const labelName = e => `${e.closest('.xtick, .ytick')?.getAttribute('class') || (e.classList.contains('legendtext') ? 'legend' : 'value')} ${JSON.stringify(e.textContent)}`;
+  function textCorners(element) {
+    const b=element.getBBox(), m=element.getScreenCTM();
+    if (!m) throw new Error('chart text has no screen transform');
+    return [[b.x,b.y],[b.x+b.width,b.y],[b.x+b.width,b.y+b.height],[b.x,b.y+b.height]]
+      .map(([x,y])=>({x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f}));
+  }
+  function overlaps(a,b) {
+    // Axis-aligned boxes falsely intersect when Plotly rotates category labels.
+    for (const polygon of [a,b]) for (let i=0;i<4;i++) {
+      const p=polygon[i], q=polygon[(i+1)%4], length=Math.hypot(q.x-p.x,q.y-p.y);
+      if (!length) continue;
+      const x=-(q.y-p.y)/length, y=(q.x-p.x)/length;
+      const pa=a.map(p=>p.x*x+p.y*y), pb=b.map(p=>p.x*x+p.y*y);
+      if (Math.min(Math.max(...pa),Math.max(...pb))-Math.max(Math.min(...pa),Math.min(...pb))<=tolerance) return false;
+    }
+    return true;
+  }
+  async function reserveValueLabels(chart) {
+    // Bounded layout passes; final bounds/plot-area checks still decide whether it fits.
+    for (let pass=0;pass<2;pass++) {
+      const cr=rect(chart), extra={l:0,r:0,t:0,b:0};
+      for (const label of [...chart.querySelectorAll('.bartext-outside, .funneltext')].filter(visibleText)) {
+        const r=rect(label);
+        extra.l=Math.max(extra.l,cr.left-r.left);extra.r=Math.max(extra.r,r.right-cr.right);
+        extra.t=Math.max(extra.t,cr.top-r.top);extra.b=Math.max(extra.b,r.bottom-cr.bottom);
+      }
+      const update={};
+      // Plotly's computed margins include space added for axis labels.
+      const size=chart._fullLayout?._size;
+      for (const side of ['l','r','t','b']) if (extra[side]>tolerance) {
+        if (!size || !Number.isFinite(size[side])) throw new Error('chart margin measurement unavailable');
+        update['margin.'+side]=size[side]+Math.ceil(extra[side])+2;
+      }
+      if (!Object.keys(update).length) return;
+      await Plotly.relayout(chart,update);
+    }
+  }
   let body;
   function newPage() {
     if (pages.children.length >= settings.pageLimit) fail(pages, 'page limit exceeded');
@@ -62,6 +101,7 @@
       if (el.clientHeight < (spec.compact ? 10 : 35)*96/25.4-1 || el.clientWidth<40) fail(el,'chart has insufficient allocated space');
       await Plotly.newPlot(el,spec.data,{...spec.layout,width:el.clientWidth,height:el.clientHeight},
           {staticPlot:true,displayModeBar:false,responsive:false,typesetMath:false});
+      await reserveValueLabels(el);
     }
     await document.fonts.ready;
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
@@ -87,16 +127,17 @@
       if (spec.categoryCount !== null && chart.querySelectorAll(spec.categoryAxis+'tick text').length!==spec.categoryCount) fail(chart,'category labels were omitted');
       const plot=chart.querySelector('clipPath.plotclip rect');
       if (plot && (+plot.getAttribute('width')<40 || +plot.getAttribute('height')<(spec.compact ? 20 : 40))) fail(chart,'labels leave insufficient plotting area');
-      const texts=[...chart.querySelectorAll('svg text')].filter(e=>getComputedStyle(e).visibility!=='hidden' && rect(e).width && rect(e).height);
+      const texts=[...chart.querySelectorAll('svg text')].filter(visibleText);
       for (const t of texts) {
         const tr=rect(t);
-        if (tr.left<cr.left-tolerance || tr.right>cr.right+tolerance || tr.top<cr.top-tolerance || tr.bottom>cr.bottom+tolerance) fail(chart,'chart label exceeds available space');
+        if (tr.left<cr.left-tolerance || tr.right>cr.right+tolerance || tr.top<cr.top-tolerance || tr.bottom>cr.bottom+tolerance) fail(chart,'chart label exceeds available space: '+labelName(t));
       }
       for (const selector of ['.xtick text, .ytick text, .legendtext, .bartext, .funneltext']) {
-        const rs=[...chart.querySelectorAll(selector)].map(rect).filter(r=>r.width && r.height);
+        const labels=[...chart.querySelectorAll(selector)].filter(visibleText);
+        const rs=labels.map(textCorners);
         for(let i=0;i<rs.length;i++) for(let j=i+1;j<rs.length;j++) {
           const a=rs[i], b=rs[j];
-          if (Math.min(a.right,b.right)-Math.max(a.left,b.left)>tolerance && Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>tolerance) fail(chart,'chart labels overlap; increase space or reduce density');
+          if (overlaps(a,b)) fail(chart,'chart labels overlap: '+labelName(labels[i])+' and '+labelName(labels[j]));
         }
       }
     }

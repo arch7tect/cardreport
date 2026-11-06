@@ -5,6 +5,26 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.8.1 — 2026-11-06
+
+### Fixed
+
+- Chromium no longer rejects separated, rotated chart labels because their
+  axis-aligned bounding boxes overlap. Real text collisions still fail and
+  identify the conflicting labels.
+- Chromium reserves measured space for outside bar and funnel value labels,
+  allowing narrow charts to fit without hiding or shrinking text. Charts that
+  remain too crowded still raise `LayoutOverflowError`.
+- WeasyPrint dependency errors preserve the underlying loader error and link to
+  the renderer setup guide for all platforms.
+- macOS setup documents the complete Homebrew, library-path and runtime-check
+  sequence, including checkout usage and PyCharm environment settings.
+
+### Documentation
+
+- A runnable flow dashboard combines whole card rows with a table that continues
+  across pages, with guidance on A4 space and explicit page breaks.
+
 ## 0.8.0 — 2026-11-05
 
 ### Added

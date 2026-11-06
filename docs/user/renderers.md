@@ -42,6 +42,15 @@ one series in both engines. Automatic flow remains unsupported in WeasyPrint and
 raises `UnsupportedFeatureError`; there is no automatic fallback.
 Long unbreakable text may be rejected rather than wrapped by WeasyPrint.
 
+Chromium checks rotated chart labels using their rotated bounds, including
+collisions between category labels, values and series legends. It reserves space
+for outside bar/funnel value labels with at most two measured margin adjustments.
+This may reduce the plotting area; labels are not hidden, clipped or made smaller.
+If labels still do not fit, collide, or leave too little plotting area, export
+raises `LayoutOverflowError`. Label collision errors identify the text and its
+role (`xtick`, `ytick`, `legend` or `value`). These adjustments are specific to
+Chromium; WeasyPrint retains its own measured SVG layout.
+
 PDF is the authoritative checked result. Chromium HTML validates layout when
 opened; WeasyPrint HTML can lay out differently in another browser. Rendering
 is offline with bundled fonts; labels are literal and charts are noninteractive.
@@ -110,19 +119,41 @@ The PDF example below checks the complete CardReport renderer on your machine.
 
 ### macOS
 
-Install Pango with Homebrew and the Python extra:
+Install Pango with Homebrew, set the library search path in the same terminal,
+then install and check the Python runtime:
 
 ```sh
 brew install pango
+export DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib"
 uv add "cardreport[weasyprint]"
+uv run python -m weasyprint --info
 ```
 
-If the loader cannot find Homebrew libraries, set the path in the environment
-that starts your application, for example:
+Homebrew installs Pango and its dependencies, but Python may not search Homebrew's
+library directory automatically. An error mentioning `libgobject-2.0-0` can mean
+the installed libraries are not on the search path; it does not necessarily mean
+you need to reinstall them. `brew --prefix` selects your Homebrew installation
+without hard-coding an Apple Silicon or Intel path.
+
+For a CardReport checkout, run this from the repository root instead of `uv add`:
 
 ```sh
 export DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib"
+uv sync --extra weasyprint --locked
+uv run --extra weasyprint python -m weasyprint --info
+uv run --extra weasyprint python examples/reference_report.py --renderer weasyprint --output output/weasyprint
 ```
+
+The `export` applies to the current terminal and its child processes. Repeat it
+in a new terminal, or add it to your shell configuration if you want it to persist.
+In PyCharm, set `DYLD_FALLBACK_LIBRARY_PATH` in **Run Configuration → Environment
+variables** to the actual path printed by `brew --prefix`, followed by `/lib`
+(for example, `/opt/homebrew/lib`). Do not paste `$(brew --prefix)` into the IDE
+value: it is shell syntax. A terminal export does not update an already running
+IDE's environment. The same applies to services that launch your application.
+
+The checkout example preserves existing output files. Choose another output
+directory, or pass `--overwrite` only when you intend to replace generated reports.
 
 CardReport does not install native libraries or modify environment variables.
 An incompatible adapter fails explicitly.

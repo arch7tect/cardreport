@@ -193,10 +193,7 @@ def test_funnel_labels_cannot_be_silently_clipped():
     chart = Funnel(["A", "B"], [1000000, 5], value_format=Currency("USD"))
     assert chart_spec(chart, Theme(), "test")["data"][0]["cliponaxis"] is False
     report = Report(page=Page(orientation="landscape")).row(Card(chart), height_mm=90)
-    try:
-        r = reader(report)
-    except LayoutOverflowError:
-        return  # Explicit rejection is preferable to clipped currency labels.
+    r = reader(report)
     assert "USD 1,000,000.00" in extracted(r)
 
 
