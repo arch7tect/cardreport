@@ -5,6 +5,12 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+### Documentation
+
+- A portable CardReport skill guides agents through report composition, layout,
+  rendering and verification, with an entry link near the beginning of README.
+  Skill links and Python snippets participate in the documentation checks.
+
 ## 0.8.1 — 2026-11-06
 
 ### Fixed

@@ -14,6 +14,11 @@ without JavaScript or a browser, with a smaller supported feature set. Both can
 render grouped/stacked bars, multiple line series and funnels, including the
 [series example](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#multiple-series-and-funnel). Both also render the [original reference example](https://github.com/arch7tect/cardreport/blob/main/docs/user/examples.md#reference-report).
 
+## For agents building reports
+
+Start with the [CardReport skill](https://github.com/arch7tect/cardreport/blob/main/skills/cardreport/SKILL.md)
+for choosing an API and layout, rendering, and checking the finished report.
+
 ## Reports in practice
 
 These are images of PDFs produced by the library, not design mockups.

@@ -159,6 +159,7 @@ def main() -> None:
             *ROOT.glob("*.md"),
             *ROOT.glob("docs/**/*.md"),
             *ROOT.glob("experiments/**/*.md"),
+            *ROOT.glob("skills/**/SKILL.md"),
         ]
     )
     paths = [
@@ -190,7 +191,13 @@ def main() -> None:
         ).validate()
         print("Validated reference, Spanish and operations template/data JSON fixtures")
         check_cli_examples()
-        check_examples([ROOT / "README.md", *sorted(ROOT.glob("docs/user/*.md"))])
+        check_examples(
+            [
+                ROOT / "README.md",
+                *sorted(ROOT.glob("docs/user/*.md")),
+                *sorted(ROOT.glob("skills/**/SKILL.md")),
+            ]
+        )
 
 
 if __name__ == "__main__":

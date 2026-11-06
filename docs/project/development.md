@@ -40,8 +40,8 @@ uv run --all-extras python scripts/check_dist.py
 Mypy strict mode includes source, positive/negative consumer cases, executable
 examples and maintenance scripts. Expected-error annotations fail if typing becomes permissive.
 `check_docs.py` validates repository Markdown paths/anchors and runs Python blocks
-from README and user docs in isolated temporary output directories, one namespace
-per page. It also loads and binds the published template/data JSON fixtures through
+from README, user docs and `skills/**/SKILL.md` in isolated temporary output
+directories, one namespace per page. It also loads and binds the published template/data JSON fixtures through
 the real parsers. `uv run --extra pdf --extra weasyprint --extra pandas python scripts/check_docs.py`
 is the explicit equivalent of the all-extras check. The full documentation check requires both renderers, Chromium and the
 native WeasyPrint libraries and the pandas extra, even if you otherwise develop with Chromium only.
@@ -65,6 +65,10 @@ example. Put tutorials in `docs/user`, the complete public contract in `api.md`,
 implementation rationale in `docs/project`. User-visible changes belong in root
 `CHANGELOG.md`, linked from README and used as release notes. Keep current facts out of dated history.
 The renderer capability table has one authoritative home in user documentation.
+The [consumer skill](../../skills/cardreport/SKILL.md) is the single agent workflow;
+it links to existing references and examples instead of duplicating the API.
+Its location supports reading from README or connecting it as a skill. Keep its
+links and any Python snippets in the documentation checker.
 
 Runnable snippets use only public imports (except clearly labelled repository
 examples). Keep examples import-safe: importing a builder must not write files or

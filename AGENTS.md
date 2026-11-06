@@ -1,10 +1,14 @@
 # CardReport contributor instructions
 
+Agents using the library to build reports should start with
+[skills/cardreport/SKILL.md](skills/cardreport/SKILL.md).
+
 Use Python 3.12+ and uv. Write source, comments and documentation in English.
 Read docs/project/architecture.md and the relevant decision before changing the
 public API. Keep README.md and docs/user/api.md aligned with implemented behavior.
 README is the user entry point; tutorials/reference live in docs/user. Project
-rationale lives in docs/project; dated history is not the current API contract.
+rationale lives in docs/project; the consumer workflow lives in skills/cardreport.
+Dated history is not the current API contract.
 
 Chromium is the production default. The provisional Renderer protocol also supports
 an experimental SVG/WeasyPrint subset. See docs/user/renderers.md for capabilities
