@@ -7,6 +7,10 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ### Documentation
 
+- The layout guide and agent skill explain A4 space budgets, genuine label
+  collisions and compact/full-width alternatives, with an executable synthetic
+  example using space-grouped numbers.
+
 - A portable CardReport skill guides agents through report composition, layout,
   rendering and verification, with an entry link near the beginning of README.
   Skill links and Python snippets participate in the documentation checks.

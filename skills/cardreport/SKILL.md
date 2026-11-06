@@ -20,7 +20,8 @@ Links below resolve in a repository checkout. If reading a standalone copy, use
 repository-root paths (drop the leading `../../`) under
 `https://github.com/arch7tect/cardreport/tree/vX.Y.Z`, replacing `X.Y.Z` with the
 installed version. Documentation on `main` may describe unreleased changes. If
-this file disagrees with documentation for the installed tag, follow that tag. This file can be read directly or connected as a skill by a
+this file disagrees with documentation for the installed tag, follow that tag.
+This file can be read directly or connected as a skill by a
 compatible client; installing the Python package does not register it with agents.
 
 Start with the [Python quickstart](../../docs/user/quickstart.md) and check the
@@ -61,15 +62,16 @@ rows/cards should move to the next page automatically or tables span pages.
 A splittable table must be a top-level `Table` or `Card(Table(...))`; tables nested
 inside `Row` or `Column` do not split. Use `report.add(Card(Table(...)))`, not
 `report.row(...)`, with no fixed row height; in a template, use a top-level card
-block. Keep deliberate `new_page()` calls for
-intentional section breaks; adding breaks is not a fix for a chart that cannot
-fit in its own allocated box.
+block. Keep deliberate `new_page()` calls for intentional section breaks; adding
+breaks is not a fix for a chart that cannot fit in its own allocated box.
 
 Page geometry and row heights are in millimeters; font sizes are in points.
 Widths/heights in Row/Column are relative weights after gaps; Column `heights`
-need a definite parent height. A row's `height_mm`
-includes its card titles and padding, not just the chart. Subtract page margins,
-report heading and gaps before assigning rows. A whole row taller than an empty
+need a definite parent height. A row's `height_mm` includes its card titles and
+padding, not just the chart. Subtract page margins,
+report heading and gaps before assigning rows. Use the
+[A4 budget](../../docs/user/guide.md#budget-an-a4-page) for an explicit calculation;
+header heights depend on wrapping. A whole row taller than an empty
 page cannot be fixed by flow. Start with the
 [flow dashboard](../../examples/flow_dashboard.py) for a mixed multi-page report,
 or the [reference report](../../docs/user/examples.md#reference-report) for an
@@ -80,18 +82,24 @@ new labels and data.
 
 For Python components, call `report.validate()`. For templates, bind the actual
 datasets and then validate the resulting report, or use CLI `validate` with
-`--data`/`--csv`. These check structural and binding errors. This does not measure rendered geometry. Creating Chromium
-HTML also does not prove it fits: layout checks execute in the browser. Export a
+`--data`/`--csv`. These check structural and binding errors, not rendered geometry.
+Creating Chromium HTML also does not prove it fits: layout checks execute in the browser. Export a
 PDF with the intended renderer to exercise its layout checks before delivery.
 
 On `LayoutOverflowError`, use the component path and conflicting label types/text
-when available. Consult [errors](../../docs/user/api.md#errors), then change the
-relevant width, height, page size or grouping and render again. Long category
-labels often need more width, not more height. `show_labels=False` affects value
-labels; it does not remove category ticks or legends. Since CardReport 0.8.1, Chromium adjusts outside-value margins and checks rotated
-labels, but genuinely cramped charts still fail. Do not patch internal JavaScript or relax validation to force a report
-through. If fitting requires fewer details or changed labels, make that choice
-explicit and preserve access to the original information.
+when available. Follow the [label-sizing recipe](../../docs/user/guide.md#fit-chart-labels)
+and [errors reference](../../docs/user/api.md#errors). For dense vertical grouped
+bars, prefer more width or a full-width row; more height alone is not a reliable
+fix. If exact values remain in a nearby table, `show_labels=False` is an explicit
+compact-layout choice. It does not remove category ticks or legends. The
+[dense example](../../docs/user/guide.md#dense-grouped-bars-with-space-grouping)
+compares compact and full-width layouts using space-grouped values.
+
+Render after each targeted change; resolving one pair can reveal another.
+Do not promise a minimum size from overlap distance alone, patch internal
+JavaScript or relax validation to force a report through. If fitting requires
+fewer details or changed labels, make that choice explicit and preserve access
+to the original information.
 
 Keep source templates/datasets intact. Write to a separate output path; use
 `overwrite=True` or CLI `--overwrite` only for intentional replacement of generated

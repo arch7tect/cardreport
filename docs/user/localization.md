@@ -79,6 +79,9 @@ Decimal half-even rounding, isolated from the caller’s Decimal context, and
 normalize negative zero. Strings pass through
 unchanged and `None` displays an em dash. Numbers themselves never change.
 
+For a checked example with `group="space"`, a table and grouped bars, see
+[dense layouts](guide.md#dense-grouped-bars-with-space-grouping).
+
 ## Custom dates and datetimes
 
 `date_format` and `datetime_format` accept custom [Babel LDML patterns](https://babel.pocoo.org/en/latest/dates.html#pattern-syntax),

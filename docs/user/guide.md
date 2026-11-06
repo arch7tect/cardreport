@@ -51,6 +51,128 @@ choose a larger page or reduce content. The engine does not silently shrink font
 For custom page dimensions, pass `(width_mm, height_mm)` and leave orientation at
 its default. See the [layout API](api.md#row) for precise constraints.
 
+### Budget an A4 page
+
+Portrait A4 is 210 × 297 mm. With `Page(size="A4", margin_mm=10)`, the page body
+is 190 × 277 mm. Budget the whole blocks inside that body:
+
+| Item | Space to allow |
+| --- | --- |
+| Report title and subtitle | Their rendered height; wrapping changes it |
+| Gaps between top-level blocks, including the report header | `theme.gap_mm` per gap |
+| A fixed-height row | Its entire `height_mm`, including cards and their contents |
+| Card padding | Twice `theme.padding_mm` on each axis |
+| Card border, Chromium | 0.4 mm total on each axis in the current stylesheet |
+| Card title, Chromium | Its rendered height plus the 3 mm title/content gap |
+| Chart axes, legend and outside values | Additional space inside the chart box |
+
+For example, choose `Theme(gap_mm=3.5, padding_mm=3.5)`. A planning allowance of
+25 mm for the report header plus three 70 mm rows and three 3.5 mm gaps totals
+245.5 mm, leaving 31.5 mm of the 277 mm body. The 25 mm is an allowance, not a
+fixed header height: render the actual title/subtitle to verify it. An untitled
+95 mm card leaves 87.6 mm vertically after padding and borders in Chromium;
+a titled card leaves less, and the chart still needs its own axes and legend.
+These inner deductions are already included in the row height; do not subtract
+them a second time from the page budget. The default theme uses 4 mm gaps/padding,
+so set smaller values explicitly when using this example budget.
+
+Empty space on a final flow page does not mean the report can fit on fewer pages.
+Flow preserves block order, moves whole rows and splits only supported top-level
+tables; it does not repack earlier pages. Validate the actual PDF rather than
+promising a page count from the total area alone.
+
+### Fit chart labels
+
+Dense vertical grouped bars with several series and long formatted values may
+need value labels disabled. `BarChart` already defaults to `show_labels=False`;
+set it explicitly when documenting a layout choice. `Funnel` defaults to values
+on. Turning values off keeps category ticks and legends, which can still collide.
+
+When Chromium reports `chart labels overlap`, read the named types and texts:
+
+1. For value/value collisions in vertical grouped bars, increase the chart's
+   share of the row or move it to a full-width row. More height alone is not a
+   reliable fix for adjacent values. For horizontal grouped bars, more height
+   separates adjacent bars, while long outside values also need enough width.
+2. For tick or legend collisions, allow room for those elements. Widen the chart,
+   use shorter unambiguous category names, or adjust supported legend settings
+   from the [chart API](api.md#barchart). Inspect the named elements rather than
+   assuming `show_labels=False` resolves every overlap.
+3. If compactness matters and exact values are available in a nearby table,
+   use `show_labels=False`. Otherwise give the chart more room or explicitly
+   reorganize the information into several charts; do not silently drop records
+   or series to make an export pass.
+4. Render again with the intended engine and inspect the result. Each change can
+   reveal another collision. Chromium's outside-value margin adjustment also
+   consumes plotting space; it cannot make every narrow chart fit.
+
+An overlap distance is not the required increase in row width or height. Resizing
+can change ticks, label angles, legends and other collisions, so a guaranteed
+minimum size requires further layout checks. The sizing principles also help
+with WeasyPrint, but its measurements and errors differ: success in one renderer
+does not guarantee success in the other. Neither engine silently hides values.
+
+### Dense grouped bars with space grouping
+
+This self-contained Chromium example uses English labels and synthetic counts.
+`group="space"` displays thousands with U+00A0 nonbreaking spaces independently
+of the report language. The compact chart omits values already present in its
+table. The intentional second page demonstrates the same data at full width
+with values enabled; it is a comparison of layouts, not a requirement to insert
+a page break when a chart fails.
+
+```python
+from cardreport import BarChart, Card, Formatting, Page, Report, Table, TableColumn, Theme
+
+# Synthetic counts; exact values remain in the table beside the compact chart.
+categories = ["Busy", "Completed", "Network error", "Declined"]
+current = [21600, 16700, 5200, 1100]
+previous = [18400, 14900, 3900, 950]
+rows = [
+    {"status": label, "current": now, "previous": before}
+    for label, now, before in zip(categories, current, previous, strict=True)
+]
+
+def status_chart(*, labels: bool) -> BarChart:
+    return BarChart(
+        categories,
+        series={"Current": current, "Previous": previous},
+        value_format="integer",
+        show_labels=labels,
+    )
+
+report = Report(
+    "Grouped bars in a dense layout",
+    subtitle="Synthetic data: compact and full-width alternatives",
+    page=Page(size="A4", margin_mm=10),
+    theme=Theme(font_size_pt=9.5, gap_mm=3.5, padding_mm=3.5),
+    formatting=Formatting(decimal=",", group="space"),
+)
+report.row(
+    Card(Table(
+        [TableColumn("status", "Status", width=2),
+         TableColumn("current", "Current", format="integer", align="right"),
+         TableColumn("previous", "Previous", format="integer", align="right")],
+        rows,
+    ), title="Exact counts"),
+    Card(status_chart(labels=False), title="Comparison"),
+    widths=[1.55, 1], height_mm=95,
+)
+# An intentional comparison page, not an overflow workaround.
+report.new_page().row(
+    Card(status_chart(labels=True), title="Full-width comparison with values"),
+    height_mm=95,
+)
+pdf = report.to_pdf()
+assert pdf.startswith(b"%PDF-")
+```
+
+These dimensions work for these data and labels, not for every dataset. In tables,
+narrow numeric cells can still wrap, including between a percentage and `%`,
+because cells permit wrapping within long content. Increase the numeric
+`TableColumn(width=...)` weights or widen the card; inspect rendered numbers as
+well as row counts. Nonbreaking group separators do not guarantee an unbroken cell.
+
 ## Format values
 
 ```python
@@ -123,10 +245,8 @@ pdf = dashboard.to_pdf()
 assert pdf.startswith(b"%PDF-")
 ```
 
-For portrait A4 with 10 mm margins, the page body is 190 × 277 mm. The report
-heading, row gaps, card padding and card titles also consume space. `height_mm`
-allocates the whole row, not just its plotting area. A wider column may help long
-category labels more than a taller row. `validate()` checks the model, while
+Use the [A4 budget](#budget-an-a4-page) and [label-sizing recipe](#fit-chart-labels)
+when allocating rows. `validate()` checks the model, while
 Chromium `to_html()` returns a document whose geometry checks run when opened in
 a browser; `to_pdf()` waits for those checks and raises any layout error.
 

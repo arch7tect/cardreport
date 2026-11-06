@@ -14,6 +14,9 @@ KPI/bar report as the [README component example](../../README.md#use-from-python
 Its `build_report(data_json)` accepts replacement data without changing the template.
 Running the file generates HTML/PDF in memory and prints their sizes.
 
+For a self-contained example of space-grouped values in a dense table/chart row
+and a full-width alternative, see [dense grouped bars](guide.md#dense-grouped-bars-with-space-grouping).
+
 ## Reference report
 
 The first complete example is [reference_report.py](../../examples/reference_report.py),
