@@ -9,7 +9,9 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 import time
+from contextlib import ExitStack
 
 from .document import ReportDocument
 from .model import (
@@ -19,6 +21,9 @@ from .model import (
     RenderTimeoutError,
     UnsupportedFeatureError,
 )
+
+# Keep OS waits representable even when the caller supplies a very large deadline.
+_MAX_WAIT_SECONDS = 3600
 
 
 def render_pdf(report: ReportDocument, *, deadline: float) -> bytes:
@@ -50,22 +55,47 @@ def run_worker(
     left = deadline - time.monotonic()
     if left <= 0:
         raise RenderTimeoutError("Export deadline expired")
-    process = subprocess.Popen(
-        [sys.executable, "-m", module, *args],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        start_new_session=True,
-    )
-    try:
-        out, err = process.communicate(payload, timeout=left)
-    except subprocess.TimeoutExpired:
-        raise RenderTimeoutError(
-            "Export exceeded deadline; owned renderer was stopped"
-        ) from None
-    finally:
-        if process.poll() is None:
-            stop_worker(process)
+    with ExitStack() as stack:
+        pending: bytes | None = payload
+        source = None
+        if left > _MAX_WAIT_SECONDS:
+            # communicate(None) cannot resume partially sent stdin on POSIX.
+            # A seekable input avoids pipe backpressure across repeated waits.
+            source = stack.enter_context(tempfile.TemporaryFile())
+            source.write(payload)
+            source.seek(0)
+            pending = None
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise RenderTimeoutError("Export preparation exceeded deadline")
+        process = subprocess.Popen(
+            [sys.executable, "-m", module, *args],
+            stdin=source if source is not None else subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+        try:
+            while True:
+                try:
+                    out, err = process.communicate(
+                        pending, timeout=min(left, _MAX_WAIT_SECONDS)
+                    )
+                    break
+                except subprocess.TimeoutExpired:
+                    if left <= _MAX_WAIT_SECONDS:
+                        raise
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        raise
+                    pending = None
+        except subprocess.TimeoutExpired:
+            raise RenderTimeoutError(
+                "Export exceeded deadline; owned renderer was stopped"
+            ) from None
+        finally:
+            if process.poll() is None:
+                stop_worker(process)
     if process.returncode:
         try:
             error = json.loads(

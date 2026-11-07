@@ -5,6 +5,14 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.8.2 — 2026-11-07
+
+### Fixed
+
+- PDF export accepts finite positive timeouts above five minutes in Python and
+  the CLI. The default remains 30 seconds; long deadlines retain process cleanup
+  and use bounded internal waits to avoid platform timeout overflow.
+
 ### Documentation
 
 - The layout guide and agent skill explain A4 space budgets, genuine label

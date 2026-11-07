@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
@@ -261,12 +262,17 @@ def normalize_chart(
 
 
 def validate_timeout(timeout: float) -> None:
-    if (
-        isinstance(timeout, bool)
-        or not isinstance(timeout, (int, float))
-        or not 0 < timeout <= 300
-    ):
-        raise ValidationError("timeout: expected seconds in (0, 300]")
+    try:
+        valid = (
+            not isinstance(timeout, bool)
+            and isinstance(timeout, (int, float))
+            and timeout > 0
+            and math.isfinite(timeout)
+        )
+    except OverflowError:
+        valid = False
+    if not valid:
+        raise ValidationError("timeout: expected finite positive seconds")
 
 
 def validate_report(report: Report) -> ReportDocument:

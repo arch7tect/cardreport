@@ -164,7 +164,7 @@ python -m cardreport render --template examples/reference_template.yaml --data e
 | `--csv-null TOKEN` | Repeatable null token for all CSV files; none by default |
 | `--output PATH` | Required `.html` or `.pdf` destination; suffix selects format |
 | `--renderer chromium\|weasyprint` | Default `chromium`, applies to HTML and PDF |
-| `--timeout SECONDS` | PDF export deadline in `(0, 300]`, default 30; unused for HTML |
+| `--timeout SECONDS` | Finite positive PDF export deadline in seconds, default 30; unused for HTML |
 | `--overwrite` | Allow replacing an output; input files remain protected |
 
 CSV uses the existing [CSV conversion rules](datasets.md#one-csv-file): schema-based

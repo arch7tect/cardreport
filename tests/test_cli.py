@@ -210,7 +210,7 @@ def test_csv_conversion_options(files, monkeypatch):
     [
         ["--timeout", "nan"],
         ["--timeout", "0"],
-        ["--timeout", "301"],
+        ["--timeout", "1e400"],
         ["--timeout", "inf"],
         ["--csv-delimiter", "::"],
         ["--renderer", "other"],
@@ -274,6 +274,8 @@ def test_pdf_engines(files, renderer):
                 str(files / "data.json"),
                 "--renderer",
                 renderer,
+                "--timeout",
+                "7200",
                 output="out.pdf",
             )
         )
@@ -474,3 +476,29 @@ def test_validate_does_not_render(files, monkeypatch):
         )
         == 0
     )
+
+
+def test_timeout_above_five_minutes_reaches_export(files, monkeypatch):
+    from cardreport import Report
+
+    observed = []
+
+    def export(self, **kwargs):
+        observed.append(kwargs["timeout"])
+        return b"%PDF-test"
+
+    monkeypatch.setattr(Report, "to_pdf", export)
+    assert (
+        main(
+            arguments(
+                files,
+                "--data",
+                str(files / "data.json"),
+                "--timeout",
+                "3600",
+                output="out.pdf",
+            )
+        )
+        == 0
+    )
+    assert observed == [3600]

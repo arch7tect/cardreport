@@ -20,6 +20,7 @@ from ._inputs import LocatedError
 from .adapters.csv import from_csv
 from .data import DEFAULT_LIMITS
 from .templates import MAX_TEMPLATE_BYTES
+from .validation import validate_timeout
 
 
 class _Arguments(argparse.Namespace):
@@ -41,10 +42,9 @@ class _Arguments(argparse.Namespace):
 def _timeout(value: str) -> float:
     try:
         seconds = float(value)
-    except ValueError as exc:
-        raise argparse.ArgumentTypeError("expected seconds in (0, 300]") from exc
-    if not 0 < seconds <= 300:
-        raise argparse.ArgumentTypeError("expected seconds in (0, 300]")
+        validate_timeout(seconds)
+    except (ValueError, ReportError) as exc:
+        raise argparse.ArgumentTypeError("expected finite positive seconds") from exc
     return seconds
 
 
@@ -84,7 +84,7 @@ def _parser() -> argparse.ArgumentParser:
         "--timeout",
         type=_timeout,
         default=30,
-        help="PDF export seconds in (0, 300] (default: 30)",
+        help="Finite positive PDF export seconds (default: 30)",
     )
     render.add_argument(
         "--overwrite", action="store_true", help="replace an existing output file"

@@ -73,8 +73,9 @@ write_pdf(path: str | Path, *, overwrite: bool = False, timeout: float = 30,
 ```
 
 These are methods of `Report`. `None` selects `ChromiumRenderer`. `timeout` is
-seconds in `(0, 300]`, including validation/preparation and worker execution;
-owned processes are cleaned up on timeout. The calls are synchronous.
+a finite positive number of seconds, including validation/preparation and worker execution;
+owned processes are cleaned up on timeout. There is no five-minute ceiling; callers
+choose their execution budget. The calls are synchronous.
 WeasyPrint HTML rendering has its own fixed 30-second worker deadline.
 
 HTML is a preview: semantic validation completes before return, while Chromium
