@@ -14,6 +14,7 @@ import time
 from contextlib import ExitStack
 
 from .document import ReportDocument
+from .layout import decode_diagnostic
 from .model import (
     DependencyError,
     LayoutOverflowError,
@@ -112,6 +113,10 @@ def run_worker(
             "UnsupportedFeatureError": UnsupportedFeatureError,
             "RenderTimeoutError": RenderTimeoutError,
         }
+        if error.get("kind") == "LayoutOverflowError":
+            raise LayoutOverflowError(
+                error["message"], diagnostic=decode_diagnostic(error.get("diagnostic"))
+            )
         raise classes.get(str(error.get("kind", "RenderError")), RenderError)(
             error["message"]
         )

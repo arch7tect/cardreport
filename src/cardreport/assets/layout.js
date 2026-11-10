@@ -4,7 +4,30 @@
   const source = document.getElementById('source');
   const pages = document.getElementById('pages');
   const tolerance = 1; // CSS pixels, only for fractional layout rounding.
-  const fail = (element, reason) => {const e=new Error((element.dataset.path || 'report') + ': ' + reason);e.name='LayoutOverflowError';throw e;};
+  const fail = (element, reason, measured={}) => {
+    const page=element.closest('.page');
+    const pageNumber=page ? [...pages.children].indexOf(page)+1 : null;
+    const path=element.closest('[data-path]')?.dataset.path || (pageNumber ? `pages.${pageNumber-1}` : 'report');
+    const e=new Error((element.dataset.path || 'report') + ': ' + reason);
+    e.name='LayoutOverflowError';
+    e.diagnostic={reason:'layout_overflow',path,...(pageNumber ? {page:pageNumber} : {}),...measured};
+    throw e;
+  };
+  function geometry(area, children, box, reason='content_overflow') {
+    const mm=25.4/96;
+    return {reason,box,available_width_mm:Math.max(0,area.right-area.left)*mm,
+      available_height_mm:Math.max(0,area.bottom-area.top)*mm,
+      overflow_left_mm:Math.max(0,...children.map(r=>area.left-r.left))*mm,
+      overflow_top_mm:Math.max(0,...children.map(r=>area.top-r.top))*mm,
+      overflow_right_mm:Math.max(0,...children.map(r=>r.right-area.right))*mm,
+      overflow_bottom_mm:Math.max(0,...children.map(r=>r.bottom-area.bottom))*mm};
+  }
+  function scrollGeometry(el, reason='content_overflow') {
+    return {reason,box:'padding',available_width_mm:el.clientWidth*25.4/96,
+      available_height_mm:el.clientHeight*25.4/96,
+      overflow_right_mm:Math.max(0,el.scrollWidth-el.clientWidth)*25.4/96,
+      overflow_bottom_mm:Math.max(0,el.scrollHeight-el.clientHeight)*25.4/96};
+  }
   const rect = e => e.getBoundingClientRect();
   const visibleText = e => getComputedStyle(e).visibility !== 'hidden' && rect(e).width && rect(e).height;
   const labelName = e => `${e.closest('.xtick, .ytick')?.getAttribute('class') || (e.classList.contains('legendtext') ? 'legend' : 'value')} ${JSON.stringify(e.textContent)}`;
@@ -47,7 +70,7 @@
   }
   let body;
   function newPage() {
-    if (pages.children.length >= settings.pageLimit) fail(pages, 'page limit exceeded');
+    if (pages.children.length >= settings.pageLimit) fail(pages, 'page limit exceeded', {reason:'page_limit'});
     const page=document.createElement('section');page.className='page';
     body=document.createElement('div');body.className='page-body';page.append(body);pages.append(page);
     return body;
@@ -98,7 +121,7 @@
     source.remove();
     for (const el of pages.querySelectorAll('.chart')) {
       const spec=settings.charts[el.id];
-      if (el.clientHeight < (spec.compact ? 10 : 35)*96/25.4-1 || el.clientWidth<40) fail(el,'chart has insufficient allocated space');
+      if (el.clientHeight < (spec.compact ? 10 : 35)*96/25.4-1 || el.clientWidth<40) fail(el,'chart has insufficient allocated space',{reason:'insufficient_space',box:'padding',available_width_mm:el.clientWidth*25.4/96,available_height_mm:el.clientHeight*25.4/96});
       await Plotly.newPlot(el,spec.data,{...spec.layout,width:el.clientWidth,height:el.clientHeight},
           {staticPlot:true,displayModeBar:false,responsive:false,typesetMath:false});
       await reserveValueLabels(el);
@@ -106,16 +129,16 @@
     await document.fonts.ready;
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     for (const pb of pages.querySelectorAll('.page-body')) {
-      if (pb.scrollHeight>pb.clientHeight+tolerance || pb.scrollWidth>pb.clientWidth+tolerance) fail(pb,'page content exceeds available space');
+      if (pb.scrollHeight>pb.clientHeight+tolerance || pb.scrollWidth>pb.clientWidth+tolerance) fail(pb,'page content exceeds available space',scrollGeometry(pb,'page_overflow'));
     }
     for (const el of pages.querySelectorAll('[data-path], .card-content')) {
       if (el.classList.contains('chart')) continue;
-      if (el.scrollHeight>el.clientHeight+tolerance || el.scrollWidth>el.clientWidth+tolerance) fail(el,'content exceeds allocated width/height');
+      if (el.scrollHeight>el.clientHeight+tolerance || el.scrollWidth>el.clientWidth+tolerance) fail(el,'content exceeds allocated width/height',scrollGeometry(el));
       // Min-size children can overflow grid tracks without increasing the parent's client size.
       const er=rect(el);
       for (const child of el.children) {
         const cr=rect(child);
-        if (cr.width && cr.height && (cr.right>er.right+tolerance || cr.bottom>er.bottom+tolerance || cr.left<er.left-tolerance || cr.top<er.top-tolerance)) fail(el,'child exceeds allocated space');
+        if (cr.width && cr.height && (cr.right>er.right+tolerance || cr.bottom>er.bottom+tolerance || cr.left<er.left-tolerance || cr.top<er.top-tolerance)) fail(el,'child exceeds allocated space',geometry(er,[...el.children].map(rect).filter(r=>r.width && r.height),'border'));
       }
     }
     for (const frame of pages.querySelectorAll('.chart-frame')) {
@@ -126,25 +149,25 @@
       const spec=settings.charts[chart.id];
       if (spec.categoryCount !== null && chart.querySelectorAll(spec.categoryAxis+'tick text').length!==spec.categoryCount) fail(chart,'category labels were omitted');
       const plot=chart.querySelector('clipPath.plotclip rect');
-      if (plot && (+plot.getAttribute('width')<40 || +plot.getAttribute('height')<(spec.compact ? 20 : 40))) fail(chart,'labels leave insufficient plotting area');
+      if (plot && (+plot.getAttribute('width')<40 || +plot.getAttribute('height')<(spec.compact ? 20 : 40))) fail(chart,'labels leave insufficient plotting area',{reason:'insufficient_space'});
       const texts=[...chart.querySelectorAll('svg text')].filter(visibleText);
       for (const t of texts) {
         const tr=rect(t);
-        if (tr.left<cr.left-tolerance || tr.right>cr.right+tolerance || tr.top<cr.top-tolerance || tr.bottom>cr.bottom+tolerance) fail(chart,'chart label exceeds available space: '+labelName(t));
+        if (tr.left<cr.left-tolerance || tr.right>cr.right+tolerance || tr.top<cr.top-tolerance || tr.bottom>cr.bottom+tolerance) fail(chart,'chart label exceeds available space: '+labelName(t),geometry(cr,texts.map(rect),'border','label_outside'));
       }
       for (const selector of ['.xtick text, .ytick text, .legendtext, .bartext, .funneltext']) {
         const labels=[...chart.querySelectorAll(selector)].filter(visibleText);
         const rs=labels.map(textCorners);
         for(let i=0;i<rs.length;i++) for(let j=i+1;j<rs.length;j++) {
           const a=rs[i], b=rs[j];
-          if (overlaps(a,b)) fail(chart,'chart labels overlap: '+labelName(labels[i])+' and '+labelName(labels[j]));
+          if (overlaps(a,b)) fail(chart,'chart labels overlap: '+labelName(labels[i])+' and '+labelName(labels[j]),{reason:'label_overlap'});
         }
       }
     }
     state.pages=pages.children.length;state.ready=true;
   }
   run().catch(error=>{
-    state.error={kind:error.name==='LayoutOverflowError'?'LayoutOverflowError':'RenderError',message:error.message};
+    state.error={kind:error.name==='LayoutOverflowError'?'LayoutOverflowError':'RenderError',message:error.message,...(error.diagnostic ? {diagnostic:error.diagnostic} : {})};
     const el=document.getElementById('report-error');el.hidden=false;el.textContent='Report cannot be rendered: '+error.message;
   });
 })();

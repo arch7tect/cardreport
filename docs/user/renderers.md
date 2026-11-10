@@ -250,3 +250,16 @@ Version 0.4.0 precomputes ChartData date tick tuples even when Formatting is abs
 automatic date ticks unless Formatting is supplied. Numeric tick locations can
 differ between engines. Category legends use shared HTML and consume part of the
 chart rectangle. See [dashboard controls](dashboards.md).
+
+
+### Measured layout failures
+
+Both engines attach optional [layout diagnostics](api.md#layout-failure-diagnostics)
+to geometry errors. WeasyPrint compares descendant margin bounds with a component's
+content box. Chromium reports padding-box scroll excess or border-box rectangle
+excess; scroll checks measure right/bottom only. SVG label preflight uses a chart
+viewport (Matplotlib reserves a two-CSS-pixel inset on each side). The `box` field makes these different bases explicit. Existing rounding
+tolerances and overflow rejection remain unchanged; display precision does not
+imply exact physical printer dimensions. Current overflow is not a guaranteed
+resize recommendation. Check the diagnostic path/page, give the block more space
+or move it; for chart collisions, consider wider charts or optional value labels.

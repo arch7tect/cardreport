@@ -4,6 +4,7 @@ import io
 import json
 import sys
 
+from .layout import decode_diagnostic
 from .model import DependencyError, LayoutOverflowError, RenderError
 
 
@@ -39,11 +40,13 @@ def main() -> None:
             )
             state = page.evaluate("window.cardreport")
             if state.get("error"):
-                raise (
-                    LayoutOverflowError
-                    if state["error"]["kind"] == "LayoutOverflowError"
-                    else RenderError
-                )(state["error"]["message"])
+                error = state["error"]
+                if error["kind"] == "LayoutOverflowError":
+                    raise LayoutOverflowError(
+                        error["message"],
+                        diagnostic=decode_diagnostic(error.get("diagnostic")),
+                    )
+                raise RenderError(error["message"])
             if failures:
                 raise RenderError("Report JavaScript failed")
             if any(not u.startswith(("data:", "blob:", "about:")) for u in requests):
@@ -77,5 +80,17 @@ if __name__ == "__main__":
             if kind in ("DependencyError", "LayoutOverflowError", "RenderError")
             else "PDF renderer failed"
         )
-        sys.stderr.write("\n" + json.dumps({"kind": kind, "message": message}) + "\n")
+        sys.stderr.write(
+            "\n"
+            + json.dumps(
+                {
+                    "kind": kind,
+                    "message": message,
+                    "diagnostic": exc.diagnostic.to_dict()
+                    if isinstance(exc, LayoutOverflowError) and exc.diagnostic
+                    else None,
+                }
+            )
+            + "\n"
+        )
         sys.exit(1)

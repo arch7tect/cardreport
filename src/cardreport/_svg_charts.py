@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 
 from ._chart_display import segments
 from .formatting import Formatting
+from .layout import measured_overflow, reason_diagnostic
 from .model import Currency, Format, LayoutOverflowError, format_value
 
 
@@ -27,7 +28,10 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
     is_funnel = spec.get("kind") == "funnel"
     axes = spec.get("axes", True)
     if width < 40 or height < (10 if small else 35) * 96 / 25.4 - 1:
-        raise LayoutOverflowError(f"{path}: chart has insufficient allocated space")
+        raise LayoutOverflowError(
+            f"{path}: chart has insufficient allocated space",
+            diagnostic=reason_diagnostic("insufficient_space", path),
+        )
     font = FontProperties(
         fname=str(files("cardreport").joinpath("assets", "DejaVuSans.ttf")),
         size=spec["font_size"],
@@ -233,7 +237,8 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
         area = ax.get_window_extent(renderer)
         if area.width < 40 or area.height < (20 if small else 40):
             raise LayoutOverflowError(
-                f"{path}: labels leave insufficient plotting area"
+                f"{path}: labels leave insufficient plotting area",
+                diagnostic=reason_diagnostic("insufficient_space", path),
             )
         texts: list[Text] = list(labels)
         for axis, limits in ((ax.xaxis, ax.get_xlim()), (ax.yaxis, ax.get_ylim())):
@@ -243,23 +248,39 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
             texts.extend(
                 t.label1 for t in axis.get_major_ticks() if lo <= t.get_loc() <= hi
             )
-        boxes = []
-        for label in texts:
-            if not label.get_visible() or not label.get_text():
-                continue
-            b = label.get_window_extent(renderer)
-            if b.x0 < 2 or b.y0 < 2 or b.x1 > width - 2 or b.y1 > height - 2:
-                raise LayoutOverflowError(
-                    f"{path}: chart label exceeds available space"
-                )
-            boxes.append(b)
+        boxes = [
+            label.get_window_extent(renderer)
+            for label in texts
+            if label.get_visible() and label.get_text()
+        ]
+        if any(
+            b.x0 < 2 or b.y0 < 2 or b.x1 > width - 2 or b.y1 > height - 2 for b in boxes
+        ):
+            raise LayoutOverflowError(
+                f"{path}: chart label exceeds available space",
+                diagnostic=measured_overflow(
+                    path,
+                    (2, 2, width - 2, height - 2),
+                    (
+                        min(b.x0 for b in boxes),
+                        height - max(b.y1 for b in boxes),
+                        max(b.x1 for b in boxes),
+                        height - min(b.y0 for b in boxes),
+                    ),
+                    box="viewport",
+                    reason="label_outside",
+                ),
+            )
         for i, a in enumerate(boxes):
             for b in boxes[i + 1 :]:
                 if (
                     min(a.x1, b.x1) - max(a.x0, b.x0) > 1
                     and min(a.y1, b.y1) - max(a.y0, b.y0) > 1
                 ):
-                    raise LayoutOverflowError(f"{path}: chart labels overlap")
+                    raise LayoutOverflowError(
+                        f"{path}: chart labels overlap",
+                        diagnostic=reason_diagnostic("label_overlap", path),
+                    )
         for label, owner, inside in label_bars:
             box = label.get_window_extent(renderer)
             area = owner.get_window_extent(renderer)
@@ -270,7 +291,8 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
                 or box.y1 > area.y1 + 1
             ):
                 raise LayoutOverflowError(
-                    f"{path}: stacked value label does not fit its segment"
+                    f"{path}: stacked value label does not fit its segment",
+                    diagnostic=reason_diagnostic("label_outside", path),
                 )
             for bar in all_bars:
                 if bar is owner:
@@ -281,7 +303,8 @@ def render_svg(spec: dict[str, Any], width: float, height: float, path: str) -> 
                     and min(box.y1, other.y1) - max(box.y0, other.y0) > 1
                 ):
                     raise LayoutOverflowError(
-                        f"{path}: value label overlaps another bar"
+                        f"{path}: value label overlaps another bar",
+                        diagnostic=reason_diagnostic("label_overlap", path),
                     )
         fig.set_layout_engine("none")
         out = StringIO()

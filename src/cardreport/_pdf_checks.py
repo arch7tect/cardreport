@@ -8,6 +8,7 @@ from typing import Any
 from fontTools.ttLib import TTFont
 from pypdf import PdfReader
 
+from .layout import measured_overflow
 from .model import LayoutOverflowError, RenderError
 
 
@@ -67,6 +68,7 @@ def verify_chart_bounds(
     path: str,
     *,
     expect_text: bool = True,
+    page: int | None = None,
 ) -> None:
     """Validate glyph bounds in the native SVG render, in PDF points."""
     import pdfplumber
@@ -75,13 +77,28 @@ def verify_chart_bounds(
         if len(pdf.pages) != 1 or (expect_text and not pdf.pages[0].chars):
             raise RenderError(f"{path}: native SVG text was lost")
         width, height = width_px * 0.75, height_px * 0.75
-        for char in pdf.pages[0].chars:
-            if (
-                char["x0"] < 0
-                or char["top"] < 0
-                or char["x1"] > width
-                or char["bottom"] > height
-            ):
-                raise LayoutOverflowError(
-                    f"{path}: native chart label exceeds available space"
-                )
+        chars = pdf.pages[0].chars
+        if any(
+            char["x0"] < 0
+            or char["top"] < 0
+            or char["x1"] > width
+            or char["bottom"] > height
+            for char in chars
+        ):
+            raise LayoutOverflowError(
+                f"{path}: native chart label exceeds available space",
+                diagnostic=measured_overflow(
+                    path,
+                    (0, 0, width, height),
+                    (
+                        min(c["x0"] for c in chars),
+                        min(c["top"] for c in chars),
+                        max(c["x1"] for c in chars),
+                        max(c["bottom"] for c in chars),
+                    ),
+                    box="viewport",
+                    reason="label_outside",
+                    page=page,
+                    mm_per_unit=25.4 / 72,
+                ),
+            )

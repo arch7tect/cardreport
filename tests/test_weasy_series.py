@@ -389,8 +389,11 @@ def test_funnel_long_value_label_overflow():
     from cardreport import Currency
 
     chart = Funnel(["Stage"], [400_000_000_000_000], value_format=Currency("USD"))
-    with pytest.raises(LayoutOverflowError, match="label"):
-        render_svg(payload(chart), 250, 300, "chart")
+    with pytest.raises(LayoutOverflowError, match="label") as caught:
+        render_svg(payload(chart), 250, 300, "blocks.0")
+    diagnostic = caught.value.diagnostic
+    assert diagnostic is not None and diagnostic.path == "blocks.0"
+    assert diagnostic.reason in {"insufficient_space", "label_outside"}
 
 
 def test_dense_grouped_values_fail_without_shrinking():

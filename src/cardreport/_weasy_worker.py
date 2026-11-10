@@ -10,7 +10,7 @@ from base64 import b64encode
 from importlib.resources import files
 from typing import Any
 
-from .model import DependencyError, RenderError, ReportError
+from .model import DependencyError, LayoutOverflowError, RenderError, ReportError
 
 
 def main() -> None:
@@ -24,7 +24,7 @@ def main() -> None:
             "docs/user/renderers.md#weasyprint"
         ) from exc
     from ._svg_charts import render_svg
-    from ._weasy_boxes import inspect, verify_adapter
+    from ._weasy_boxes import inspect, page_for_path, verify_adapter
 
     payload = json.loads(sys.stdin.buffer.read())
     fonts = {}
@@ -58,7 +58,16 @@ def main() -> None:
         raise RenderError("Measured chart set differs from the input")
     for path, spec in payload["charts"].items():
         width, height = sizes[path]
-        svg = render_svg(spec, width, height, path)
+        try:
+            svg = render_svg(spec, width, height, path)
+        except LayoutOverflowError as exc:
+            if exc.diagnostic is not None:
+                from dataclasses import replace
+
+                exc.diagnostic = replace(
+                    exc.diagnostic, page=page_for_path(first, path)
+                )
+            raise
         # The measured CSS box is the SVG viewport; SVG viewBox retains its coordinates.
         svg = svg.replace(
             "<svg ", f'<svg style="width:{width}px;height:{height}px" ', 1
@@ -76,7 +85,12 @@ def main() -> None:
             font_config=config
         )
         verify_chart_bounds(
-            chart_pdf, width, height, path, expect_text=spec.get("axes", True)
+            chart_pdf,
+            width,
+            height,
+            path,
+            expect_text=spec.get("axes", True),
+            page=page_for_path(first, path),
         )
         html = html.replace(f"<!--chart:{path}-->", svg)
     final = HTML(string=html, url_fetcher=fetch).render(font_config=config)
@@ -115,5 +129,17 @@ if __name__ == "__main__":
             if isinstance(exc, ReportError)
             else f"WeasyPrint renderer failed ({type(exc).__name__})"
         )
-        sys.stderr.write("\n" + json.dumps({"kind": kind, "message": message}) + "\n")
+        sys.stderr.write(
+            "\n"
+            + json.dumps(
+                {
+                    "kind": kind,
+                    "message": message,
+                    "diagnostic": exc.diagnostic.to_dict()
+                    if isinstance(exc, LayoutOverflowError) and exc.diagnostic
+                    else None,
+                }
+            )
+            + "\n"
+        )
         sys.exit(1)

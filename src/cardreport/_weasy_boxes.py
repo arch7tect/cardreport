@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from importlib.resources import files
 from typing import Any
 
+from .layout import LayoutDiagnostic, measured_overflow
 from .model import DependencyError, LayoutOverflowError
 
 VERSION = "70.0"
@@ -29,7 +30,10 @@ def inspect(
 ) -> dict[str, tuple[float, float]]:
     """Check page/content bounds and fragmentation, return chart content sizes."""
     if len(document.pages) != expected_pages:
-        raise LayoutOverflowError("report: dashboard content produced unexpected pages")
+        raise LayoutOverflowError(
+            "report: dashboard content produced unexpected pages",
+            diagnostic=LayoutDiagnostic("fragmented", "report"),
+        )
     charts: dict[str, tuple[float, float]] = {}
     locations: dict[str, set[int]] = {}
     try:
@@ -48,10 +52,15 @@ def inspect(
                 right, bottom = x + float(box.width), y + float(box.height)
                 if element.get("data-chart"):
                     charts[path] = float(box.width), float(box.height)
-                for child in walk(box):
-                    if child is box:
-                        continue
-                    left, top, r, b = bounds(child)
+                descendants = [bounds(child) for child in walk(box) if child is not box]
+                if descendants:
+                    extent = (
+                        min(c[0] for c in descendants),
+                        min(c[1] for c in descendants),
+                        max(c[2] for c in descendants),
+                        max(c[3] for c in descendants),
+                    )
+                    left, top, r, b = extent
                     if (
                         r > right + TOLERANCE
                         or b > bottom + TOLERANCE
@@ -59,13 +68,27 @@ def inspect(
                         or top < y - TOLERANCE
                     ):
                         raise LayoutOverflowError(
-                            f"{path}: content exceeds allocated width/height"
+                            f"{path}: content exceeds allocated width/height",
+                            diagnostic=measured_overflow(
+                                path,
+                                (x, y, right, bottom),
+                                extent,
+                                box="content",
+                                page=page_number + 1,
+                                reason="page_overflow"
+                                if path.startswith("pages.")
+                                else "content_overflow",
+                            ),
                         )
         if expected_paths is not None and set(locations) != expected_paths:
-            raise LayoutOverflowError("report: components missing from measured layout")
+            raise LayoutOverflowError(
+                "report: components missing from measured layout",
+                diagnostic=LayoutDiagnostic("missing_content", "report"),
+            )
         if any(len(pages) > 1 for pages in locations.values()):
             raise LayoutOverflowError(
-                "report: indivisible dashboard block was fragmented"
+                "report: indivisible dashboard block was fragmented",
+                diagnostic=LayoutDiagnostic("fragmented", "report"),
             )
     except (AttributeError, TypeError, ValueError) as exc:
         raise DependencyError(
@@ -107,3 +130,21 @@ def verify_adapter(html_class: Any, font_config: Any, fetcher: Any) -> None:
         except LayoutOverflowError:
             continue
         raise DependencyError("WeasyPrint overflow detector failed its canary")
+
+
+def page_for_path(document: Any, path: str) -> int | None:
+    """Optional location lookup must not mask a rendering error."""
+    try:
+        return next(
+            (
+                i + 1
+                for i, page in enumerate(document.pages)
+                if any(
+                    b.element is not None and b.element.get("data-path") == path
+                    for b in walk(page._page_box)
+                )
+            ),
+            None,
+        )
+    except (AttributeError, TypeError, ValueError):
+        return None

@@ -153,6 +153,9 @@ def test_actual_rotated_text_collisions_are_rejected(browser, target):
         assert error["kind"] == "LayoutOverflowError"
         assert "chart labels overlap:" in error["message"]
         assert "xtick" in error["message"]
+        diagnostic = error["diagnostic"]
+        assert diagnostic["reason"] == "label_overlap" and diagnostic["page"] == 1
+        assert "completed" not in str(diagnostic) and "день" not in str(diagnostic)
         assert ("legend" if target == "legend" else "completed") in error["message"]
     finally:
         page.close()
@@ -221,3 +224,24 @@ def test_flow_dashboard_preserves_records_and_whole_chart_row():
     assert sum("Daily requests" in text for text in texts) == 1
     assert any("Daily requests" in text and "Outcomes" in text for text in texts)
     assert "Resolution rate" in texts[-1]
+
+
+def test_negative_child_bounds_are_measured(browser):
+    report = Report().row(Card(Text("bounds fixture")), height_mm=60)
+    html = report.to_html().replace(
+        "</head>",
+        """<style>
+    .card-content{position:relative;overflow:visible!important}
+    .card-content>.text{position:absolute;left:-50px;top:-60px;width:20px;height:20px}
+    </style></head>""",
+    )
+    page = open_report(browser, html)
+    try:
+        error = page.evaluate("cardreport.error")
+        assert error["kind"] == "LayoutOverflowError"
+        d = error["diagnostic"]
+        assert d["box"] == "border"
+        assert d["overflow_left_mm"] > 0 and d["overflow_top_mm"] > 0
+        assert d["page"] == 1
+    finally:
+        page.close()

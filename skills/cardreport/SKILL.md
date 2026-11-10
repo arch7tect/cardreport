@@ -118,3 +118,10 @@ Deliver the requested output plus reusable code or template/data files when part
 of the task. State the renderer, library version and any material verification
 limits or deliberate content changes. For future edits, retain the inputs and
 working layout rather than only the rendered PDF.
+
+
+For a failed render, inspect `LayoutOverflowError.diagnostic` when present:
+[path, page and measured overflow](../../docs/user/api.md#layout-failure-diagnostics).
+Use the side and current dimensions to locate the constraint. The excess is not
+a guaranteed size increase; rerender after changing layout. Do not fix a chart
+collision by adding an unrelated page break.

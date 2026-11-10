@@ -630,3 +630,52 @@ Structural errors retain `TemplateError`/`DataError` and their location attribut
 message wording is not stable. Native model and binding semantics remain separate. Both interchange envelopes accept optional string `$schema`
 metadata. See [YAML and JSON Schema](yaml-and-schemas.md) for scalar conversion,
 serialization, editor setup and the distinction between structural/semantic checks.
+
+
+### Layout failure diagnostics
+
+`LayoutOverflowError` preserves its message and adds optional
+`diagnostic: LayoutDiagnostic | None`. Catch it around checked PDF export (or
+WeasyPrint HTML export). Chromium HTML performs its layout checks when opened;
+its structured result is available as `window.cardreport.error.diagnostic`.
+
+```python
+from cardreport import Card, LayoutOverflowError, Report, Text
+
+report = Report().row(Card(Text("A long explanation. " * 100)), height_mm=10)
+try:
+    report.to_pdf()
+except LayoutOverflowError as error:
+    if error.diagnostic is not None:
+        diagnostic = error.diagnostic
+        print(diagnostic.path, diagnostic.page, diagnostic.overflow_bottom_mm)
+```
+
+`LayoutDiagnostic` is immutable. Its fields are:
+
+| Field | Meaning |
+| --- | --- |
+| `reason` | `content_overflow`, `page_overflow`, `label_outside`, `label_overlap`, `insufficient_space`, `fragmented`, `page_limit`, `missing_content` or fallback `layout_overflow` |
+| `path` | Renderer path, e.g. `blocks.2`, `blocks.0.1.content`, `pages.0` or `report` |
+| `page` | One-based PDF page, when known |
+| `box` | Measurement basis: `content`, `padding`, `border` or `viewport`, when known |
+| `available_width_mm`, `available_height_mm` | Current measured dimensions, when available |
+| `overflow_left_mm`, `overflow_top_mm`, `overflow_right_mm`, `overflow_bottom_mm` | Current excess beyond that box, when measured |
+
+All fields except reason/path default to `None`; unmeasured does not mean zero.
+Nested numeric path segments identify Row/Column children; `.content` identifies
+card content. Wrapper failures use their nearest owning component's path. The
+first failed check is reported; later layout stages may reveal more failures.
+
+`to_dict()` omits absent fields. `LayoutDiagnostic.from_dict(value)` validates the
+closed record and raises `ValueError` for unknown fields, invalid paths/reasons,
+non-finite/negative measurements or invalid page numbers. Records contain no
+report text or label values. Existing exception **messages can contain chart
+labels**; applications handling sensitive data should expose only the structured
+record plus their own generic error message.
+
+Measurements describe the **current layout**, not a sufficient increase in size.
+Changing width can rewrap text; changing height can push other blocks off the page.
+For collisions and page fragmentation, dimensions may be unavailable. There is no
+automatic resizing, hiding or clipping. Old/custom-renderer errors may have no
+record; always handle `None`.

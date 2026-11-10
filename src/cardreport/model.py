@@ -11,6 +11,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Literal, Self
 
+from .layout import LayoutDiagnostic
+
 if TYPE_CHECKING:
     from .formatting import Formatting
     from .renderers import Renderer
@@ -27,7 +29,11 @@ class ValidationError(ReportError):
 
 
 class LayoutOverflowError(ReportError):
-    pass
+    def __init__(
+        self, message: str, *, diagnostic: LayoutDiagnostic | None = None
+    ) -> None:
+        super().__init__(message)
+        self.diagnostic = diagnostic
 
 
 class UnsupportedFeatureError(ReportError):

@@ -176,3 +176,15 @@ full-schema per-cell pass. Binding retains its checks for caller-supplied datase
 and stricter limits. Native model semantics stay in Python. Template component
 bounds precede recursive schema checks. CLI validate and schema share the installed API. See the
 [decision](decisions/yaml-and-json-schema.md) and [user contract](../user/yaml-and-schemas.md).
+
+
+## Layout diagnostics
+
+[Measured diagnostics](decisions/layout-diagnostics.md) add one optional immutable
+record to layout exceptions. Detectors retain their existing coordinate basis and
+rejection semantics; the record identifies that basis and reports current excess.
+The Chromium browser state, renderer worker JSON and Python parent preserve the
+validated optional record. Unknown/malformed records are discarded while preserving
+the original error. Server consumers can expose numeric/path/reason metadata without
+forwarding exception strings containing report values. No geometry solver or report
+snapshot changes are involved.

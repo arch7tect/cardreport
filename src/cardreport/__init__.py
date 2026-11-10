@@ -14,6 +14,7 @@ from .data import (
 )
 from .document import ChartData, ChartSeries, ReportDocument
 from .formatting import Formatting
+from .layout import LayoutDiagnostic
 from .model import (
     KPI,
     BarChart,
@@ -50,6 +51,7 @@ from .templates import ReportTemplate
 from .weasyprint import WeasyPrintRenderer
 
 __all__ = [
+    "LayoutDiagnostic",
     "Formatting",
     "ReportTemplate",
     "BindingError",

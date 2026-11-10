@@ -5,6 +5,16 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.8.3 — 2026-11-10
+
+- Layout failures now carry optional typed diagnostics: component path, page,
+  measurement basis, available dimensions and directional overflow in millimetres.
+  Both renderers preserve these details through PDF worker processes.
+- Applications can expose the data-free diagnostic without forwarding chart label
+  values from exception messages. Missing measurements and old errors remain valid.
+- Measurements describe current layout, not a guaranteed resize. Rendering and
+  strict overflow rejection are unchanged.
+
 ## 0.8.2 — 2026-11-07
 
 ### Fixed

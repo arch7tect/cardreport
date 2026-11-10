@@ -169,9 +169,13 @@ class WeasyPrintRenderer:
             has_content = True
         segments.append(current)
         if len(segments) > MAX_PAGES:
+            from .layout import LayoutDiagnostic
             from .model import LayoutOverflowError
 
-            raise LayoutOverflowError("report: page limit exceeded")
+            raise LayoutOverflowError(
+                "report: page limit exceeded",
+                diagnostic=LayoutDiagnostic("page_limit", "report"),
+            )
         content = "".join(
             f'<section class="page"><div class="page-body" data-path="pages.{i}">{s}</div></section>'
             for i, s in enumerate(segments)
