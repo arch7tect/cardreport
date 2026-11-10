@@ -38,3 +38,9 @@ mypy, executable documentation (52 Python blocks), links, Twine and installed co
 and full-extra wheel smokes passed. The final focused Claude review completed
 successfully with no remaining material blocker. CI verifies the exact release
 commit again before publication.
+
+Before publication, a compatibility audit restored the standard Exception
+constructor (`*args`) so no-argument and multi-argument callers remain valid.
+Thirty diagnostic/transport/both-renderer cases passed, and a narrow Claude review
+found no blocker. The earlier CI candidate was cancelled before publication; the
+final commit is the release candidate. No tag or published artifact was replaced.

@@ -30,9 +30,9 @@ class ValidationError(ReportError):
 
 class LayoutOverflowError(ReportError):
     def __init__(
-        self, message: str, *, diagnostic: LayoutDiagnostic | None = None
+        self, *args: object, diagnostic: LayoutDiagnostic | None = None
     ) -> None:
-        super().__init__(message)
+        super().__init__(*args)
         self.diagnostic = diagnostic
 
 

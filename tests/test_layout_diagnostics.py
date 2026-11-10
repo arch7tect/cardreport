@@ -212,3 +212,11 @@ def test_matplotlib_bbox_scalars_are_serializable_measurements():
     assert d.overflow_bottom_mm == pytest.approx(40 * 25.4 / 96)
     assert d.overflow_left_mm == pytest.approx(10 * 25.4 / 96)
     assert LayoutDiagnostic.from_dict(json.loads(json.dumps(d.to_dict()))) == d
+
+
+@pytest.mark.parametrize("args", [(), ("old message",), ("old message", 42)])
+def test_standard_exception_arguments_remain_compatible(args):
+    error = LayoutOverflowError(*args)
+    assert error.args == args
+    assert str(error) == str(Exception(*args))
+    assert error.diagnostic is None
