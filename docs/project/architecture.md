@@ -62,6 +62,12 @@ caller event-loop conflicts and to stop the process tree on timeout/interruption
 Capabilities are defined in the [user-facing table](../user/renderers.md#capabilities).
 The engine reuses validated components, shared markup, themes and publication.
 It owns native layout and checks; it does not reuse Chromium pagination code.
+Shared markup marks cards with the same inherited `data-definite` height context
+used by charts. WeasyPrint uses block layout for natural-height cards, with the
+normal title gap, and grid layout for definite-height cards. This avoids native
+auto-height grid tracks collapsing around tables without altering constrained
+chart sizing or weakening the geometry checks. Chromium does not style this card
+attribute.
 
 The [box adapter](../../src/cardreport/_weasy_boxes.py) isolates private WeasyPrint
 70.0 geometry. Positive/negative bundled-font canaries fail closed on incompatibility.

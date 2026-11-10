@@ -41,6 +41,8 @@ are supported. Zero fill for lines and category colors for bars still require
 one series in both engines. Automatic flow remains unsupported in WeasyPrint and
 raises `UnsupportedFeatureError`; there is no automatic fallback.
 Long unbreakable text may be rejected rather than wrapped by WeasyPrint.
+Cards without a parent-supplied height grow with their contents; fixed-height
+rows and weighted columns keep their allocated space and overflow checks.
 
 Chromium checks rotated chart labels using their rotated bounds, including
 collisions between category labels, values and series legends. It reserves space
@@ -192,7 +194,7 @@ renderer; CardReport has not yet been verified on Windows. For WSL, follow the
 ```python
 from cardreport import Card, KPI, Report, WeasyPrintRenderer
 
-report = Report("Summary").row(Card(KPI("Clients", 21)), height_mm=50)
+report = Report("Summary").add(Card(KPI("Clients", 21)))
 pdf = report.to_pdf(renderer=WeasyPrintRenderer())
 assert pdf.startswith(b"%PDF-")
 html = report.to_html(renderer=WeasyPrintRenderer())
@@ -201,8 +203,8 @@ html = report.to_html(renderer=WeasyPrintRenderer())
 WeasyPrint HTML rendering has a fixed 30-second
 worker deadline. PDF uses the export method's `timeout`, default 30 seconds.
 Ticks and layout can differ between engines; pixel parity is not promised.
-Give KPI cards an explicit row height as above: their natural-height layout can
-fail the experimental engine's geometry check.
+Natural-height cards size to their contents, as above. Use `Row(height_mm=...)`
+when you want to allocate a fixed part of a dashboard page.
 
 ## Custom renderers
 

@@ -5,6 +5,14 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.8.4 — 2026-11-10
+
+- Fix WeasyPrint cards without a parent-supplied height collapsing around tables
+  and other content. Natural-height cards now grow with their contents; no fixed
+  row-height workaround is required.
+- Cards in fixed-height rows and weighted columns retain their allocated space.
+  Oversized cards and reports still fail layout checks; nothing is shrunk or hidden.
+
 ## 0.8.3 — 2026-11-10
 
 - Layout failures now carry optional typed diagnostics: component path, page,

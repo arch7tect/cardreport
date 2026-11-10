@@ -43,6 +43,9 @@ report.validate()
 The first column gets twice the available width of the second. The fixed row
 height allows the inner Column to divide its available height equally.
 Without `heights`, Column keeps natural child heights and aligns them at the top.
+Cards without a parent-supplied height grow with their contents, including in
+WeasyPrint. A standalone `Card(Table(...))` needs no fixed-height wrapper to fit
+its own table; it must still fit on the page in dashboard mode.
 Card titles and padding consume space. Charts default to the theme's chart height
 when no definite height is supplied.
 

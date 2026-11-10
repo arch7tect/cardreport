@@ -181,6 +181,8 @@ class WeasyPrintRenderer:
             for i, s in enumerate(segments)
         )
         # Native paged media owns layout; no browser script is included.
+        # Auto-height grid cards collapse table content in WeasyPrint 70. Keep
+        # the grid only where a parent supplies height; block flow sizes the rest.
         styles = (
             render_styles(doc)
             + f"""
@@ -189,6 +191,8 @@ class WeasyPrintRenderer:
 .card{{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}}
 .text,.card-title,td,th{{overflow-wrap:break-word}}
 .card[data-has-title=true]{{grid-template-rows:auto minmax(0,1fr)}}
+.card[data-definite=false]{{display:block}}
+.card[data-definite=false][data-has-title=true]>.card-content{{margin-top:3mm}}
 .chart svg{{display:block}} .page{{break-before:auto}}
 """
         )

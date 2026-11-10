@@ -62,7 +62,7 @@ def render_block(
             else f'<div class="card-title">{escape(obj.title)}</div>'
         )
         minimum = " kpi-card" if isinstance(obj.content, KPI) else ""
-        return f'<div class="card{minimum}" data-has-title="{str(obj.title is not None).lower()}" {attrs}>{head}<div class="card-content">{render_block(obj.content, path + ".content", chart, definite, formatting, language, empty_text)}</div></div>'
+        return f'<div class="card{minimum}" data-has-title="{str(obj.title is not None).lower()}" data-definite="{str(definite).lower()}" {attrs}>{head}<div class="card-content">{render_block(obj.content, path + ".content", chart, definite, formatting, language, empty_text)}</div></div>'
     if isinstance(obj, (Row, Column)):
         fixed = definite
         style = ""
