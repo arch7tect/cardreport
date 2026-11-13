@@ -100,7 +100,7 @@ def load_json(source: str | bytes, max_bytes: int) -> object:
 
 def check_tree(value: object, *, allow_dates: bool = False) -> None:
     # Iterative traversal bounds native trees too, including cycles.
-    stack = [(value, 0)]
+    stack: list[tuple[object, int]] = [(value, 0)]
     count = 0
     while stack:
         item, depth = stack.pop()

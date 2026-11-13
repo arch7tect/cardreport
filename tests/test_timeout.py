@@ -17,6 +17,7 @@ def test_invalid_timeout(value):
 
 @pytest.mark.parametrize("value", [301, 3600, 1e7])
 def test_long_timeout_reaches_renderer(value):
+    # Deliberately duck-typed: exports do not add a runtime inheritance gate.
     class Renderer:
         def render_pdf(self, doc, *, deadline):
             assert value - 2 < deadline - time.monotonic() <= value

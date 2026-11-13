@@ -27,12 +27,13 @@ def from_pandas(
         raise DataError("expected DataFrame and DatasetSchema")
     if index not in ("error", "drop"):
         raise DataError("index must be error or drop")
+    frame_index = frame.index
     if index == "error" and (
-        not isinstance(frame.index, pd.RangeIndex)
-        or frame.index.start != 0
-        or frame.index.stop != len(frame)
-        or frame.index.step != 1
-        or frame.index.name is not None
+        not isinstance(frame_index, pd.RangeIndex)
+        or frame_index.start != 0
+        or frame_index.stop != len(frame)
+        or frame_index.step != 1
+        or frame_index.name is not None
     ):
         raise DataError(
             "materialize the index as columns or explicitly use index='drop'"

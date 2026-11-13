@@ -69,7 +69,7 @@ def run_worker(
         left = deadline - time.monotonic()
         if left <= 0:
             raise RenderTimeoutError("Export preparation exceeded deadline")
-        process = subprocess.Popen(
+        process = subprocess.Popen[bytes](
             [sys.executable, "-m", module, *args],
             stdin=source if source is not None else subprocess.PIPE,
             stdout=subprocess.PIPE,

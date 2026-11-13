@@ -9,7 +9,7 @@ from .model import DependencyError, LayoutOverflowError, RenderError
 
 
 def main() -> None:
-    from playwright.sync_api import Error, sync_playwright
+    from playwright.sync_api import Error, Request, sync_playwright
 
     html = sys.stdin.buffer.read().decode("utf-8")
     with sync_playwright() as pw:
@@ -28,10 +28,17 @@ def main() -> None:
             context.set_default_navigation_timeout(0)
             context.route("**/*", lambda route: route.abort())
             page = context.new_page()
-            failures = []
-            requests = []
-            page.on("request", lambda request: requests.append(request.url))
-            page.on("pageerror", lambda error: failures.append(str(error)))
+            failures: list[str] = []
+            requests: list[str] = []
+
+            def record_request(request: Request) -> None:
+                requests.append(request.url)
+
+            def record_error(error: Error) -> None:
+                failures.append(str(error))
+
+            page.on("request", record_request)
+            page.on("pageerror", record_error)
             page.emulate_media(media="print")
             page.set_content(html, wait_until="load")
             page.wait_for_function(

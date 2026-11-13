@@ -41,14 +41,14 @@ def from_csv(
             if field not in header:
                 raise DataError("CSV is missing a required column", field=field)
 
-        def rows() -> Iterable[Sequence[object]]:
+        def rows(columns: list[str]) -> Iterable[Sequence[object]]:
             for i, raw in enumerate(reader):
                 if i >= limits.max_rows:
                     raise DataError("CSV row limit exceeded", row=i)
-                if len(raw) != len(header):
+                if len(raw) != len(columns):
                     raise DataError("CSV row width does not match header", row=i)
                 result: list[object] = []
-                for field, text in zip(header, raw, strict=True):
+                for field, text in zip(columns, raw, strict=True):
                     if len(text) > limits.max_string_chars:
                         raise DataError(
                             "CSV field character limit exceeded", row=i, field=field
@@ -70,7 +70,7 @@ def from_csv(
                             ) from exc
                 yield result
 
-        dataset = Dataset(header, rows(), limits=limits)
+        dataset = Dataset(header, rows(header), limits=limits)
         schema.validate(dataset)
         return dataset
     except (

@@ -3,7 +3,7 @@
 import json
 import re
 from functools import cache
-from typing import Literal, NamedTuple
+from typing import Any, Literal, NamedTuple, cast
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import best_match
@@ -20,7 +20,8 @@ def _validator(kind: Literal["template", "data"]) -> Draft202012Validator:
 
 
 def validate_structure(kind: Literal["template", "data"], value: object) -> None:
-    error = next(_validator(kind).iter_errors(value), None)
+    # Unknown inputs intentionally reach jsonschema for validation, not coercion.
+    error = next(_validator(kind).iter_errors(cast(Any, value)), None)
     if error is None:
         return
     error = best_match([error]) or error

@@ -11,6 +11,7 @@ from cardreport import (
     BarChart,
     BindingError,
     Card,
+    ChromiumRenderer,
     Column,
     Component,
     Dataset,
@@ -19,6 +20,7 @@ from cardreport import (
     Formatting,
     LineChart,
     PageBreak,
+    Renderer,
     Report,
     ReportTemplate,
     Row,
@@ -33,6 +35,7 @@ from cardreport import (
 )
 from cardreport.adapters.csv import from_csv
 from cardreport.adapters.pandas import from_pandas
+from cardreport.document import ReportDocument
 
 report = Report().row(Card(KPI("Clients", 21)), widths=[1], height_mm=60)
 assert_type(report, Report)
@@ -90,3 +93,25 @@ assert_type(
 assert_type(json_schema("template"), str)
 json_schema("other")  # type: ignore[arg-type]
 ReportTemplate.from_yaml({})  # type: ignore[arg-type]
+
+
+class ApplicationRenderer(Renderer):
+    def render_html(self, doc: ReportDocument) -> str:
+        return "preview"
+
+    def render_pdf(self, doc: ReportDocument, *, deadline: float) -> bytes:
+        return b"pdf"
+
+
+class StructuralRenderer:
+    def render_html(self, doc: ReportDocument) -> str:
+        return "preview"
+
+    def render_pdf(self, doc: ReportDocument, *, deadline: float) -> bytes:
+        return b"pdf"
+
+
+report.to_html(renderer=ApplicationRenderer())
+report.to_html(renderer=ChromiumRenderer())
+report.to_html(renderer=StructuralRenderer())  # type: ignore[arg-type]
+Renderer()  # type: ignore[abstract]

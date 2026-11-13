@@ -1,16 +1,16 @@
 """Provisional renderer boundary, with Chromium as the production default."""
 
 import time
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 from .document import ReportDocument
 from .model import RenderTimeoutError
 
 
-class Renderer(Protocol):
+class Renderer(ABC):
     """Render a validated, frozen export snapshot.
 
-    No registry or inheritance is needed. HTML is a preview: only PDF guarantees
+    Implement both abstract methods in a subclass. HTML is a preview: only PDF guarantees
     checked geometry. Each engine owns pagination, fonts and chart bounds.
     ReportDocument uses the public component tree and raw, unescaped chart data.
     Raise ReportError subclasses: LayoutOverflowError for geometry,
@@ -21,12 +21,14 @@ class Renderer(Protocol):
     This extension contract is provisional while the experimental engine matures.
     """
 
+    @abstractmethod
     def render_html(self, doc: ReportDocument) -> str: ...
 
+    @abstractmethod
     def render_pdf(self, doc: ReportDocument, *, deadline: float) -> bytes: ...
 
 
-class ChromiumRenderer:
+class ChromiumRenderer(Renderer):
     """Default offline Plotly/Chromium renderer; dependencies load only on export."""
 
     def render_html(self, doc: ReportDocument) -> str:

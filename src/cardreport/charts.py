@@ -120,14 +120,14 @@ def chart_spec(
     horizontal = isinstance(obj, Funnel) or (
         isinstance(obj, BarChart) and obj.orientation == "horizontal"
     )
-    axis = {
+    axis: dict[str, Any] = {
         "showgrid": True,
         "gridcolor": "#ececec",
         "zeroline": False,
         "automargin": True,
         "tickfont": {"size": theme.font_size_pt * 96 / 72},
     }
-    category = {
+    category: dict[str, Any] = {
         **axis,
         "showgrid": False,
         "type": "date"

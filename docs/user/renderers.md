@@ -208,15 +208,16 @@ when you want to allocate a fixed part of a dashboard page.
 
 ## Custom renderers
 
-The extension interface is provisional. Implement its two methods; no registry
-or base class is required. This complete example delegates to the default engine
+The extension interface is provisional. Subclass `Renderer` and implement its two
+abstract methods; no registry is required. Inheritance is a static typing contract;
+exports still accept existing duck-typed implementations at runtime. This complete example delegates to the default engine
 while exposing a place for application-specific behavior:
 
 ```python
 from cardreport import Card, ChromiumRenderer, KPI, Renderer, Report, ReportDocument
 
 
-class ApplicationRenderer:
+class ApplicationRenderer(Renderer):
     def render_html(self, doc: ReportDocument) -> str:
         return ChromiumRenderer().render_html(doc)
 

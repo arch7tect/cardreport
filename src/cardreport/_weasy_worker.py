@@ -8,7 +8,7 @@ import re
 import sys
 from base64 import b64encode
 from importlib.resources import files
-from typing import Any
+from typing import Any, cast
 
 from .model import DependencyError, LayoutOverflowError, RenderError, ReportError
 
@@ -24,6 +24,7 @@ def main() -> None:
             "docs/user/renderers.md#weasyprint"
         ) from exc
     from ._svg_charts import render_svg
+    from ._svg_spec import SvgSpec
     from ._weasy_boxes import inspect, page_for_path, verify_adapter
 
     payload = json.loads(sys.stdin.buffer.read())
@@ -59,7 +60,7 @@ def main() -> None:
     for path, spec in payload["charts"].items():
         width, height = sizes[path]
         try:
-            svg = render_svg(spec, width, height, path)
+            svg = render_svg(cast(SvgSpec, spec), width, height, path)
         except LayoutOverflowError as exc:
             if exc.diagnostic is not None:
                 from dataclasses import replace

@@ -3,13 +3,18 @@
 from collections.abc import Iterator
 from importlib.resources import files
 from io import BytesIO
-from typing import Any
+from typing import Any, NamedTuple
 
 from fontTools.ttLib import TTFont
 from pypdf import PdfReader
 
 from .layout import measured_overflow
 from .model import LayoutOverflowError, RenderError
+
+
+class _FontName(NamedTuple):
+    name_id: int
+    value: str
 
 
 def resource_scopes(resources: Any, seen: set[int] | None = None) -> Iterator[Any]:
@@ -29,7 +34,7 @@ def resource_scopes(resources: Any, seen: set[int] | None = None) -> Iterator[An
 def font_identity(data: bytes) -> frozenset[tuple[int, str]]:
     with TTFont(BytesIO(data)) as font:
         return frozenset(
-            (n.nameID, n.toUnicode())
+            _FontName(n.nameID, n.toUnicode())
             for n in font["name"].names
             if n.nameID in (1, 3, 5)
         )

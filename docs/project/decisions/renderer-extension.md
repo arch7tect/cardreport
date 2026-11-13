@@ -4,9 +4,9 @@ Status: implemented initial version, 2026-11-04. Supersedes the original restric
 against a second engine. The owner authorized implementation and a public GitHub
 initial repository. Claude accepted the scoped plan; the response is retained locally.
 
-Chromium remains the production default. The public Renderer protocol is provisional;
+Chromium remains the production default. The public Renderer interface is provisional;
 SVG/WeasyPrint is experimental, with explicit unsupported-feature errors. No registry,
-entry points, renderer base hierarchy or component plugins are introduced.
+entry points, deep renderer hierarchy or component plugins are introduced.
 
 Exports validate the public component tree and create a frozen ReportDocument,
 including normalized chart coordinates and labels formatted from original values.
@@ -68,3 +68,18 @@ verifies printed page count. Plotly DOM-dependent checks remain within that engi
 
 Native API references: [WeasyPrint API](https://doc.courtbouillon.org/weasyprint/stable/api_reference.html)
 and the installed pinned source. Private box access is not an upstream stable API.
+
+## Amendment — 2026-11-13: explicit renderer base class
+
+`Renderer` is now an ABC with two abstract methods, and both built-in engines
+inherit it. Explicit inheritance improves IDE navigation and implementation
+completion. This supersedes the original no-base-class decision; it does not
+introduce a registry, discovery, mixins or a deeper hierarchy. Imports stay lazy,
+method signatures and `ReportDocument` are unchanged. Exports do not add runtime
+`isinstance` gates or virtual-subclass hooks.
+
+The internal SVG payload has a shared TypedDict. Chart-specific drawing and
+label checks are ordinary functions in `_svg_charts.py`; their ordering, font
+measurement and overflow rules are unchanged. The template binder delegates table
+and chart construction to methods in the same module and reads defaults from the
+public model dataclasses. The JSON Schema remains the template validation contract.

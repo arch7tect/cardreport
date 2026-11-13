@@ -10,7 +10,7 @@ README is the user entry point; tutorials/reference live in docs/user. Project
 rationale lives in docs/project; the consumer workflow lives in skills/cardreport.
 Dated history is not the current API contract.
 
-Chromium is the production default. The provisional Renderer protocol also supports
+Chromium is the production default. The provisional Renderer interface also supports
 an experimental SVG/WeasyPrint subset. See docs/user/renderers.md for capabilities
 and docs/project/decisions/renderer-extension.md for rationale. Keep renderers behind
 typed public components. No arbitrary Plotly kwargs, user HTML/CSS or template

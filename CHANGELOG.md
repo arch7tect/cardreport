@@ -5,6 +5,20 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.8.5 — 2026-11-13
+
+- Renderer implementers: `Renderer` is now an abstract base class. Change
+  `class CustomRenderer:` to `class CustomRenderer(Renderer):` and implement both
+  `render_html` and `render_pdf`. Incomplete subclasses cannot be instantiated.
+  Existing custom metaclasses must be compatible with `ABCMeta`; a protocol must
+  not inherit `Renderer`. Type checkers require subclassing, while existing duck-typed
+  implementations still work at runtime. Method signatures and built-in exports are unchanged.
+- Improve PyCharm type inference for binary render workers, adapters and template
+  traversal, without suppressing inspections or changing runtime validation.
+- Internal refactoring adds typed SVG payloads, separates chart drawing from label
+  checks and reuses model defaults in the template binder. No template/data schema
+  or rendering behavior changes are intended.
+
 ## 0.8.4 — 2026-11-10
 
 - Fix WeasyPrint cards without a parent-supplied height collapsing around tables

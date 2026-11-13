@@ -406,7 +406,7 @@ canonical language, optional formatting and resolved empty text as trailing fiel
 with defaults. `ChartData` adds default-empty `tick_values` and `tick_labels` tuples
 for preformatted line date-axis labels (populated for every date line since 0.4.0),
 plus `category_labels` for formatted bar
-category text. Renderer protocol signatures are unchanged.
+category text. Renderer interface signatures are unchanged.
 
 Language tags are not restricted to a product allowlist. Decimal precision is 0..6;
 number precision is a maximum, percent/currency precision is fixed. Date patterns
@@ -467,8 +467,10 @@ Renderer.render_html(doc: ReportDocument) -> str
 Renderer.render_pdf(doc: ReportDocument, *, deadline: float) -> bytes
 ```
 
-Pass a renderer to Report export methods. `Renderer` is a provisional Protocol;
-implement its methods without subclassing or registration. Direct renderer calls
+Pass a renderer to Report export methods. `Renderer` is a provisional abstract base class;
+subclass it and implement both methods. No registration is required.
+Type checkers require a Renderer subclass; exports do not enforce inheritance at
+runtime, so existing duck-typed implementations still run. Direct renderer calls
 expect an already validated export snapshot. `deadline` is an absolute
 `time.monotonic()` value, not a duration. See [extension guidance](renderers.md#custom-renderers).
 Test custom renderers through `Report.to_html(renderer=...)` and

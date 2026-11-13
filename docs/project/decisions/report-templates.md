@@ -478,7 +478,7 @@ is implied. Close owned resources on failure; preserve caller-owned connections.
 The [implementation plan](../template-implementation-plan.md) defines delivery
 slices, per-slice documentation and acceptance checks.
 
-The existing Report API, frozen components, renderer protocol and file publication
+The existing Report API, frozen components, renderer interface and file publication
 behavior remain unchanged. The new formats start provisional at version 1;
 compatibility changes to serialized structure normally require a new format version.
 Owner exception (2026-11-04, version 0.3.0): with no external users, optional

@@ -7,6 +7,7 @@ import json
 import time
 from dataclasses import asdict
 from html import escape
+from typing import cast
 
 from ._chart_display import (
     category_colors,
@@ -19,6 +20,7 @@ from ._chart_display import (
     marker_sizes,
     series_colors,
 )
+from ._svg_spec import FormattingSpec, SvgSeries, SvgSpec
 from .document import ReportDocument
 from .html import (
     chart_frame,
@@ -38,10 +40,11 @@ from .model import (
     UnsupportedFeatureError,
 )
 from .pdf import run_worker
+from .renderers import Renderer
 from .validation import MAX_PAGES
 
 
-class WeasyPrintRenderer:
+class WeasyPrintRenderer(Renderer):
     """Experimental: dashboard cards, text, tables, bars, lines and funnels.
 
     Automatic flow is explicitly unsupported. Uses pinned WeasyPrint 70.0 private box measurements with a
@@ -60,14 +63,14 @@ class WeasyPrintRenderer:
             raise UnsupportedFeatureError(
                 "WeasyPrintRenderer: flow mode is not yet supported"
             )
-        charts: dict[str, object] = {}
+        charts: dict[str, SvgSpec] = {}
 
         def chart(obj: Chart, path: str, definite: bool) -> str:
             data = doc.charts[path]
             attrs = f'data-kind="{type(obj).__name__}" data-path="{path}"'
             if empty(obj, data):
                 return empty_chart(obj, data, path, doc.empty_text)
-            payload: dict[str, object] = {
+            payload: SvgSpec = {
                 "kind": "line"
                 if isinstance(obj, LineChart)
                 else "funnel"
@@ -75,18 +78,18 @@ class WeasyPrintRenderer:
                 else "bar",
                 "compact": compact(obj, data),
                 "labels": data.category_labels or data.labels,
-                "formatting": asdict(doc.formatting)
+                "formatting": cast(FormattingSpec, asdict(doc.formatting))
                 if doc.formatting is not None
                 else None,
                 "series": [
-                    {
-                        "values": item.values,
-                        "value_labels": item.labels,
-                        "color": series_colors(doc.theme)[i],
-                        "marker_sizes": marker_sizes(item.values, obj.markers)
+                    SvgSeries(
+                        values=item.values,
+                        value_labels=item.labels,
+                        color=series_colors(doc.theme)[i],
+                        marker_sizes=marker_sizes(item.values, obj.markers)
                         if isinstance(obj, LineChart)
                         else [],
-                    }
+                    )
                     for i, item in enumerate(data.series)
                 ],
                 "horizontal": isinstance(obj, Funnel)
@@ -106,26 +109,32 @@ class WeasyPrintRenderer:
                     else tuple(float(i) for i in range(len(data.labels)))
                 )
                 payload.update(
-                    x_range=line_x_range(positions, dates=obj.x_kind == "date"),
-                    axes=obj.axes,
-                    fill=obj.fill,
-                    y_range=line_range(data, obj.fill),
-                    fill_color=fill_color(doc.theme.accent, doc.theme.card_background),
-                    positions=date_positions(data.labels)
-                    if obj.x_kind == "date"
-                    else tuple(range(len(data.labels))),
-                    ticks=date_positions(data.tick_values)
-                    if obj.x_kind == "date"
-                    else tuple(range(len(data.labels))),
-                    tick_labels=data.tick_labels
-                    if obj.x_kind == "date"
-                    else data.labels,
+                    {
+                        "x_range": line_x_range(positions, dates=obj.x_kind == "date"),
+                        "axes": obj.axes,
+                        "fill": obj.fill,
+                        "y_range": line_range(data, obj.fill),
+                        "fill_color": fill_color(
+                            doc.theme.accent, doc.theme.card_background
+                        ),
+                        "positions": date_positions(data.labels)
+                        if obj.x_kind == "date"
+                        else tuple(range(len(data.labels))),
+                        "ticks": date_positions(data.tick_values)
+                        if obj.x_kind == "date"
+                        else tuple(range(len(data.labels))),
+                        "tick_labels": data.tick_labels
+                        if obj.x_kind == "date"
+                        else data.labels,
+                    }
                 )
             elif isinstance(obj, BarChart):
                 payload.update(
-                    mode=obj.mode,
-                    category_labels=obj.category_labels,
-                    colors=category_colors(obj, doc.theme, len(data.labels)),
+                    {
+                        "mode": obj.mode,
+                        "category_labels": obj.category_labels,
+                        "colors": category_colors(obj, doc.theme, len(data.labels)),
+                    }
                 )
             charts[path] = payload
             small = " compact-chart" if compact(obj, data) else ""

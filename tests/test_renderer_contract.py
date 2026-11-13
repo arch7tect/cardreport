@@ -145,6 +145,7 @@ def test_empty_report(renderer):
 
 
 def test_validation_before_custom_renderer_and_frozen_snapshot():
+    # Preserve runtime duck typing; the ABC is the static extension contract.
     class Capture:
         doc = None
 
@@ -387,3 +388,30 @@ def test_font_verification_reaches_nested_forms_and_rejects_substitution():
     reader = SimpleNamespace(pages=[DictionaryObject({NameObject("/Resources"): root})])
     with pytest.raises(RenderError, match="identity or version"):
         verify_fonts(reader)
+
+
+def test_renderer_abstract_contract():
+    from cardreport import ChromiumRenderer, Renderer, WeasyPrintRenderer
+
+    assert issubclass(ChromiumRenderer, Renderer)
+    assert issubclass(WeasyPrintRenderer, Renderer)
+    with pytest.raises(TypeError, match="abstract"):
+        Renderer()
+
+    class Incomplete(Renderer):
+        def render_html(self, doc):
+            return "preview"
+
+    with pytest.raises(TypeError, match="abstract"):
+        Incomplete()
+
+
+def test_svg_formatting_fields_match_model():
+    from dataclasses import fields
+
+    from cardreport import Formatting
+    from cardreport._svg_spec import FormattingSpec
+
+    assert set(FormattingSpec.__annotations__) == {
+        field.name for field in fields(Formatting)
+    }

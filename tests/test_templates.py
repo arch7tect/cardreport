@@ -284,3 +284,36 @@ def test_bound_hostile_text_is_literal():
     html = ReportTemplate(definition()).bind(inp).to_html()
     assert "&lt;script&gt;alert" in html
     assert '<script>alert("x")</script>' not in html
+
+
+def test_binding_uses_model_defaults():
+    from cardreport import Formatting, Page, Theme
+
+    spec = {"format": "cardreport.template/1", "datasets": {}, "report": {"blocks": []}}
+    report = ReportTemplate.from_dict(spec).bind({})
+    assert report.page == Page()
+    assert report.theme == Theme()
+    assert report.formatting is None
+    spec["report"]["formatting"] = {}
+    report = ReportTemplate.from_dict(spec).bind({})
+    assert report.formatting == Formatting()
+    spec["report"].update(
+        theme={"gap_mm": 7},
+        page={"orientation": "landscape"},
+        formatting={"group": "space"},
+    )
+    report = ReportTemplate.from_dict(spec).bind({})
+    assert report.theme == Theme(gap_mm=7)
+    assert report.page == Page(orientation="landscape")
+    assert report.formatting == Formatting(group="space")
+
+
+def test_schema_null_formatting_keeps_error_location():
+    spec = {
+        "format": "cardreport.template/1",
+        "datasets": {},
+        "report": {"blocks": [], "formatting": {"decimal": None}},
+    }
+    with pytest.raises(TemplateError) as caught:
+        ReportTemplate.from_dict(spec)
+    assert caught.value.template_path == "report.formatting.decimal"

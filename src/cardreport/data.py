@@ -3,6 +3,7 @@
 import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
+from dataclasses import fields as dataclass_fields
 from datetime import UTC, date, datetime, timezone
 from decimal import Decimal
 from types import MappingProxyType
@@ -35,7 +36,8 @@ class DataLimits:
 
     def __post_init__(self) -> None:
         caps = (2000, 100, 32, 100000, 10000, 16 * 1024 * 1024, 16 * 1024 * 1024)
-        for key, cap in zip(self.__dataclass_fields__, caps, strict=True):
+        for spec, cap in zip(dataclass_fields(self), caps, strict=True):
+            key = spec.name
             value = getattr(self, key)
             if type(value) is not int or not 1 <= value <= cap:
                 raise DataError(f"limits.{key}: expected integer in 1..{cap}")
@@ -363,12 +365,10 @@ def _bundle_from_tree(tree: object, limits: DataLimits) -> dict[str, Dataset]:
             dataset = Dataset(columns, _records(raw_rows, columns), limits=limits)
             # The newly created Dataset already checked every value with these limits.
             # Only cross-dataset totals remain; do not repeat cell validation here.
-            text_bytes += sum(
-                len(v.encode("utf-8"))
-                for row in dataset.rows
-                for v in row
-                if isinstance(v, str)
-            )
+            for row in dataset.rows:
+                for cell_value in row:
+                    if isinstance(cell_value, str):
+                        text_bytes += len(cell_value.encode("utf-8"))
             if text_bytes > limits.max_text_bytes:
                 raise DataError("bundle text byte limit exceeded")
             result[key] = dataset

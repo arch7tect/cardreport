@@ -7,7 +7,7 @@ from dataclasses import field as dataclass_field
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from types import MappingProxyType
-from typing import Literal, cast
+from typing import Literal, NamedTuple, cast
 
 from ._inputs import (
     BindingError,
@@ -96,12 +96,21 @@ def schemas(value: object) -> Mapping[str, DatasetSchema]:
     return MappingProxyType(result)
 
 
+class _ComponentVisit(NamedTuple):
+    node: object
+    path: str
+    depth: int
+
+
 def _component_limits(report: object) -> None:
     # Bound traversal before the recursive schema validator runs.
     blocks = report.get("blocks") if isinstance(report, dict) else None
     if not isinstance(blocks, list):
         return
-    stack = [(block, f"report.blocks[{i}]", 0) for i, block in enumerate(blocks)]
+    stack: list[_ComponentVisit] = [
+        _ComponentVisit(block, f"report.blocks[{i}]", 0)
+        for i, block in enumerate(blocks)
+    ]
     count = 0
     while stack:
         node, path, depth = stack.pop()
@@ -113,12 +122,12 @@ def _component_limits(report: object) -> None:
         if not isinstance(node, dict):
             continue
         if node.get("type") == "card" and "content" in node:
-            stack.append((node["content"], path + ".content", depth + 1))
+            stack.append(_ComponentVisit(node["content"], path + ".content", depth + 1))
         elif node.get("type") in ("row", "column"):
             children = node.get("children")
             if isinstance(children, list):
                 stack.extend(
-                    (child, f"{path}.children[{i}]", depth + 1)
+                    _ComponentVisit(child, f"{path}.children[{i}]", depth + 1)
                     for i, child in enumerate(children)
                 )
 
@@ -227,121 +236,125 @@ class _Builder:
                 self.text(obj.get("note"), optional=True),
             )
         if kind == "table":
-            dataset = cast(str, obj["dataset"])
-            if dataset not in self.contracts:
-                raise ValueError("table names an undeclared dataset")
-            columns: list[TableColumn] = []
-            for raw in array(obj["columns"]):
-                col = mapping(raw)
-                key = cast(str, col["key"])
-                format = fmt(col.get("format", "number"))
-                self.format_type(self.field(dataset, key), format)
-                width = col.get("width")
-                columns.append(
-                    TableColumn(
-                        key,
-                        cast(str, col["label"]),
-                        format,
-                        cast(
-                            Literal["left", "center", "right"], col.get("align", "left")
-                        ),
-                        None if width is None else numeric(width),
-                    )
-                )
-            values = {col.key: self.values(dataset, col.key) for col in columns}
-            rows = [
-                {col.key: values[col.key][i] for col in columns}
-                for i in range(len(next(iter(values.values()), [])))
-            ]
-            self.table_sources[generated] = dataset
-            return Table(
-                columns,
-                rows,
-                None if obj.get("empty_text") is None else cast(str, obj["empty_text"]),
-            )
+            return self.table(obj, generated)
         if kind in ("bar", "line", "funnel"):
-            axis = "x" if kind == "line" else "category"
-            dataset, axis_field = cast(str, obj["dataset"]), cast(str, obj[axis])
-            axis_spec = self.field(dataset, axis_field)
-            x_kind: Literal["category", "date"] = cast(
-                Literal["category", "date"], obj.get("x_kind", "category")
-            )
-            allowed = (
-                ("text", "date", "datetime")
-                if kind == "bar"
-                else ("date", "datetime")
-                if kind == "line" and x_kind == "date"
-                else ("text",)
-            )
-            if axis_spec.type not in allowed or axis_spec.nullable:
-                raise ValueError("incompatible category/x field")
-            specs = (
-                [{"field": obj["value"], "label": ""}]
-                if "value" in obj
-                else array(obj["series"])
-            )
-            series: dict[str, list[Number | None]] = {}
-            for raw in specs:
-                spec = mapping(raw)
-                field, label = cast(str, spec["field"]), cast(str, spec["label"])
-                field_spec = self.field(dataset, field)
-                if field_spec.type not in ("integer", "number", "decimal") or (
-                    field_spec.nullable and kind != "line"
-                ):
-                    raise ValueError("incompatible chart value field")
-                if label in series:
-                    raise ValueError("duplicate chart series labels")
-                series[label] = cast(list[Number | None], self.values(dataset, field))
-            x = self.values(dataset, axis_field)
-            format = fmt(obj.get("value_format", "number"))
-            if kind == "line":
-                return LineChart(
-                    cast(list[str | date | datetime], x),
-                    values=next(iter(series.values())) if "value" in obj else None,
-                    series=series if "series" in obj else None,
-                    x_kind=x_kind,
-                    axes=cast(bool, obj.get("axes", True)),
-                    markers=cast(bool, obj.get("markers", True)),
-                    fill=cast(Literal["none", "zero"], obj.get("fill", "none")),
-                    legend=cast(bool, obj.get("legend", True)),
-                    value_format=format,
+            return self.chart(obj, kind)
+        raise ValueError("unknown component type")
+
+    def table(self, obj: Mapping[str, object], generated: str) -> Table:
+        dataset = cast(str, obj["dataset"])
+        if dataset not in self.contracts:
+            raise ValueError("table names an undeclared dataset")
+        columns: list[TableColumn] = []
+        for raw in array(obj["columns"]):
+            col = mapping(raw)
+            key = cast(str, col["key"])
+            format = fmt(col.get("format", "number"))
+            self.format_type(self.field(dataset, key), format)
+            width = col.get("width")
+            columns.append(
+                TableColumn(
+                    key,
+                    cast(str, col["label"]),
+                    format,
+                    cast(Literal["left", "center", "right"], col.get("align", "left")),
+                    None if width is None else numeric(width),
                 )
-            numbers = cast(dict[str, list[Number]], series)
-            if kind == "bar":
-                return BarChart(
-                    cast(list[str | date | datetime], x),
-                    values=next(iter(numbers.values())) if "value" in obj else None,
-                    series=numbers if "series" in obj else None,
-                    orientation=cast(
-                        Literal["vertical", "horizontal"],
-                        obj.get("orientation", "vertical"),
-                    ),
-                    mode=cast(
-                        Literal["grouped", "stacked"], obj.get("mode", "grouped")
-                    ),
-                    color_by=cast(
-                        Literal["series", "category"], obj.get("color_by", "series")
-                    ),
-                    legend_position=cast(
-                        Literal["bottom", "left"], obj.get("legend_position", "bottom")
-                    ),
-                    category_labels=cast(bool, obj.get("category_labels", True)),
-                    show_labels=cast(bool, obj.get("show_labels", False)),
-                    legend=cast(bool, obj.get("legend", True)),
-                    value_format=format,
-                )
-            return Funnel(
-                cast(list[str], x),
-                next(iter(numbers.values())),
-                show_labels=cast(bool, obj.get("show_labels", True)),
+            )
+        values = {col.key: self.values(dataset, col.key) for col in columns}
+        rows = [
+            {col.key: values[col.key][i] for col in columns}
+            for i in range(len(next(iter(values.values()), [])))
+        ]
+        self.table_sources[generated] = dataset
+        return Table(
+            columns,
+            rows,
+            None if obj.get("empty_text") is None else cast(str, obj["empty_text"]),
+        )
+
+    def chart(
+        self, obj: Mapping[str, object], kind: str
+    ) -> BarChart | LineChart | Funnel:
+        axis = "x" if kind == "line" else "category"
+        dataset, axis_field = cast(str, obj["dataset"]), cast(str, obj[axis])
+        axis_spec = self.field(dataset, axis_field)
+        x_kind: Literal["category", "date"] = cast(
+            Literal["category", "date"], obj.get("x_kind", "category")
+        )
+        allowed = (
+            ("text", "date", "datetime")
+            if kind == "bar"
+            else ("date", "datetime")
+            if kind == "line" and x_kind == "date"
+            else ("text",)
+        )
+        if axis_spec.type not in allowed or axis_spec.nullable:
+            raise ValueError("incompatible category/x field")
+        specs = (
+            [{"field": obj["value"], "label": ""}]
+            if "value" in obj
+            else array(obj["series"])
+        )
+        series: dict[str, list[Number | None]] = {}
+        for raw in specs:
+            spec = mapping(raw)
+            field, label = cast(str, spec["field"]), cast(str, spec["label"])
+            field_spec = self.field(dataset, field)
+            if field_spec.type not in ("integer", "number", "decimal") or (
+                field_spec.nullable and kind != "line"
+            ):
+                raise ValueError("incompatible chart value field")
+            if label in series:
+                raise ValueError("duplicate chart series labels")
+            series[label] = cast(list[Number | None], self.values(dataset, field))
+        x = self.values(dataset, axis_field)
+        format = fmt(obj.get("value_format", "number"))
+        if kind == "line":
+            return LineChart(
+                cast(list[str | date | datetime], x),
+                values=next(iter(series.values())) if "value" in obj else None,
+                series=series if "series" in obj else None,
+                x_kind=x_kind,
+                axes=cast(bool, obj.get("axes", True)),
+                markers=cast(bool, obj.get("markers", True)),
+                fill=cast(Literal["none", "zero"], obj.get("fill", "none")),
+                legend=cast(bool, obj.get("legend", True)),
                 value_format=format,
             )
-        raise ValueError("unknown component type")
+        numbers = cast(dict[str, list[Number]], series)
+        if kind == "bar":
+            return BarChart(
+                cast(list[str | date | datetime], x),
+                values=next(iter(numbers.values())) if "value" in obj else None,
+                series=numbers if "series" in obj else None,
+                orientation=cast(
+                    Literal["vertical", "horizontal"],
+                    obj.get("orientation", "vertical"),
+                ),
+                mode=cast(Literal["grouped", "stacked"], obj.get("mode", "grouped")),
+                color_by=cast(
+                    Literal["series", "category"], obj.get("color_by", "series")
+                ),
+                legend_position=cast(
+                    Literal["bottom", "left"], obj.get("legend_position", "bottom")
+                ),
+                category_labels=cast(bool, obj.get("category_labels", True)),
+                show_labels=cast(bool, obj.get("show_labels", False)),
+                legend=cast(bool, obj.get("legend", True)),
+                value_format=format,
+            )
+        return Funnel(
+            cast(list[str], x),
+            next(iter(numbers.values())),
+            show_labels=cast(bool, obj.get("show_labels", True)),
+            value_format=format,
+        )
 
     def build(self, value: object) -> Report:
         obj = mapping(value)
         page = mapping(obj.get("page", {}))
-        size = page.get("size", "A4")
+        size = page.get("size", Page.size)
         page_size: Literal["A4", "A3", "Letter"] | tuple[float, float]
         if isinstance(size, (list, tuple)):
             dimensions = array(size)
@@ -355,16 +368,27 @@ class _Builder:
             raw = mapping(obj["formatting"])
 
             formatting = Formatting(
-                decimal=cast(Literal[".", ","], raw.get("decimal", ".")),
+                decimal=cast(Literal[".", ","], raw.get("decimal", Formatting.decimal)),
                 group=cast(
-                    Literal[",", ".", "'", "space", "none"], raw.get("group", ",")
+                    Literal[",", ".", "'", "space", "none"],
+                    raw.get("group", Formatting.group),
                 ),
-                number_decimals=cast(int, raw.get("number_decimals", 2)),
-                percent_decimals=cast(int, raw.get("percent_decimals", 1)),
-                currency_decimals=cast(int, raw.get("currency_decimals", 2)),
-                date_format=cast(str | None, raw.get("date_format")),
-                datetime_format=cast(str | None, raw.get("datetime_format")),
-                locale=cast(str | None, raw.get("locale")),
+                number_decimals=cast(
+                    int, raw.get("number_decimals", Formatting.number_decimals)
+                ),
+                percent_decimals=cast(
+                    int, raw.get("percent_decimals", Formatting.percent_decimals)
+                ),
+                currency_decimals=cast(
+                    int, raw.get("currency_decimals", Formatting.currency_decimals)
+                ),
+                date_format=cast(
+                    str | None, raw.get("date_format", Formatting.date_format)
+                ),
+                datetime_format=cast(
+                    str | None, raw.get("datetime_format", Formatting.datetime_format)
+                ),
+                locale=cast(str | None, raw.get("locale", Formatting.locale)),
             )
         self.location = "report.language"
         language = cast(str, obj.get("language", "en"))
@@ -384,20 +408,26 @@ class _Builder:
                 page_size,
                 cast(
                     Literal["portrait", "landscape"],
-                    page.get("orientation", "portrait"),
+                    page.get("orientation", Page.orientation),
                 ),
-                numeric(page.get("margin_mm", 10)),
+                numeric(page.get("margin_mm", Page.margin_mm)),
             ),
             theme=Theme(
-                accent=cast(str, theme.get("accent", "#20a6c4")),
-                background=cast(str, theme.get("background", "#f5f5f5")),
-                card_background=cast(str, theme.get("card_background", "#ffffff")),
-                text=cast(str, theme.get("text", "#222222")),
-                gap_mm=numeric(theme.get("gap_mm", 4)),
-                padding_mm=numeric(theme.get("padding_mm", 4)),
-                font_size_pt=numeric(theme.get("font_size_pt", 10)),
-                chart_height_mm=numeric(theme.get("chart_height_mm", 60)),
-                kpi_value_size_pt=numeric(theme.get("kpi_value_size_pt", 24)),
+                accent=cast(str, theme.get("accent", Theme.accent)),
+                background=cast(str, theme.get("background", Theme.background)),
+                card_background=cast(
+                    str, theme.get("card_background", Theme.card_background)
+                ),
+                text=cast(str, theme.get("text", Theme.text)),
+                gap_mm=numeric(theme.get("gap_mm", Theme.gap_mm)),
+                padding_mm=numeric(theme.get("padding_mm", Theme.padding_mm)),
+                font_size_pt=numeric(theme.get("font_size_pt", Theme.font_size_pt)),
+                chart_height_mm=numeric(
+                    theme.get("chart_height_mm", Theme.chart_height_mm)
+                ),
+                kpi_value_size_pt=numeric(
+                    theme.get("kpi_value_size_pt", Theme.kpi_value_size_pt)
+                ),
             ),
         )
         for i, block in enumerate(array(obj["blocks"])):
@@ -446,7 +476,7 @@ class ReportTemplate:
     datasets: Mapping[str, DatasetSchema]
 
     def __init__(self, spec: Mapping[str, object]) -> None:
-        builder: _Builder | None = None
+        error_builder: _Builder | None = None
         try:
             check_tree(spec)
             encoded = json.dumps(
@@ -462,6 +492,7 @@ class ReportTemplate:
             validate_structure("template", root)
             contracts = schemas(root["datasets"])
             builder = _Builder(contracts, None)
+            error_builder = builder
             builder.build(root["report"])
         except TemplateError:
             raise
@@ -476,11 +507,11 @@ class ReportTemplate:
             raise TemplateError(
                 "invalid template: " + str(exc),
                 template_path=(
-                    builder.location_for(exc)[0]
+                    error_builder.location_for(exc)[0]
                     if isinstance(exc, ValidationError)
-                    else builder.location
+                    else error_builder.location
                 )
-                if builder
+                if error_builder
                 else None,
             ) from exc
         object.__setattr__(self, "_encoded", encoded)

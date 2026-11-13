@@ -10,6 +10,7 @@ from functools import lru_cache
 from importlib.resources import files
 from io import BytesIO
 from types import MappingProxyType
+from typing import cast
 
 from fontTools.ttLib import TTFont
 
@@ -49,7 +50,7 @@ def glyphs() -> frozenset[int]:
         with TTFont(
             BytesIO(files("cardreport").joinpath("assets", name).read_bytes())
         ) as font:
-            available = set(font.getBestCmap())
+            available = set(cast(dict[int, str], font.getBestCmap()))
             common = available if common is None else common & available
     return frozenset(common or ())
 
@@ -219,7 +220,7 @@ def normalize_chart(
         ordered = sorted(range(len(coordinates)), key=lambda i: coordinates[i])
         count = min(6, len(ordered))
         indices = [
-            ordered[round(i * (len(ordered) - 1) / max(1, count - 1))]
+            ordered[int(round(i * (len(ordered) - 1) / max(1, count - 1)))]
             for i in range(count)
         ]
         tick_values = tuple(coordinates[i] for i in indices)

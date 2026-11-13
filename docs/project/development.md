@@ -39,6 +39,13 @@ uv run --all-extras python scripts/check_dist.py
 
 Mypy strict mode includes source, positive/negative consumer cases, executable
 examples and maintenance scripts. Expected-error annotations fail if typing becomes permissive.
+
+For an IDE-reported typing problem, also rerun the IDE inspection on the changed
+file. A passing mypy run does not prove PyCharm's type inference agrees. An enabled
+[PyCharm MCP server](https://www.jetbrains.com/help/pycharm/mcp-server.html) exposes
+`get_file_problems`; pass the explicit project path and include warnings. Keep
+style suggestions separate from type errors, and retain the intentional
+`assert_never` exhaustiveness guard even when the IDE calls it unreachable.
 `check_docs.py` validates repository Markdown paths/anchors and runs Python blocks
 from README, user docs and `skills/**/SKILL.md` in isolated temporary output
 directories, one namespace per page. It also loads and binds the published template/data JSON fixtures through
@@ -90,7 +97,8 @@ A version bump in main requests an automated GitHub Release and, once configured
 PyPI publication. See [release operations and setup](releases.md). The setup gate makes unconfigured PyPI uploads explicit and preserves GitHub
 artifacts for later publication. Keep subjects concise and do not include tool attribution.
 See the [dated release verification](history/reviews/2026-11-04-renderer-refactor.md)
-for the initial version's test scope.
+for the initial version's test scope. The [ABC and internal refactoring review](history/reviews/2026-11-13-refactoring.md)
+records the later behavior-preservation checks.
 
 
 ## README screenshots

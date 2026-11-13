@@ -39,7 +39,7 @@ A snapshot contains no page coordinates. PDF deadlines start before validation.
 | [model.py](../../src/cardreport/model.py) | Components, aliases, formats, errors and Report facade |
 | [validation.py](../../src/cardreport/validation.py) | Independent semantic checks and normalization |
 | [document.py](../../src/cardreport/document.py) | Frozen export and chart records |
-| [renderers.py](../../src/cardreport/renderers.py) | Provisional Renderer Protocol and Chromium entry point |
+| [renderers.py](../../src/cardreport/renderers.py) | Provisional Renderer ABC and Chromium entry point |
 | [html.py](../../src/cardreport/html.py) | Escaped shared fragments and Chromium HTML document |
 | [charts.py](../../src/cardreport/charts.py) | Private Plotly specification adapter |
 | [pdf.py](../../src/cardreport/pdf.py) | Owned worker, deadline, error transport and cleanup |
@@ -88,8 +88,8 @@ Unsupported features fail explicitly rather than switching engines or weakening 
 Keep the component vocabulary closed and strongly typed. A new component requires
 validation, rendering support or explicit rejection, API documentation and tests.
 New renderer implementations satisfy the shared semantic/error/output contract,
-while owning their geometry and lifecycle. Do not add a registry or inheritance
-framework merely to reuse helpers. See the [extension decision](decisions/renderer-extension.md)
+while owning their geometry and lifecycle. Use the single Renderer ABC; do not add
+a registry or a deeper inheritance framework merely to reuse helpers. See the [extension decision](decisions/renderer-extension.md)
 for the rationale and the [development guide](development.md) for verification.
 
 ## Separate presentation and data
