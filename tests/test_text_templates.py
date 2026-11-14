@@ -72,7 +72,7 @@ def test_defaults_filters_and_roundtrip():
     template = ReportTemplate(spec)
     report = template.bind(data())
     assert report.title == "Daily report for 14.11.2026"
-    assert report.subtitle == "13.11.2026 22:30 | 14 noviembre 2026"
+    assert report.subtitle == "14.11.2026 01:30 | 14 noviembre 2026"
     assert (
         report.blocks[0].text
         == "EUR 1\u00a0234,50 / 12,5% / 12\u00a0540 / — / 1\u00a0234,5"
@@ -204,7 +204,7 @@ def test_date_like_text_and_no_formatting():
     del spec["report"]["formatting"]
     assert (
         ReportTemplate(spec).bind(data(label="2026-11-14")).title
-        == "2026-11-14 / 2026-11-14 / 2026-11-13T22:30:00+00:00"
+        == "2026-11-14 / 2026-11-14 / 2026-11-14T01:30:00+03:00"
     )
 
 
@@ -224,8 +224,8 @@ def test_both_pdf_engines(renderer):
 @pytest.mark.parametrize(
     "expression,expected",
     [
-        ("{{ datasets.summary.time | date }}", "13.11.2026"),
-        ("{{ datasets.summary.time | date('yyyy-MM-dd') }}", "2026-11-13"),
+        ("{{ datasets.summary.time | date }}", "14.11.2026"),
+        ("{{ datasets.summary.time | date('yyyy-MM-dd') }}", "2026-11-14"),
         ("Date\r\n{{ datasets.summary.day }}\r\n", "Date\n14.11.2026\n"),
         ("{{ datasets.summary.total | currency('EUR') }}", "EUR 12\u00a0540,00"),
     ],
@@ -248,7 +248,9 @@ def test_cli_csv_date_substitution(tmp_path):
     template = tmp_path / "daily.yaml"
     template.write_text(TEMPLATE_YAML)
     csv = tmp_path / "summary.csv"
-    csv.write_text("report_date,total,rate\n2026-11-14,12540,0.976\n")
+    csv.write_text(
+        "report_date,total,rate,created_at\n2026-11-14,12540,0.976,2026-11-14T22:30:00Z\n"
+    )
     output = tmp_path / "daily.html"
     assert (
         main(
@@ -268,3 +270,4 @@ def test_cli_csv_date_substitution(tmp_path):
     assert "Daily report for 14.11.2026" in html
     assert "Month: November 2026" in html
     assert "Automation: 97.6%" in html
+    assert "Updated 15.11.2026 00:30 +02:00" in html

@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import replace
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import cast
 
 from jinja2 import Environment, StrictUndefined, Undefined, nodes
@@ -30,10 +30,12 @@ class TextTemplates:
         data: Mapping[str, Dataset] | None,
         formatting: Formatting | None,
         language: str,
+        timezone: str | None = None,
     ) -> None:
         self.contracts = contracts
         self.formatting = formatting
         self.language = language
+        self.timezone = timezone
         self.data = data
         self.context = (
             {
@@ -55,6 +57,7 @@ class TextTemplates:
         self.env.filters.clear()
         self.env.filters.update(
             date=self.date,
+            datetime=self.datetime,
             number=self.format,
             integer=lambda value: self.format(value, "integer"),
             percent=lambda value: self.format(value, "percent"),
@@ -64,13 +67,19 @@ class TextTemplates:
     def format(self, value: object, fmt: Format = "number") -> str:
         if isinstance(value, Undefined):
             return str(value)  # Preserve StrictUndefined's missing-field diagnostic.
-        return format_value(value, fmt, self.formatting, self.language)
+        return format_value(value, fmt, self.formatting, self.language, self.timezone)
 
     def date(self, value: object, pattern: str | None = None) -> str:
         formatting = self.formatting
         if pattern is not None:
             formatting = replace(formatting or Formatting(), date_format=pattern)
-        return format_value(value, "date", formatting, self.language)
+        return format_value(value, "date", formatting, self.language, self.timezone)
+
+    def datetime(self, value: object, pattern: str | None = None) -> str:
+        formatting = self.formatting
+        if pattern is not None:
+            formatting = replace(formatting or Formatting(), datetime_format=pattern)
+        return format_value(value, "number", formatting, self.language, self.timezone)
 
     def _reference(self, node: nodes.Expr) -> FieldSpec:
         parts: list[str] = []
@@ -122,6 +131,12 @@ class TextTemplates:
                     "date filter requires a date/datetime and optional pattern"
                 )
             self.date(date(2026, 1, 1), args[0] if args else None)
+        elif node.name == "datetime":
+            if spec.type != "datetime" or len(args) > 1:
+                raise ValueError(
+                    "datetime filter requires a datetime and optional pattern"
+                )
+            self.datetime(datetime(2026, 1, 1, tzinfo=UTC), args[0] if args else None)
         else:
             if spec.type not in ("integer", "number", "decimal"):
                 raise ValueError("numeric filter requires a numeric field")

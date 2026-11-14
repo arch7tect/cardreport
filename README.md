@@ -160,7 +160,10 @@ default. Reports reject content that does not fit rather than silently shrinking
 
 Daily titles can use typed data directly, for example
 `"Daily report for {{ datasets.summary.report_date }}"`. Dates and numbers inherit
-report formatting; `| date('MMMM yyyy')` overrides a date's display. See
+report formatting; `| date('MMMM yyyy')` overrides a date's display, and
+`| datetime('dd.MM.yyyy HH:mm XXX')` formats a timestamp. Set `report.timezone`
+(e.g. `Asia/Nicosia`) to display timestamps in one zone; otherwise their supplied
+offsets are preserved. See
 [text substitutions](https://github.com/arch7tect/cardreport/blob/main/docs/user/templates.md#text-substitutions)
 and the [daily report example](https://github.com/arch7tect/cardreport/blob/main/examples/daily_report.py).
 

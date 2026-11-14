@@ -168,7 +168,6 @@ def test_exponential_aliases_rejected_before_construction():
         ".nan",
         "!!binary aGVsbG8=",
         "!!set {x: null}",
-        "2026-11-05T12:30:00",
     ],
 )
 def test_unsupported_data_scalars(scalar):

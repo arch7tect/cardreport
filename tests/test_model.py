@@ -13,8 +13,7 @@ def test_formats_and_dates():
     assert format_value(10000) == "10,000"
     assert format_value(None) == "—"
     assert format_value(date(2026, 11, 4), "date") == "2026-11-04"
-    with pytest.raises(ValidationError):
-        format_value(datetime(2026, 1, 1))
+    assert format_value(datetime(2026, 1, 1)) == "2026-01-01T00:00:00+00:00"
     assert "+00:00" in format_value(datetime(2026, 1, 1, tzinfo=UTC))
 
 
@@ -31,7 +30,6 @@ def test_formats_and_dates():
         BarChart(["x"], [float("nan")]),
         BarChart(["x"], [True]),
         Funnel(["x"], [-1]),
-        LineChart([datetime(2026, 1, 1)], [1], x_kind="date"),
         Table([TableColumn("x", "X")], [{}]),
         Table([TableColumn("x", "X"), TableColumn("x", "Y")], []),
         Text("x", style="raw"),

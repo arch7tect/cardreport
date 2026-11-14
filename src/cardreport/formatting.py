@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime
 from functools import lru_cache
 from typing import Literal
 from unicodedata import category
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 from babel import Locale, UnknownLocaleError
 from babel.dates import PATTERN_CHARS, DateTimeFormat, parse_pattern, tokenize_pattern
@@ -12,6 +13,37 @@ from langcodes import Language, standardize_tag
 from langcodes.tag_parser import LanguageTagError
 
 from .model import ValidationError
+
+
+@lru_cache(maxsize=1)
+def _timezone_names() -> frozenset[str]:
+    # Exclude host-dependent pseudo-zones and require portable case-sensitive names.
+    return frozenset(available_timezones() - {"localtime", "posixrules", "Factory"})
+
+
+def report_timezone(value: str | None) -> ZoneInfo | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not 1 <= len(value) <= 100:
+        raise ValidationError("timezone: expected an IANA timezone name")
+    if value.startswith(("posix/", "right/")) or value not in _timezone_names():
+        raise ValidationError("timezone: unknown IANA timezone name")
+    try:
+        return ZoneInfo(value)
+    except (ValueError, ZoneInfoNotFoundError) as exc:
+        raise ValidationError("timezone: unknown IANA timezone name") from exc
+
+
+def display_datetime(value: datetime, timezone: str | None = None) -> datetime:
+    try:
+        if value.utcoffset() is None:
+            value = value.replace(tzinfo=UTC)
+        zone = report_timezone(timezone)
+        return value if zone is None else value.astimezone(zone)
+    except (OverflowError, ValueError) as exc:
+        raise ValidationError(
+            "value: datetime outside supported timezone range"
+        ) from exc
 
 
 def _apply_pattern(pattern: str, value: date, locale: Locale | str) -> str:
@@ -177,9 +209,7 @@ class Formatting:
 
     def dates(self, value: date, *, date_only: bool, language: str) -> str:
         if isinstance(value, datetime):
-            if value.utcoffset() is None:
-                raise ValidationError("value: naive datetime is unsupported")
-            value = value.astimezone(UTC)
+            value = display_datetime(value)
             if date_only:
                 return self.dates(value.date(), date_only=True, language=language)
             if self.datetime_format is not None:
@@ -190,7 +220,7 @@ class Formatting:
                 return (
                     self.dates(value.date(), date_only=True, language=language)
                     + " "
-                    + value.timetz().isoformat()
+                    + value.isoformat().split("T", 1)[1]
                 )
             return value.isoformat()
         if self.date_format is None:

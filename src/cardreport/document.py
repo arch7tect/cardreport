@@ -36,3 +36,4 @@ class ReportDocument:
     language: str = "en"
     formatting: Formatting | None = None
     empty_text: str = "No data"
+    timezone: str | None = None

@@ -159,16 +159,16 @@ def chart_spec(
         else:
             axis["tickformat"] = f"{grouping}.{formatting.number_decimals}~f"
         axis["exponentformat"] = "none"
-        if category["type"] == "date":
-            category.update(
-                tickmode="array",
-                tickvals=list(normalized.tick_values),
-                ticktext=[escape(t) for t in normalized.tick_labels],
-            )
+    if category["type"] == "date":
+        category.update(
+            tickmode="array",
+            tickvals=list(normalized.tick_values),
+            ticktext=[escape(t) for t in normalized.tick_labels],
+            # Date ticks can extend left of the first point into the y-axis labels.
+            ticklabelstandoff=round(theme.font_size_pt * 96 / 72 / 2),
+        )
     category_count: int | None = (
-        len(x)
-        if category["type"] == "category"
-        else (len(normalized.tick_values) if formatting is not None else None)
+        len(x) if category["type"] == "category" else len(normalized.tick_values)
     )
     if isinstance(obj, LineChart):
         if not obj.axes or not obj.markers or obj.fill != "none":

@@ -115,3 +115,6 @@ report.to_html(renderer=ApplicationRenderer())
 report.to_html(renderer=ChromiumRenderer())
 report.to_html(renderer=StructuralRenderer())  # type: ignore[arg-type]
 Renderer()  # type: ignore[abstract]
+
+assert_type(Report(timezone="Asia/Nicosia").timezone, str | None)
+Report(timezone=42)  # type: ignore[arg-type]

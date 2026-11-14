@@ -1,6 +1,6 @@
 """Daily headings from typed data, with no preassembled display strings."""
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 from cardreport import Dataset, Report, ReportTemplate
 
@@ -11,10 +11,12 @@ datasets:
     cardinality: one
     fields:
       report_date: {type: date}
+      created_at: {type: datetime}
       total: {type: integer}
       rate: {type: number}
 report:
   language: en
+  timezone: Asia/Nicosia
   formatting:
     date_format: dd.MM.yyyy
     group: space
@@ -29,14 +31,25 @@ report:
         value:
           bind: {dataset: summary, field: total}
         format: integer
-        note: "Updated {{ datasets.summary.report_date }}"
+        note: "Updated {{ datasets.summary.created_at | datetime('dd.MM.yyyy HH:mm XXX') }}"
 """
 
 
 def build_report(day: date = date(2026, 11, 14), total: int = 12540) -> Report:
     template = ReportTemplate.from_yaml(TEMPLATE_YAML)
     return template.bind(
-        {"summary": Dataset.single({"report_date": day, "total": total, "rate": 0.976})}
+        {
+            "summary": Dataset.single(
+                {
+                    "report_date": day,
+                    "total": total,
+                    "rate": 0.976,
+                    "created_at": datetime(
+                        day.year, day.month, day.day, 22, 30, tzinfo=UTC
+                    ),
+                }
+            )
+        }
     )
 
 

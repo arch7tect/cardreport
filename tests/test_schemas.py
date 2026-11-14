@@ -467,7 +467,6 @@ def test_native_literal_options_match_transport_schema():
 @pytest.mark.parametrize(
     "source",
     [
-        "format: cardreport.data/1\ndatasets: {x: {columns: [v], rows: [{v: 2026-11-05T12:00:00}]}}",
         "format: cardreport.data/1\ndatasets: {x: {columns: [v], rows: [{v: {$type: date, value: 2026-11-05}}]}}",
     ],
 )

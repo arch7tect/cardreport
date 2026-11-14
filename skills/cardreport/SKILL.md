@@ -131,7 +131,10 @@ collision by adding an unrelated page break.
 
 For JSON/YAML templates, put `{{ datasets.summary.report_date }}` directly in a
 supported display string and declare `summary` as a one-row dataset with a date
-field. Default formatting comes from the report. Use `| date('MMMM yyyy')` only for
+field. Default formatting comes from the report. Use `report.timezone` for a
+common display zone; otherwise timestamp offsets are preserved. Values without
+offsets mean UTC, while calendar dates never shift. `| datetime('dd.MM.yyyy HH:mm XXX')`
+formats a datetime with its time. Use `| date('MMMM yyyy')` only for
 an override; use numeric filters for percentages, integers or currency. Do not
 assemble entire headings in input data. Quote YAML expressions. Other fields and
 Python model strings stay literal. See the exact six positions, escaping and

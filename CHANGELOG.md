@@ -5,6 +5,21 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.9.1 — 2026-11-14
+
+- Fix datetime display: preserve supplied offsets by default instead of forcing
+  UTC. Optional `Report(timezone="Asia/Nicosia")` / template `report.timezone`
+  converts display consistently across text, KPI, tables and both chart engines.
+- Interpret datetimes without offsets as UTC in Python, JSON, YAML, CSV and pandas.
+  Calendar dates never shift; date extraction occurs after display-zone conversion.
+- Add the Jinja `datetime` filter with an optional LDML pattern.
+- Always use shared date-axis labels in Chromium, including when formatting is
+  omitted. Chart positions still represent the same instants. Full ISO timestamps
+  can require a wider chart or a shorter `datetime_format`; overlaps still fail
+  explicitly. Reserve space between date ticks and the numeric axis.
+- Behavior change: select `timezone="UTC"` explicitly to retain prior UTC display.
+  Canonical serialization adds `+00:00` to timestamps received without an offset.
+
 ## 0.9.0 — 2026-11-14
 
 - Add Jinja text substitutions in template report titles/subtitles, card titles,

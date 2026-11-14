@@ -85,17 +85,17 @@ def test_invalid_formatting(kwargs):
 def test_dates_locale_and_lossless_default_time():
     v = datetime(2026, 11, 4, 23, 30, 45, 123456, tzinfo=timezone(timedelta(hours=-2)))
     f = Formatting(date_format="d 'de' MMMM 'de' yyyy")
-    assert format_value(v, "date", f, "es-MX") == "5 de noviembre de 2026"
+    assert format_value(v, "date", f, "es-MX") == "4 de noviembre de 2026"
     assert (
         format_value(v, "number", f, "es-MX")
-        == "5 de noviembre de 2026 01:30:45.123456+00:00"
+        == "4 de noviembre de 2026 23:30:45.123456-02:00"
     )
-    assert format_value(v, formatting=Formatting()) == v.astimezone(UTC).isoformat()
+    assert format_value(v, formatting=Formatting()) == v.isoformat()
     assert (
         format_value(
             v, formatting=Formatting(datetime_format="yyyy-MM-dd HH:mm:ss.SSSSSS XXX")
         )
-        == "2026-11-05 01:30:45.123456 Z"
+        == "2026-11-04 23:30:45.123456 -02:00"
     )
     assert (
         format_value(
@@ -105,7 +105,7 @@ def test_dates_locale_and_lossless_default_time():
         )
         == "novembre"
     )
-    assert format_value(v, "date", Formatting(datetime_format="HH:mm")) == "2026-11-05"
+    assert format_value(v, "date", Formatting(datetime_format="HH:mm")) == "2026-11-04"
     with pytest.raises(ValidationError):
         Report(language="xx", formatting=f).validate()
     # Metadata accepts private-use and unknown languages, independently of Babel.
@@ -391,7 +391,7 @@ def test_locale_specific_runtime_errors_are_located(monkeypatch):
         report.validate()
 
 
-def test_decimal_context_isolation_and_naive_datetime_guard():
+def test_decimal_context_isolation_and_naive_datetime_utc():
     from decimal import Inexact, localcontext
 
     f = Formatting(currency_decimals=6)
@@ -404,8 +404,10 @@ def test_decimal_context_isolation_and_naive_datetime_guard():
         )
         assert format_value(Decimal("0.12345"), "percent", f) == "12.3%"
         assert context.prec == 3 and context.traps[Inexact]
-    with pytest.raises(ValidationError, match="naive"):
+    assert (
         f.dates(datetime(2026, 11, 4), date_only=False, language="en")
+        == "2026-11-04T00:00:00+00:00"
+    )
 
 
 def test_datetime_axis_keeps_utc_coordinates_and_formats_time():
@@ -419,9 +421,9 @@ def test_datetime_axis_keeps_utc_coordinates_and_formats_time():
     doc = validate_report(report)
     chart = doc.charts["blocks.0.0.content"]
     assert chart.tick_values[0] == "2026-11-04T10:00:00+00:00"
-    assert chart.tick_labels[0] == "04 nov 10:00"
+    assert chart.tick_labels[0] == "04 nov 08:00"
     pdf = PdfReader(io.BytesIO(report.to_pdf()))
-    assert "04 nov 10:00" in pdf.pages[0].extract_text()
+    assert "04 nov 08:00" in pdf.pages[0].extract_text()
 
 
 def test_extended_year_is_not_abbreviated():

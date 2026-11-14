@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import re
 from collections.abc import Mapping, Sequence
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from functools import lru_cache
 from importlib.resources import files
 from io import BytesIO
@@ -16,7 +16,14 @@ from fontTools.ttLib import TTFont
 
 from ._chart_display import category_colors, date_instants
 from .document import ChartData, ChartSeries, ReportDocument
-from .formatting import Formatting, date_locale, empty_label, language_tag
+from .formatting import (
+    Formatting,
+    date_locale,
+    display_datetime,
+    empty_label,
+    language_tag,
+    report_timezone,
+)
 from .model import (
     KPI,
     BarChart,
@@ -80,9 +87,10 @@ def formatted(
     path: str,
     formatting: Formatting | None = None,
     language: str = "en",
+    timezone: str | None = None,
 ) -> str:
     try:
-        result = format_value(value, fmt, formatting, language)
+        result = format_value(value, fmt, formatting, language, timezone)
     except ValidationError as exc:
         raise ValidationError(f"{path}: {exc}") from None
     return text(result, path)
@@ -93,7 +101,7 @@ def chart_labels(obj: Chart) -> list[str]:
     result = []
     for value in labels:
         if isinstance(value, datetime):
-            value = value.astimezone(UTC)
+            value = display_datetime(value, "UTC")
         result.append(value.isoformat() if isinstance(value, date) else value)
     return result
 
@@ -146,8 +154,6 @@ def validate_chart(obj: Chart, path: str) -> None:
         if is_date or (isinstance(obj, BarChart) and isinstance(value, date)):
             if not isinstance(value, date):
                 raise ValidationError(f"{path}: date axis requires dates")
-            if isinstance(value, datetime) and value.utcoffset() is None:
-                raise ValidationError(f"{path}: naive datetime")
         else:
             text(value, path + ".labels", 200)
     x = chart_labels(obj)
@@ -204,7 +210,11 @@ def validate_chart(obj: Chart, path: str) -> None:
 
 
 def normalize_chart(
-    obj: Chart, path: str, formatting: Formatting | None = None, language: str = "en"
+    obj: Chart,
+    path: str,
+    formatting: Formatting | None = None,
+    language: str = "en",
+    timezone: str | None = None,
 ) -> ChartData:
     validate_chart(obj, path)
     series: Mapping[str, Sequence[Number | None]] | None
@@ -225,7 +235,9 @@ def normalize_chart(
         ]
         tick_values = tuple(coordinates[i] for i in indices)
         tick_labels = tuple(
-            formatted(obj.x[i], "number", path + ".ticks", formatting, language)
+            formatted(
+                obj.x[i], "number", path + ".ticks", formatting, language, timezone
+            )
             for i in indices
         )
     category_values = tuple(chart_labels(obj))
@@ -233,7 +245,9 @@ def normalize_chart(
     if isinstance(obj, BarChart) and any(isinstance(v, date) for v in obj.labels):
         category_labels = tuple(
             text(
-                formatted(v, "number", path + ".labels", formatting, language),
+                formatted(
+                    v, "number", path + ".labels", formatting, language, timezone
+                ),
                 path + ".labels",
                 200,
             )
@@ -249,7 +263,12 @@ def normalize_chart(
                 tuple(None if v is None else number(v, path) for v in values),
                 tuple(
                     formatted(
-                        v, obj.value_format, path + ".values", formatting, language
+                        v,
+                        obj.value_format,
+                        path + ".values",
+                        formatting,
+                        language,
+                        timezone,
                     )
                     for v in values
                 ),
@@ -279,6 +298,8 @@ def validate_timeout(timeout: float) -> None:
 def validate_report(report: Report) -> ReportDocument:
     report.page.dimensions()
     language = language_tag(report.language)
+    timezone = report.timezone
+    report_timezone(timezone)
     formatting = report.formatting
     if formatting is not None:
         if not isinstance(formatting, Formatting):
@@ -376,7 +397,14 @@ def validate_report(report: Report) -> ReportDocument:
                 text(obj.text, path)
             elif isinstance(obj, KPI):
                 text(obj.label, path + ".label", 500)
-                formatted(obj.value, obj.format, path + ".value", formatting, language)
+                formatted(
+                    obj.value,
+                    obj.format,
+                    path + ".value",
+                    formatting,
+                    language,
+                    timezone,
+                )
                 if obj.note is not None:
                     text(obj.note, path + ".note", 500)
             elif isinstance(obj, Table):
@@ -413,6 +441,7 @@ def validate_report(report: Report) -> ReportDocument:
                             f"{path}.rows.{i}.{col.key}",
                             formatting,
                             language,
+                            timezone,
                         )
                 text(
                     empty if obj.empty_text is None else obj.empty_text,
@@ -422,7 +451,9 @@ def validate_report(report: Report) -> ReportDocument:
             elif isinstance(obj, (BarChart, LineChart, Funnel)):
                 if isinstance(obj, BarChart):
                     category_colors(obj, theme, len(obj.labels), path)
-                charts[path] = normalize_chart(obj, path, formatting, language)
+                charts[path] = normalize_chart(
+                    obj, path, formatting, language, timezone
+                )
             else:
                 raise ValidationError(f"{path}: unsupported component")
         finally:
@@ -441,4 +472,5 @@ def validate_report(report: Report) -> ReportDocument:
         language,
         formatting,
         empty,
+        timezone,
     )

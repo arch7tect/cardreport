@@ -131,11 +131,13 @@ assert localized.bind({"summary": Dataset.single({"total": 34})}).language == "e
 ```
 
 `formatting` is an object with the [Formatting fields](api.md#language-and-formatting).
-Omitting it means legacy axes; `{}` means explicit defaults. JSON `null` is not a
+Omitting it means automatic numeric axes; `{}` means explicit defaults. JSON `null` is not a
 formatting object. `date_format`, `datetime_format` and `locale` may be omitted or
 null. Report/table `empty_text` may be omitted/null to inherit, or a literal string.
 These options are static presentation settings, not data bindings. Serialization
-preserves the missing-vs-explicit distinction. No dataset/CSV parsing changes occur.
+preserves the missing-vs-explicit distinction. `report.timezone` accepts an IANA
+name such as `Asia/Nicosia`; omit it to preserve input offsets. See the
+[timezone rules and matrix](localization.md#timezones).
 
 See [spanish_template.json](../../examples/spanish_template.json) and
 [spanish_data.json](../../examples/spanish_data.json) for the complete example.
@@ -186,15 +188,19 @@ Use brackets for other names: `{{ datasets["daily summary"]["report date"] }}`.
 | `{{ datasets.summary.report_date }}` | Typed date using report `date_format` |
 | `{{ datasets.summary.report_date \| date }}` | Date-only display; default report format |
 | `{{ datasets.summary.report_date \| date('d MMMM yyyy') }}` | Explicit LDML date pattern |
+| `{{ datasets.summary.created_at \| datetime }}` | Timestamp using report `datetime_format` |
+| `{{ datasets.summary.created_at \| datetime('dd.MM.yyyy HH:mm XXX') }}` | Explicit LDML timestamp pattern |
 | `{{ datasets.summary.total }}` or `\| number` | Report number precision and grouping |
 | `{{ datasets.summary.total \| integer }}` | Rounded integer with report grouping |
 | `{{ datasets.summary.rate \| percent }}` | Fraction multiplied by 100, with percent precision |
 | `{{ datasets.summary.amount \| currency('EUR') }}` | Currency code and report currency precision |
 
 Typed datetimes use `datetime_format` by default; `date` selects the date only.
-Datetimes are normalized to UTC before formatting, including explicit filters.
-The date filter's optional pattern is a constant LDML string and supports date
-fields only (no time fields). Report `formatting.locale` or `language` selects
+All datetime display follows [report timezone rules](localization.md#timezones),
+including explicit filters. The `datetime` filter requires a datetime-typed field
+and accepts an optional constant LDML pattern with date and time fields. The
+`date` filter accepts date or datetime values, but its pattern supports only date
+fields (no time fields). Report `formatting.locale` or `language` selects
 month names. Strings stay literal, including strings resembling dates. Nullable
 values display an em dash (`—`); an absent field is an error. Numeric grouping also
 applies to integer years and IDs: declare these as text when grouping is unwanted.

@@ -145,7 +145,7 @@ def parse_scalar(text: str, kind: str) -> str | int | Decimal | date:
         return date.fromisoformat(text)
     if kind == "datetime" and scalar_pattern("datetime").fullmatch(text):
         # fromisoformat accepts out-of-range offset minutes by normalizing them.
-        if text[-1] != "Z" and (int(text[-5:-3]) > 23 or int(text[-2:]) > 59):
+        if text[-6:-5] in ("+", "-") and (int(text[-5:-3]) > 23 or int(text[-2:]) > 59):
             raise ValueError("invalid datetime offset")
         return datetime.fromisoformat(text)
     raise ValueError(f"expected {kind} in the documented lexical format")

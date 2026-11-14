@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.9.0/src/cardreport/schemas/template-1.json",
+  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.9.1/src/cardreport/schemas/template-1.json",
   "title": "CardReport template/1",
   "description": "Presentation and required dataset contracts. Binding and rendering perform additional semantic and layout checks.",
   "type": "object",
@@ -1015,6 +1015,12 @@
               "type": "null"
             }
           ]
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "IANA display timezone. Omit to preserve each datetime offset; naive datetimes mean UTC. Dates never shift."
         }
       },
       "required": [

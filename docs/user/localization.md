@@ -3,7 +3,8 @@
 [Documentation home](../../README.md) · [API](api.md#language-and-formatting) · [Templates](templates.md)
 
 Language and display formats are report settings. They do not translate your data,
-change Dataset values, parse localized CSV, choose a currency or select a timezone.
+change Dataset values, parse localized CSV or choose a currency. The separate
+`Report.timezone` option controls datetime display; language never implies a zone.
 Dates in data JSON and CSV retain their existing ISO grammar.
 
 ## Embed a localized report
@@ -104,14 +105,16 @@ Locale data availability is independent of font coverage. Babel/CLDR updates can
 change localized wording; pin dependencies in the application's lockfile when needed.
 
 - A `date` uses `date_format`; with no pattern it remains ISO `YYYY-MM-DD`.
-- An aware `datetime` is normalized to UTC, as before. With no patterns it retains
+- A `datetime` preserves its supplied offset unless `Report.timezone` selects a
+  display zone. A datetime without an offset means UTC. With no patterns it retains
   the complete ISO timestamp, including seconds, microseconds and offset.
 - With only `date_format`, its date portion changes and the complete ISO time and
-  UTC offset follow after a space.
+  offset follow after a space.
 - With `datetime_format`, the supplied pattern determines the fields and precision
   shown. Omitted fields do not remove precision from the underlying value.
-- Component `format="date"` displays only the UTC date, using `date_format`.
-  Naive datetimes remain invalid. A custom pattern never changes the timezone.
+- Component `format="date"` and the Jinja `date` filter extract the date after
+  applying the display timezone, using `date_format`. A pattern changes appearance,
+  not timezone interpretation.
 
 ```python
 from datetime import datetime, timezone, timedelta
@@ -120,28 +123,78 @@ closing = datetime(2026, 11, 4, 23, 30, 45, 123456,
                    tzinfo=timezone(timedelta(hours=-2)))
 time_report = Report(language="es", formatting=Formatting(date_format="dd/MM/yyyy"))
 time_report.add(KPI("Cierre", closing))
-assert "05/11/2026 01:30:45.123456+00:00" in time_report.to_html()
+assert "04/11/2026 23:30:45.123456-02:00" in time_report.to_html()
 ```
+
+## Timezones
+
+`Report(timezone="Asia/Nicosia")` or template `report.timezone` selects an IANA
+zone for all displayed datetimes: text substitutions, KPI, tables, bar categories
+and line-axis labels, in both renderers. Omit it (`None` in Python) to keep each
+value's supplied offset. A datetime without an offset always means UTC, even when
+a display zone is set. This includes Python, pandas, tagged JSON, native YAML
+and typed CSV inputs. Plain text is never parsed as a date.
+
+A timezone in the input determines the instant; the report setting determines
+how that instant is shown. Calendar dates have no time or timezone and never
+shift. No machine/browser zone is inferred. The `date` filter extracts the calendar
+date **after** conversion; `datetime` preserves the time.
+
+For these November examples, `Asia/Nicosia` is UTC+02:00. Timestamp cells use
+`dd MMM HH:mm xxx` (lowercase `xxx` prints `+00:00`; uppercase `XXX` prints `Z`
+for UTC):
+
+| Input | No report timezone | `timezone: UTC` | `timezone: Asia/Nicosia` |
+| --- | --- | --- | --- |
+| Date `2026-11-14` | `2026-11-14` | `2026-11-14` | `2026-11-14` |
+| Timestamp `2026-11-14T00:30:00` | `14 Nov 00:30 +00:00` | `14 Nov 00:30 +00:00` | `14 Nov 02:30 +02:00` |
+| Timestamp `2026-11-14T00:30:00Z` | `14 Nov 00:30 +00:00` | `14 Nov 00:30 +00:00` | `14 Nov 02:30 +02:00` |
+| Timestamp `2026-11-14T00:30:00+03:00` | `14 Nov 00:30 +03:00` | `13 Nov 21:30 +00:00` | `13 Nov 23:30 +02:00` |
+
+```python
+from datetime import datetime
+
+local_report = Report(
+    timezone="Asia/Nicosia",
+    formatting=Formatting(datetime_format="dd.MM.yyyy HH:mm XXX"),
+).add(KPI("Recorded at", datetime.fromisoformat("2026-11-14T00:30:00+03:00")))
+assert "13.11.2026 23:30 +02:00" in local_report.to_html()
+```
+
+IANA rules handle daylight saving for each instant. Invalid names and host-dependent
+pseudo-zones such as `localtime` are rejected. Python `zoneinfo` uses the system
+zone database with the bundled dependency `tzdata` as fallback (including Windows).
+Available names also depend on installed zone data.
+Keep deployment zone data consistent when identical historical/future conversions
+are required. Input dataset snapshots retain fixed offsets, not IANA zone identity.
+
+Timezone display never changes dataset values, grouping, order or chart coordinates.
+With mixed input offsets and no report zone, axis labels can appear out of time
+order even though the points are correctly ordered by instant. Select one report
+zone for a common clock; include `XXX` in the pattern to distinguish repeated local
+times during a daylight-saving transition. Date-only axes are never shifted.
 
 ## Chart axes and compatibility
 
-Omitting `formatting` (`None`) preserves automatic legacy axes, including Plotly's
-compact numeric labels and automatic date wording. Explicit `Formatting()`, even
-with default fields, enables controlled axis display. Numeric tick positions stay
+Omitting `formatting` (`None`) preserves automatic numeric axes, including Plotly's
+compact numeric labels. Explicit `Formatting()`, even with default fields, enables
+controlled numeric display. Numeric tick positions stay
 engine-owned. Formatting sets separators and precision; float tick rounding and
 minus-sign typography can differ from the exact Decimal value labels.
 
-With explicit formatting, a LineChart date axis uses up to six actual input date
+Every LineChart date axis uses up to six actual input date
 positions, sorted and sampled evenly by index with both endpoints included. Their
 labels use the same date/datetime formatter as tables; the underlying coordinates
 remain ISO UTC dates on a continuous date axis. Repeated formatted labels are
 allowed when the chosen pattern deliberately omits distinguishing fields. The
 pattern is the caller's choice; prefer a time-bearing pattern for intraday data.
+Without a datetime pattern, full ISO timestamp labels can be too long for narrow
+charts. Set `datetime_format` (for example `dd MMM HH:mm XXX`) or widen the chart.
 Long labels still fail geometric overflow checks rather than being silently hidden
 or shrunk. There is no shared tick-layout engine or JavaScript locale dependency.
 
-BarChart accepts Python `date` and aware `datetime` categories. They use the same
-report patterns as table cells; datetimes normalize to UTC. Category spacing stays
+BarChart accepts Python `date` and `datetime` categories. They use the same
+report patterns and display timezone as table cells. Category spacing stays
 equal and input order is preserved. Different values remain separate bars even
 when a pattern produces identical labels. Both renderers support typed categories
 within their existing bar capabilities. Strings remain literal, including ISO

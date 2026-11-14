@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from decimal import ROUND_HALF_EVEN, Context, Decimal, InvalidOperation, localcontext
 from pathlib import Path
 from types import MappingProxyType
@@ -299,6 +299,7 @@ def format_value(
     fmt: Format = "number",
     formatting: Formatting | None = None,
     language: str = "en",
+    timezone: str | None = None,
 ) -> str:
     check_format(fmt, "format")
     if v is None:
@@ -306,14 +307,12 @@ def format_value(
     if isinstance(v, str):
         return v
     if isinstance(v, datetime):
-        if v.utcoffset() is None:
-            raise ValidationError("value: naive datetime is unsupported")
+        from .formatting import display_datetime
+
+        v = display_datetime(v, timezone)
         if formatting is not None:
             return formatting.dates(v, date_only=fmt == "date", language=language)
-        normalized = v.astimezone(UTC)
-        return (
-            normalized.date().isoformat() if fmt == "date" else normalized.isoformat()
-        )
+        return v.date().isoformat() if fmt == "date" else v.isoformat()
     if isinstance(v, date):
         return (
             v.isoformat()
@@ -374,11 +373,14 @@ class Report:
         language: str = "en",
         formatting: Formatting | None = None,
         empty_text: str | None = None,
+        timezone: str | None = None,
     ) -> None:
-        from .formatting import Formatting, language_tag
+        from .formatting import Formatting, language_tag, report_timezone
 
         if formatting is not None and not isinstance(formatting, Formatting):
             raise ValidationError("formatting: expected Formatting")
+        report_timezone(timezone)
+        self.timezone = timezone
         self.language = language_tag(language)
         self.formatting, self.empty_text = formatting, empty_text
         self.title, self.subtitle, self.mode = title, subtitle, mode

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.7.0/src/cardreport/schemas/data-1.json",
+  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.9.1/src/cardreport/schemas/data-1.json",
   "title": "CardReport data/1",
   "description": "Structural contract used by the runtime and editors for named datasets. The YAML loader normalizes native date cells to this typed JSON representation.",
   "type": "object",
@@ -110,7 +110,7 @@
           }
         }
       ],
-      "description": "Lossless decimal, date or timezone-aware datetime; value must be a string."
+      "description": "Lossless decimal, date or datetime; value must be a string. Datetimes without an offset mean UTC."
     },
     "cell": {
       "type": [
@@ -175,7 +175,7 @@
     "datetime": {
       "type": "string",
       "maxLength": 10000,
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})(?![\\s\\S])"
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})?(?![\\s\\S])"
     }
   }
 }

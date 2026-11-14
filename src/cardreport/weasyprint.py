@@ -174,6 +174,7 @@ class WeasyPrintRenderer(Renderer):
                 formatting=doc.formatting,
                 language=doc.language,
                 empty_text=doc.empty_text,
+                timezone=doc.timezone,
             )
             has_content = True
         segments.append(current)

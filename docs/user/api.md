@@ -25,7 +25,7 @@ Report(title: str = "", *, subtitle: str = "",
        mode: Literal["dashboard", "flow"] = "dashboard",
        page: Page | None = None, theme: Theme | None = None,
        language: str = "en", formatting: Formatting | None = None,
-       empty_text: str | None = None)
+       empty_text: str | None = None, timezone: str | None = None)
 
 add(block: Block) -> Self
 row(*children: Component, widths: Sequence[float] | None = None,
@@ -284,9 +284,9 @@ BarChart(labels: Sequence[str | date | datetime], values: Sequence[Number] | Non
 ```
 
 Provide exactly one of `values` or `series`. All series lengths match unique
-category values (strings, dates or aware datetimes). Values may be negative or zero, but never None/bool/nonfinite.
-Dates use the report date pattern; datetimes use the datetime pattern after UTC
-normalization. Strings stay literal. Different category values remain separate
+category values (strings, dates or datetimes). Values may be negative or zero, but never None/bool/nonfinite.
+Dates use the report date pattern; datetimes use the datetime pattern and
+report display timezone (or preserve their offset if no zone is set). Strings stay literal. Different category values remain separate
 even when their formatted labels match; a date and its literal ISO string are
 distinct categories. Duplicate datetimes are checked after UTC normalization.
 Category order is preserved. `show_labels` controls value labels, not category
@@ -322,8 +322,9 @@ LineChart(x: Sequence[str | date | datetime],
 
 Both engines support 1–8 series. Exactly one of
 values/series, matching x lengths. Category axes
-require unique strings; date axes require dates or timezone-aware datetimes.
-Datetimes normalize to UTC; naive datetimes are rejected. None creates a gap,
+require unique strings; date axes require dates or datetimes.
+Coordinates normalize to UTC; naive datetimes mean UTC. Labels follow report
+timezone settings. None creates a gap,
 not an interpolated segment. Other numeric/format rules match BarChart.
 
 `axes=False` hides both axes/grid. `markers=False` retains a dot only for isolated
@@ -382,8 +383,10 @@ against a currency registry is not performed. Numeric rounding is half-even.
 | `"date"` | `date(2026, 11, 4)` | `2026-11-04` |
 
 None displays an em dash in KPI/tables. Strings pass through literally; they are
-not parsed as numbers/dates. Dates display ISO dates. Aware datetimes normalize
-to UTC, displaying an ISO timestamp except with `date`, which displays its date.
+not parsed as numbers/dates. Dates display ISO dates. Datetimes preserve their
+offset unless `Report.timezone` selects a display zone; naive values mean UTC.
+They display an ISO timestamp except with `date`, which extracts the date after
+conversion. Calendar dates never shift.
 Numeric values cannot use `date`. These are the defaults without report formatting.
 Precision and date patterns can be customized through [Formatting](#language-and-formatting);
 currency-specific minor-unit rules are not inferred. Chart coordinates convert
@@ -401,8 +404,8 @@ Formatting(decimal: Literal[".", ","] = ".",
 ```
 
 A frozen, typed display-settings record. `Report(language="en", formatting=None,
-empty_text=None)` owns these options, and its validated `ReportDocument` stores
-canonical language, optional formatting and resolved empty text as trailing fields
+empty_text=None, timezone=None)` owns these options, and its validated `ReportDocument` stores
+canonical language, optional formatting, resolved empty text and timezone as trailing fields
 with defaults. `ChartData` adds default-empty `tick_values` and `tick_labels` tuples
 for preformatted line date-axis labels (populated for every date line since 0.4.0),
 plus `category_labels` for formatted bar
@@ -412,7 +415,10 @@ Language tags are not restricted to a product allowlist. Decimal precision is 0.
 number precision is a maximum, percent/currency precision is fixed. Date patterns
 use Babel LDML, up to 200 characters. The effective date locale is the explicit
 Formatting locale or the report language. No system locale, currency or timezone
-is inferred. Custom datetime patterns intentionally select the displayed precision.
+is inferred. `Report.timezone` is an optional IANA name (up to 100 characters),
+independent of locale. Unknown and host-dependent zone names fail validation.
+See [timezone rules](localization.md#timezones). Custom datetime patterns
+intentionally select the displayed precision.
 
 `Table.empty_text=None` inherits the report message; explicit strings, including
 empty strings, override it. Built-in English/Spanish/Russian empty labels fall back

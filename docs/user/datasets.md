@@ -34,9 +34,11 @@ ingestion. The library does not aggregate, sort or reconcile business values.
 
 ## Types and limits
 
-Cells support int, finite float/Decimal, str, date, aware datetime and None.
-Bool, nested objects, bytes and UUID are rejected. Naive datetimes and offsets not
-aligned to whole minutes or dates outside the representable UTC range are rejected. Datetimes are copied with a fixed offset;
+Cells support int, finite float/Decimal, str, date, datetime and None.
+Bool, nested objects, bytes and UUID are rejected. Datetimes without an offset
+mean UTC and serialize with `+00:00`; aware values retain their supplied offset.
+Offsets not aligned to whole minutes and dates outside the representable UTC
+range are rejected. Datetimes are copied with a fixed offset;
 zone identity and fold metadata are not retained. Numbers must be within +/-10^15.
 
 FieldSpec types are text, integer, number, decimal, date and datetime. Integer
@@ -134,8 +136,9 @@ NumPy numbers become native numbers; pandas NA/NaT and floating NaN become None,
 then schema nullability is checked. For nullable integers, construct the column
 with `pd.Series([1, None], dtype="Int64")`; ordinary inferred float columns do not
 satisfy an integer schema. Infinity is rejected. Decimal is preserved;
-float-to-decimal recovery is never attempted. Datetime values need timezone offsets
-and microsecond precision: nanosecond remainders are rejected rather than truncated.
+float-to-decimal recovery is never attempted. Datetimes without offsets mean UTC;
+attach an offset before ingestion if the source represents local time. Datetime
+values need microsecond precision: nanosecond remainders are rejected rather than truncated.
 A later DataFrame mutation cannot change the captured dataset.
 
 ## Caller-owned SQL results

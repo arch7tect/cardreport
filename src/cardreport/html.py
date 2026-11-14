@@ -49,6 +49,7 @@ def render_block(
     formatting: Formatting | None = None,
     language: str = "en",
     empty_text: str = "No data",
+    timezone: str | None = None,
 ) -> str:
     """Emit validated content. Chart markup and page placement belong to the engine."""
     kind = type(obj).__name__
@@ -62,7 +63,7 @@ def render_block(
             else f'<div class="card-title">{escape(obj.title)}</div>'
         )
         minimum = " kpi-card" if isinstance(obj.content, KPI) else ""
-        return f'<div class="card{minimum}" data-has-title="{str(obj.title is not None).lower()}" data-definite="{str(definite).lower()}" {attrs}>{head}<div class="card-content">{render_block(obj.content, path + ".content", chart, definite, formatting, language, empty_text)}</div></div>'
+        return f'<div class="card{minimum}" data-has-title="{str(obj.title is not None).lower()}" data-definite="{str(definite).lower()}" {attrs}>{head}<div class="card-content">{render_block(obj.content, path + ".content", chart, definite, formatting, language, empty_text, timezone)}</div></div>'
     if isinstance(obj, (Row, Column)):
         fixed = definite
         style = ""
@@ -87,7 +88,14 @@ def render_block(
             fixed = False
         kids = "".join(
             render_block(
-                c, f"{path}.{i}", chart, fixed, formatting, language, empty_text
+                c,
+                f"{path}.{i}",
+                chart,
+                fixed,
+                formatting,
+                language,
+                empty_text,
+                timezone,
             )
             for i, c in enumerate(obj.children)
         )
@@ -100,7 +108,7 @@ def render_block(
             if obj.note is None
             else f'<div class="kpi-note">{escape(obj.note)}</div>'
         )
-        return f'<div class="kpi" {attrs}><div class="kpi-value">{escape(format_value(obj.value, obj.format, formatting, language))}</div><div>{escape(obj.label)}</div>{note}</div>'
+        return f'<div class="kpi" {attrs}><div class="kpi-value">{escape(format_value(obj.value, obj.format, formatting, language, timezone))}</div><div>{escape(obj.label)}</div>{note}</div>'
     if isinstance(obj, Table):
         heads = "".join(
             f'<th style="text-align:{c.align}">{escape(c.label)}</th>'
@@ -113,7 +121,7 @@ def render_block(
         rows = [
             "<tr>"
             + "".join(
-                f'<td style="text-align:{c.align}">{escape(format_value(row[c.key], c.format, formatting, language))}</td>'
+                f'<td style="text-align:{c.align}">{escape(format_value(row[c.key], c.format, formatting, language, timezone))}</td>'
                 for c in obj.columns
             )
             + "</tr>"
@@ -215,6 +223,7 @@ def render_html(report: ReportDocument) -> str:
             formatting=report.formatting,
             language=report.language,
             empty_text=report.empty_text,
+            timezone=report.timezone,
         )
         for i, n in enumerate(report.blocks)
     )

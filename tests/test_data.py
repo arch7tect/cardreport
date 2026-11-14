@@ -42,7 +42,6 @@ def test_snapshot_and_transport():
         Decimal("NaN"),
         b"a",
         [1],
-        datetime(2026, 1, 1),
         datetime(2026, 1, 1, tzinfo=timezone(timedelta(seconds=30))),
     ],
 )

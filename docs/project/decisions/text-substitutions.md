@@ -23,3 +23,6 @@ Existing literal Jinja delimiters in these text fields change meaning; document 
 escaping and upgrade compatibility. Table/series labels and empty text stay literal.
 The server uses the library contract with no second interpreter or database migration.
 See the [user contract](../../user/templates.md#text-substitutions).
+
+The [timezone hotfix](timezones.md) adds the `datetime` filter and replaces mandatory
+UTC display with input-offset preservation plus an optional report display zone.

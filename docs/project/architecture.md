@@ -120,7 +120,7 @@ uses report separators/precision, never global locale or localized input parsing
 Shared HTML fragments and SVG tick formatting receive the same display context.
 Empty text resolves once at report level, with optional table overrides.
 
-Date coordinates stay ISO UTC. Explicit formatting precomputes at most six sampled
+Date coordinates stay ISO UTC. Validation precomputes at most six sampled
 input-date ticks in validation, including glyph checks; Plotly receives separate
 coordinates and escaped display text. Numeric tick positions remain engine-owned.
 Bars containing typed dates/datetimes use positional category keys and separate
@@ -128,7 +128,10 @@ Bars containing typed dates/datetimes use positional category keys and separate
 their existing representation. Both adapters consume display labels independently
 of identity; equal labels never merge distinct categories. UTC-normalized duplicate
 datetime values are rejected; dates and literal ISO strings remain distinct.
-No settings preserves the legacy automatic line/numeric axes. Chromium writes PDF language via
+No formatting settings preserves automatic numeric axes; date labels always use
+the shared formatter. Optional report timezone converts datetime display before
+date extraction; omitted zones preserve input offsets, naive values mean UTC,
+and calendar dates never shift. Chromium writes PDF language via
 pypdf because browser printing does not reliably preserve HTML lang; this does not
 claim PDF/UA conformance. See [the public contract](../user/localization.md).
 
@@ -206,3 +209,6 @@ is introduced. Static validation checks references and literal text; actual boun
 strings go through existing model validation after rendering. The Python model,
 whole-value bindings and data-origin text remain literal. See the
 [text substitution decision](decisions/text-substitutions.md).
+
+See the [timezone decision](decisions/timezones.md) for input/display separation,
+naive-UTC semantics and shared date-axis labels.

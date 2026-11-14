@@ -1,5 +1,10 @@
 # JSON templates and named datasets
 
+Datetime semantics were superseded by the [timezone hotfix](timezones.md) in 0.9.1:
+missing offsets mean UTC; supplied offsets are preserved for display unless the
+report selects a zone. Earlier requirements below record the original design.
+
+
 Status: implemented and verified in version 0.2.0. YAML/schema deferrals below
 are superseded by the [0.6.0 decision](yaml-and-json-schema.md).
 Date: 2026-11-04. [Review and disposition](../history/reviews/2026-11-04-template-architecture.md).

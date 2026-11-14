@@ -49,12 +49,12 @@ def test_categories_have_distinct_identity_and_literal_strings(orientation, mode
     assert tuple(labels) == obj.labels
 
 
-def test_bar_datetime_utc_defaults_validation_and_escaping():
+def test_bar_datetime_offset_defaults_validation_and_escaping():
     value = datetime(2026, 11, 4, 23, 30, tzinfo=timezone(timedelta(hours=-2)))
     obj = BarChart([value, date(2026, 11, 5), "2026-11-05"], [1, 2, 3])
     data = validate_report(Report().add(obj)).charts["blocks.0"]
     assert data.category_labels == (
-        "2026-11-05T01:30:00+00:00",
+        "2026-11-04T23:30:00-02:00",
         "2026-11-05",
         "2026-11-05",
     )
@@ -66,13 +66,12 @@ def test_bar_datetime_utc_defaults_validation_and_escaping():
             language="es",
         ).add(obj)
     )
-    assert doc.charts["blocks.0"].category_labels[0] == "05 nov 01:30"
+    assert doc.charts["blocks.0"].category_labels[0] == "04 nov 23:30"
     spec = chart_spec(obj, doc.theme, "blocks.0", doc.charts["blocks.0"])
     assert spec["layout"]["xaxis"]["ticktext"][1] == "&lt;b&gt; 2026"
     for labels, message in [
         ([value, value.astimezone(UTC)], "duplicate"),
         ([date(2026, 11, 4)] * 2, "duplicate"),
-        ([datetime(2026, 11, 4)], "naive"),
         ([42], "expected text"),
     ]:
         with pytest.raises(ValidationError, match=message):

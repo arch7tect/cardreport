@@ -86,8 +86,8 @@ instant: {$type: datetime, value: "2026-11-05T12:30:00+02:00"}
 ```
 
 Native dates/datetimes in YAML data become ordinary Python dataset values and
-serialize back as portable `$type` cells. A naive datetime fails as it does in
-Python. Templates contain presentation strings/bindings, so unquoted dates in
+serialize back as portable `$type` cells. Datetimes without an offset mean UTC
+and serialize with an explicit `+00:00`, just as in Python. Templates contain presentation strings/bindings, so unquoted dates in
 text positions fail validation. No schema-driven scalar guessing takes place.
 YAML sets, binary values, non-string keys and other values outside the report
 contract are rejected. Unsafe object tags are never constructed.

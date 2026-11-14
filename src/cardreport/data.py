@@ -72,6 +72,8 @@ def cell(value: object, limits: DataLimits = DEFAULT_LIMITS) -> Value:
         return value
     if type(value) is datetime:
         try:
+            if value.utcoffset() is None:
+                value = value.replace(tzinfo=UTC)
             offset = value.utcoffset()
             if offset is None or offset.total_seconds() % 60:
                 raise DataError("datetime requires a whole-minute UTC offset")

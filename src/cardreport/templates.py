@@ -32,7 +32,7 @@ from .data import (
     FieldType,
     validate_bundle,
 )
-from .formatting import Formatting, language_tag
+from .formatting import Formatting, language_tag, report_timezone
 from .model import (
     KPI,
     BarChart,
@@ -407,8 +407,11 @@ class _Builder:
             )
         self.location = "report.language"
         language = language_tag(cast(str, obj.get("language", "en")))
+        self.location = "report.timezone"
+        timezone = cast(str | None, obj.get("timezone"))
+        report_timezone(timezone)
         self.text_templates = TextTemplates(
-            self.contracts, self.data, formatting, language
+            self.contracts, self.data, formatting, language, timezone
         )
         self.location = "report.empty_text"
         empty_text = (
@@ -419,6 +422,7 @@ class _Builder:
             cast(str, self.text(obj.get("title", ""), "report.title")),
             subtitle=cast(str, self.text(obj.get("subtitle", ""), "report.subtitle")),
             language=language,
+            timezone=timezone,
             formatting=formatting,
             empty_text=empty_text,
             mode=cast(Literal["dashboard", "flow"], obj.get("mode", "dashboard")),
@@ -462,6 +466,7 @@ class _Builder:
             "subtitle",
             "mode",
             "language",
+            "timezone",
             "formatting",
             "empty_text",
         ) or prefix.startswith(("theme.", "page.", "formatting.")):
