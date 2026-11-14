@@ -9,6 +9,8 @@ from decimal import Decimal
 from types import MappingProxyType
 from typing import Literal, NamedTuple, cast
 
+from jinja2 import TemplateError as JinjaError
+
 from ._inputs import (
     BindingError,
     DataError,
@@ -20,6 +22,7 @@ from ._inputs import (
     plain_tree,
 )
 from ._schema import validate_structure
+from ._text_templates import TextTemplates
 from .data import (
     DEFAULT_LIMITS,
     DataLimits,
@@ -29,7 +32,7 @@ from .data import (
     FieldType,
     validate_bundle,
 )
-from .formatting import Formatting
+from .formatting import Formatting, language_tag
 from .model import (
     KPI,
     BarChart,
@@ -188,8 +191,20 @@ class _Builder:
         if format == "date" and spec.type in ("integer", "number", "decimal"):
             raise ValueError("numeric fields cannot use date display format")
 
-    def text(self, value: object, *, optional: bool = False) -> str | None:
-        return cast(str | None, self.scalar(value, text=True, optional=optional))
+    def text(self, value: object, path: str, *, optional: bool = False) -> str | None:
+        try:
+            if isinstance(value, str):
+                return self.text_templates.render(value)
+            return cast(str | None, self.scalar(value, text=True, optional=optional))
+        except (
+            JinjaError,
+            ValueError,
+            TypeError,
+            RecursionError,
+            ValidationError,
+        ) as exc:
+            error = TemplateError if self.data is None else BindingError
+            raise error("invalid text: " + str(exc), template_path=path) from exc
 
     def children(self, value: object, path: str, generated: str) -> list[Component]:
         children: list[Component] = []
@@ -206,7 +221,7 @@ class _Builder:
         if kind == "page_break":
             return PageBreak()
         if kind == "card":
-            title = self.text(obj.get("title"), optional=True)
+            title = self.text(obj.get("title"), path + ".title", optional=True)
             content = self.node(
                 obj["content"], path + ".content", generated + ".content"
             )
@@ -224,16 +239,16 @@ class _Builder:
             return Column(*children, heights=weights(obj.get("heights")))
         if kind == "text":
             return Text(
-                cast(str, self.text(obj["text"])),
+                cast(str, self.text(obj["text"], path + ".text")),
                 cast(Literal["body", "heading", "caption"], obj.get("style", "body")),
             )
         if kind == "kpi":
             format = fmt(obj.get("format", "number"))
             return KPI(
-                cast(str, self.text(obj["label"])),
+                cast(str, self.text(obj["label"], path + ".label")),
                 self.scalar(obj["value"], format=format),
                 format,
-                self.text(obj.get("note"), optional=True),
+                self.text(obj.get("note"), path + ".note", optional=True),
             )
         if kind == "table":
             return self.table(obj, generated)
@@ -391,15 +406,18 @@ class _Builder:
                 locale=cast(str | None, raw.get("locale", Formatting.locale)),
             )
         self.location = "report.language"
-        language = cast(str, obj.get("language", "en"))
+        language = language_tag(cast(str, obj.get("language", "en")))
+        self.text_templates = TextTemplates(
+            self.contracts, self.data, formatting, language
+        )
         self.location = "report.empty_text"
         empty_text = (
             None if obj.get("empty_text") is None else cast(str, obj["empty_text"])
         )
         self.location = "report"
         report = Report(
-            cast(str, self.text(obj.get("title", ""))),
-            subtitle=cast(str, self.text(obj.get("subtitle", ""))),
+            cast(str, self.text(obj.get("title", ""), "report.title")),
+            subtitle=cast(str, self.text(obj.get("subtitle", ""), "report.subtitle")),
             language=language,
             formatting=formatting,
             empty_text=empty_text,
@@ -572,6 +590,8 @@ class ReportTemplate:
         builder = _Builder(self.datasets, data)
         try:
             return builder.build(self.to_dict()["report"])
+        except BindingError:
+            raise
         except (ValueError, TypeError, ValidationError) as exc:
             path, error_dataset, row, field = builder.location_for(exc)
             raise BindingError(

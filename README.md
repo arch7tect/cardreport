@@ -158,6 +158,12 @@ Return `pdf` from your application, put it in storage, or use
 `report.write_pdf("report.pdf")` to save a file. Existing files are preserved by
 default. Reports reject content that does not fit rather than silently shrinking it.
 
+Daily titles can use typed data directly, for example
+`"Daily report for {{ datasets.summary.report_date }}"`. Dates and numbers inherit
+report formatting; `| date('MMMM yyyy')` overrides a date's display. See
+[text substitutions](https://github.com/arch7tect/cardreport/blob/main/docs/user/templates.md#text-substitutions)
+and the [daily report example](https://github.com/arch7tect/cardreport/blob/main/examples/daily_report.py).
+
 ## Use from the command line
 
 Render JSON or YAML template/data files without a Python runner:

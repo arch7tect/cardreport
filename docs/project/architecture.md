@@ -34,6 +34,7 @@ A snapshot contains no page coordinates. PDF deadlines start before validation.
 | [_schema.py](../../src/cardreport/_schema.py) | Offline template validation, safe errors and cached data metadata |
 | [data.py](../../src/cardreport/data.py) | Immutable tables, schemas, bounded native and tagged JSON input |
 | [templates.py](../../src/cardreport/templates.py) | Closed JSON grammar and binding to existing components |
+| [_text_templates.py](../../src/cardreport/_text_templates.py) | Jinja text substitution and static reference/filter checks |
 | [_inputs.py](../../src/cardreport/_inputs.py) | Shared bounded parsing and located errors |
 | [adapters](../../src/cardreport/adapters/) | Single CSV file and lazy optional pandas ingestion |
 | [model.py](../../src/cardreport/model.py) | Components, aliases, formats, errors and Report facade |
@@ -194,3 +195,14 @@ validated optional record. Unknown/malformed records are discarded while preserv
 the original error. Server consumers can expose numeric/path/reason metadata without
 forwarding exception strings containing report values. No geometry solver or report
 snapshot changes are involved.
+
+
+## Template text substitution
+
+The binder resolves six display-text positions through a small Jinja environment,
+with key-only dataset access and an explicit expression/filter vocabulary. Existing
+Formatting is used at finalization; no second format language or renderer feature
+is introduced. Static validation checks references and literal text; actual bound
+strings go through existing model validation after rendering. The Python model,
+whole-value bindings and data-origin text remain literal. See the
+[text substitution decision](decisions/text-substitutions.md).

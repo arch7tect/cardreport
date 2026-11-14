@@ -27,6 +27,7 @@ ASSETS = {
     "formatting.py",
     "_chart_display.py",
     "templates.py",
+    "_text_templates.py",
     "adapters/csv.py",
     "adapters/pandas.py",
     "assets/DejaVuSans.ttf",
@@ -85,6 +86,7 @@ def check_archives(directory: Path) -> Path:
                 "operations_data.json",
                 "series_report.py",
                 "flow_dashboard.py",
+                "daily_report.py",
             ]
         } <= source_names
         metadata_file = archive.extractfile(prefix + "PKG-INFO")
@@ -125,6 +127,12 @@ def installed_smoke(full: bool) -> None:
 
     assert json.loads(completed.stdout)["title"] == "CardReport data/1"
     examples = ROOT / "examples"
+    import runpy
+
+    daily_namespace = runpy.run_path(str(examples / "daily_report.py"))
+    daily = daily_namespace["build_report"]()
+    assert daily.title == "Daily report for 14.11.2026"
+    assert "Month: November 2026" in daily.to_html()
 
     assert (
         json.loads(json_schema("template"))["properties"]["format"]["const"]

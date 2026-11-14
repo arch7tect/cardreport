@@ -55,7 +55,8 @@ Built-in empty table/chart labels have English, Spanish and Russian translations
 selected by the primary language. Other languages use
 `No data`. Use `Report(empty_text="...")` to supply the application's wording for
 all empty tables/charts. A table's `empty_text` overrides the report; `None` inherits
-and `""` intentionally renders no message. User labels and strings remain literal.
+and `""` intentionally renders no message. User text is not translated automatically. Template text may use
+[Jinja substitutions](templates.md#text-substitutions); values inherit these display settings.
 
 ```python
 from cardreport import BarChart

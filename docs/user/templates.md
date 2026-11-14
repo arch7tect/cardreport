@@ -4,7 +4,8 @@
 
 A template defines presentation and required named datasets. Binding returns an
 ordinary Report, so export methods and renderer capabilities remain unchanged.
-No data fetching, formulas, loops, interpolation or SQL run during binding.
+Display text supports Jinja field substitutions and formatting filters.
+No data fetching, formulas, loops or SQL run during binding.
 
 ## Embed a template
 
@@ -138,3 +139,88 @@ preserves the missing-vs-explicit distinction. No dataset/CSV parsing changes oc
 
 See [spanish_template.json](../../examples/spanish_template.json) and
 [spanish_data.json](../../examples/spanish_data.json) for the complete example.
+
+
+## Text substitutions
+
+Use ordinary strings with Jinja expressions in `report.title`, `report.subtitle`,
+`Card.title`, `Text.text`, `KPI.label` and `KPI.note`. The same syntax works in JSON,
+YAML and `ReportTemplate.from_dict`. Quote YAML strings containing expressions.
+See the complete [daily report example](../../examples/daily_report.py).
+
+```python
+from datetime import date
+from cardreport import Dataset, ReportTemplate
+
+daily_template = ReportTemplate.from_yaml("""
+format: cardreport.template/1
+datasets:
+  summary:
+    cardinality: one
+    fields:
+      report_date: {type: date}
+      total: {type: integer}
+report:
+  formatting:
+    date_format: dd.MM.yyyy
+    group: space
+  title: "Daily report for {{ datasets.summary.report_date }}"
+  subtitle: "Month: {{ datasets.summary.report_date | date('MMMM yyyy') }}"
+  blocks:
+    - type: text
+      text: "Total calls: {{ datasets.summary.total | integer }}"
+""")
+daily_report = daily_template.bind({
+    "summary": Dataset.single({"report_date": date(2026, 11, 14), "total": 12540}),
+})
+assert daily_report.title == "Daily report for 14.11.2026"
+assert daily_report.subtitle == "Month: November 2026"
+```
+
+Only declared fields of `cardinality: one` datasets are available, under
+`datasets`. Dot lookup reads keys, including keys named `items` or `keys`.
+Use brackets for other names: `{{ datasets["daily summary"]["report date"] }}`.
+
+| Expression | Display |
+| --- | --- |
+| `{{ datasets.summary.report_date }}` | Typed date using report `date_format` |
+| `{{ datasets.summary.report_date \| date }}` | Date-only display; default report format |
+| `{{ datasets.summary.report_date \| date('d MMMM yyyy') }}` | Explicit LDML date pattern |
+| `{{ datasets.summary.total }}` or `\| number` | Report number precision and grouping |
+| `{{ datasets.summary.total \| integer }}` | Rounded integer with report grouping |
+| `{{ datasets.summary.rate \| percent }}` | Fraction multiplied by 100, with percent precision |
+| `{{ datasets.summary.amount \| currency('EUR') }}` | Currency code and report currency precision |
+
+Typed datetimes use `datetime_format` by default; `date` selects the date only.
+Datetimes are normalized to UTC before formatting, including explicit filters.
+The date filter's optional pattern is a constant LDML string and supports date
+fields only (no time fields). Report `formatting.locale` or `language` selects
+month names. Strings stay literal, including strings resembling dates. Nullable
+values display an em dash (`—`); an absent field is an error. Numeric grouping also
+applies to integer years and IDs: declare these as text when grouping is unwanted.
+Trailing zeros follow the existing numeric formatter, not fixed-width formatting.
+
+Formatting filters return final text, so an explicit filter takes precedence over
+default formatting. One filter per field expression is supported; filters accept
+only the constant positional arguments listed above. Jinja loops, conditions,
+arithmetic, function/method calls, attribute traversal on values, includes and
+other filters are not supported. This is text substitution, not a calculation layer.
+
+Unknown references, syntax and filter/type errors fail while loading the template
+with a `TemplateError` and `template_path`. Binding checks actual values and final
+text using the existing model limits; failures are `BindingError`. Sample values
+do not determine whether a dynamic heading fits its character limit. PDF geometry
+checks still happen during rendering. No new length limit or configuration is added.
+
+Substitution runs once at bind. Strings coming from data or existing whole-value
+`{bind: ...}` objects are never interpreted as templates. Serialization preserves
+the original source expressions. Output remains plain text, escaped by the HTML
+renderer. Table column labels, series labels, empty messages and technical strings
+stay literal. Direct Python model strings such as `Text("{{ example }}")` also
+stay literal.
+
+**Compatibility in 0.9.0:** `cardreport.template/1` is retained, but existing literal
+Jinja delimiters in these six text positions now have meaning. Escape literal text
+with `{% raw %}{{ example }}{% endraw %}` or `{{ '{{' }}`. Jinja comments and whitespace
+control use their normal syntax; Jinja normalizes CRLF to LF in parsed strings.
+Ordinary strings without delimiters are unchanged, including trailing newlines.

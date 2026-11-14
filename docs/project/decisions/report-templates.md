@@ -222,8 +222,9 @@ nonfinite values, duplicate categories/dates, excessive series/points and invali
 Funnel values. Rows are neither sorted nor grouped by binding.
 
 Layout, formats, Table headings/empty text, series labels, chart settings and theme
-are literals. Dynamic business sentences (e.g. "2 of 5 clients") are supplied whole
-from a one-row dataset, without interpolation or calculation in the template.
+are literals. Since 0.9.0, the six text-binding positions also support
+[Jinja text substitutions](text-substitutions.md) from one-row datasets. Whole-text
+bindings remain supported. Calculations remain outside the template.
 
 V1 deliberately keeps KPI values, table rows and chart data outside presentation:
 no inline numeric KPI values, table rows or parallel labels/values arrays. Static
@@ -513,8 +514,8 @@ both engines. Do not require byte-identical PDFs or universally identical HTML.
 Run strict mypy, Ruff, existing runtime tests and new contract tests. Existing
 Python users must retain the same behavior and editor assistance.
 
-Deferred: expressions, formulas, joins, grouping/sorting, conditional visibility,
-repeated layout blocks, JSONPath, HTML/Jinja/CSS escapes, source manifests, YAML,
+Deferred: general expressions (beyond text substitution), formulas, joins, grouping/sorting, conditional visibility,
+repeated layout blocks, JSONPath, arbitrary HTML/Jinja/CSS, source manifests, YAML,
 named SQL execution, CSV-directory loading, provider/connector frameworks, Arrow,
 async loaders, caching, JSON Schema files and generated typing.
 SQL performs application-defined computation before ingestion; CSV/pandas callers

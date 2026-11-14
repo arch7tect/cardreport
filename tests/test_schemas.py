@@ -1,4 +1,5 @@
 import json
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -29,7 +30,13 @@ def validator(kind):
 @pytest.mark.parametrize("kind", ["template", "data"])
 def test_metaschemas_and_packaged_identity(kind):
     schema = validator(kind).schema
-    assert schema["$id"].endswith(f"/v0.7.0/src/cardreport/schemas/{kind}-1.json")
+    assert re.fullmatch(
+        rf"https://raw\.githubusercontent\.com/arch7tect/cardreport/"
+        rf"v[0-9]+\.[0-9]+\.[0-9]+/src/cardreport/schemas/{kind}-1\.json",
+        schema["$id"],
+    )
+    source = ROOT / "src/cardreport/schemas" / f"{kind}-1.json"
+    assert schema == json.loads(source.read_text())
     assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
     with pytest.raises(ValueError):
         json_schema("unknown")

@@ -144,7 +144,7 @@ key, but existing documents without it remain unchanged. For example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.7.0/src/cardreport/schemas/template-1.json",
+  "$schema": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.9.0/src/cardreport/schemas/template-1.json",
   "format": "cardreport.template/1",
   "datasets": {},
   "report": {"blocks": [{"type": "text", "text": "Hello"}]}
@@ -190,3 +190,13 @@ python -m cardreport validate --template report.yaml --data datasets.yaml
 Template-only validation checks the definition and declared bindings. Supplying
 data also checks binding with actual values. Neither form launches a renderer;
 rendering performs geometry and selected-engine checks. See [CLI options](command-line.md).
+
+
+## Dynamic text
+
+Quote YAML display strings containing Jinja, especially strings starting with `{{`:
+`title: "Daily report for {{ datasets.summary.report_date }}"`.
+JSON and YAML use the same [text substitution contract](templates.md#text-substitutions).
+JSON Schema describes the string/binding shape; `ReportTemplate` checks expressions,
+references and filters. Typed dates come from declared date fields, not guessing
+whether a text cell looks like a date.

@@ -5,6 +5,20 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.9.0 — 2026-11-14
+
+- Add Jinja text substitutions in template report titles/subtitles, card titles,
+  Text content and KPI labels/notes. Use `{{ datasets.summary.report_date }}` with
+  existing one-row datasets; dates and numbers inherit report formatting.
+- Add explicit `date`, `number`, `integer`, `percent` and `currency` text filters.
+  Template loading checks references and filters; binding validates final text.
+  JSON, YAML, CLI and both renderers share the same behavior.
+- Add a daily report example and document formatting, escaping and located errors.
+- Compatibility: `cardreport.template/1` is retained, but literal Jinja delimiters
+  in these six text positions now require raw escaping. Other strings, bound data
+  and the direct Python model API remain literal.
+
+
 ## 0.8.5 — 2026-11-13
 
 - Renderer implementers: `Renderer` is now an abstract base class. Change

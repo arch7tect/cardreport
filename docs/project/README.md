@@ -15,6 +15,8 @@ should begin with the [quickstart](../user/quickstart.md) and [API reference](..
 
 - [YAML and schema decision](decisions/yaml-and-json-schema.md) — standard library integration and shared contracts.
 
+- [Text substitution decision](decisions/text-substitutions.md) — Jinja display strings and shared formatting.
+
 ## Decisions and history
 
 - [Release automation review](history/reviews/2026-11-04-release-automation.md) — implementation findings and verification.

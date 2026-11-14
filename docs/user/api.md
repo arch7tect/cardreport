@@ -586,6 +586,11 @@ contracts, then returns a fresh mutable Report. Template/dataset inputs are neve
 modified. PDF geometry/capability checks happen on export. Formats and the complete
 binding vocabulary are described in the [template guide](templates.md).
 
+Text positions in templates support [Jinja substitutions](templates.md#text-substitutions)
+resolved at bind, with report-aware default date/number formatting. Existing whole
+text bindings and direct Python model strings stay literal. `TemplateError` covers
+invalid expressions; `BindingError` covers final bound text, with `template_path`.
+
 ## Data adapters
 
 Import `from_csv` from `cardreport.adapters.csv` and `from_pandas` from

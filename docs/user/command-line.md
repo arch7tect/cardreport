@@ -260,3 +260,8 @@ uv run --all-extras python examples/operations_report.py --renderer weasyprint -
 
 Accepts `--data PATH` for replacement named datasets and `--overwrite` for deliberate
 regeneration. Prefer [Python embedding](dashboards.md#templates-and-the-operations-example).
+
+
+Template [text substitutions](templates.md#text-substitutions) also work through
+`validate` and `render`, without extra flags. CSV dates are parsed using the declared
+field schema before substitution; JSON/YAML keep their existing typed data formats.

@@ -177,3 +177,11 @@ Snapshot numbers come from an operations dashboard screenshot; trend data is exp
 synthetic, and the unavailable fifth agent name is marked.
 
 See the [dashboard tutorial](dashboards.md) for Python embedding and layout rules.
+
+
+## Daily report
+
+[daily_report.py](../../examples/daily_report.py) keeps a YAML template and native
+named datasets in one Python file. It shows daily date headings, default formatting,
+a date-pattern override and a percentage subtitle. Import `build_report()` to
+embed it or run `uv run --all-extras python examples/daily_report.py` for HTML/PDF.
