@@ -52,6 +52,9 @@ only the installed public API. No separate JSON files are needed for that exampl
 
 ## Vocabulary and bindings
 
+[Static images](images.md) use optional top-level `assets`; `report.logo` places a
+resource in the header and `report.logo_position` selects left/right.
+
 The envelope requires format, datasets and report, and accepts optional string `$schema` editor metadata. Report requires blocks (an array, possibly empty) and accepts optional
 title/subtitle/mode/page/theme/language/formatting/empty_text with the [Python API](api.md)'s defaults. Each dataset
 has fields and cardinality one/many. Fields require type and optionally nullable
@@ -64,6 +67,7 @@ unused. Extra data columns/datasets remain permitted within data bounds.
 | row / column | children and ordinary width/height options |
 | page_break | Top-level break |
 | text | text and optional style |
+| image | named asset; optional dimensions, alt text and alignment |
 | kpi | label, bound value, optional format/note |
 | table | dataset; ordinary TableColumn definitions in columns |
 | bar / funnel | dataset, category field, value field |
@@ -108,7 +112,7 @@ content that does not fit or a renderer's unsupported feature. A larger dataset
 may overflow a fixed dashboard row even when its schema is correct. Flow and the
 experimental renderer retain their [documented limits](renderers.md#capabilities).
 
-Template JSON is limited to 1 MiB and nesting depth 64; the constructed component
+Template JSON defaults to 1 MiB (`max_bytes` can raise it) and nesting depth 64; the constructed component
 tree also obeys the existing depth/count limits. The format is provisional, version
 1; unsupported versions fail explicitly. YAML read/write and formal JSON Schema files are available; see [YAML and schemas](yaml-and-schemas.md).
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.9.1/src/cardreport/schemas/template-1.json",
+  "$id": "https://raw.githubusercontent.com/arch7tect/cardreport/v0.10.0/src/cardreport/schemas/template-1.json",
   "title": "CardReport template/1",
   "description": "Presentation and required dataset contracts. Binding and rendering perform additional semantic and layout checks.",
   "type": "object",
@@ -18,11 +18,19 @@
       },
       "additionalProperties": {
         "$ref": "#/$defs/dataset"
-      },
-      "maxProperties": 32
+      }
     },
     "report": {
       "$ref": "#/$defs/report"
+    },
+    "assets": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/name"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/asset"
+      }
     }
   },
   "required": [
@@ -171,8 +179,7 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/field"
-          },
-          "maxProperties": 100
+          }
         }
       },
       "required": [
@@ -636,7 +643,8 @@
             "funnel",
             "row",
             "column",
-            "card"
+            "card",
+            "image"
           ]
         }
       },
@@ -777,6 +785,21 @@
           },
           "then": {
             "$ref": "#/$defs/card"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "image"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/image"
           }
         }
       ]
@@ -1021,10 +1044,123 @@
           "minLength": 1,
           "maxLength": 100,
           "description": "IANA display timezone. Omit to preserve each datetime offset; naive datetimes mean UTC. Dates never shift."
+        },
+        "logo": {
+          "$ref": "#/$defs/logo"
+        },
+        "logo_position": {
+          "enum": [
+            "left",
+            "right"
+          ]
         }
       },
       "required": [
         "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "asset": {
+          "$ref": "#/$defs/name"
+        },
+        "width_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "height_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "alt": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "valign": {
+          "enum": [
+            "top",
+            "center",
+            "bottom"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "asset"
+      ],
+      "additionalProperties": false
+    },
+    "logo": {
+      "type": "object",
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/name"
+        },
+        "width_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "height_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "alt": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "valign": {
+          "enum": [
+            "top",
+            "center",
+            "bottom"
+          ]
+        }
+      },
+      "required": [
+        "asset"
+      ],
+      "additionalProperties": false
+    },
+    "asset": {
+      "type": "object",
+      "properties": {
+        "media_type": {
+          "enum": [
+            "image/png",
+            "image/jpeg"
+          ]
+        },
+        "data_base64": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "media_type",
+        "data_base64"
       ],
       "additionalProperties": false
     }

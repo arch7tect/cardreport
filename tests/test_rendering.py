@@ -218,7 +218,7 @@ def test_worker_timeout_and_interruption_cleanup(monkeypatch):
     monkeypatch.setattr(
         __import__("cardreport.html", fromlist=["render_html"]),
         "render_html",
-        lambda doc: "<script>window.cardreport={ready:false}</script>",
+        lambda doc, **kwargs: "<script>window.cardreport={ready:false}</script>",
     )
     real_communicate = subprocess.Popen.communicate
 

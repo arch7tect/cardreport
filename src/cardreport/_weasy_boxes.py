@@ -8,7 +8,7 @@ from importlib.resources import files
 from typing import Any
 
 from .layout import LayoutDiagnostic, measured_overflow
-from .model import DependencyError, LayoutOverflowError
+from .model import DependencyError, LayoutOverflowError, RenderError
 
 VERSION = "70.0"
 TOLERANCE = 1.0  # CSS px; rounding only, never a text-fit heuristic.
@@ -36,6 +36,8 @@ def inspect(
         )
     charts: dict[str, tuple[float, float]] = {}
     locations: dict[str, set[int]] = {}
+    expected_images: set[str] = set()
+    rendered_images: set[str] = set()
     try:
         for page_number, page in enumerate(document.pages):
             root = page._page_box
@@ -43,7 +45,12 @@ def inspect(
                 element = box.element
                 if element is None:
                     continue
+                image_path = element.get("data-image-path")
+                if image_path and getattr(box, "replacement", None) is not None:
+                    rendered_images.add(image_path)
                 path = element.get("data-path")
+                if path and element.get("data-kind") == "Image":
+                    expected_images.add(path)
                 # Inline text/line boxes repeat their element; inspect the principal box.
                 if not path or type(box).__name__ in ("TextBox", "LineBox"):
                     continue
@@ -80,6 +87,11 @@ def inspect(
                                 else "content_overflow",
                             ),
                         )
+        if expected_images != rendered_images:
+            missing = sorted(expected_images - rendered_images)
+            raise RenderError(
+                f"{missing[0] if missing else 'report'}: image could not be decoded"
+            )
         if expected_paths is not None and set(locations) != expected_paths:
             raise LayoutOverflowError(
                 "report: components missing from measured layout",

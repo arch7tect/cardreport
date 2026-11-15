@@ -501,21 +501,32 @@ assert errors
     )
 
 
-def test_schema_caps_match_native_limits():
-    from cardreport import DataLimits
-
-    caps = DataLimits()
+def test_schemas_leave_resource_limits_to_the_application():
     template = validator("template").schema
     data = validator("data").schema
     for schema in (template, data):
-        assert schema["properties"]["datasets"]["maxProperties"] == caps.max_datasets
-    fields = template["$defs"]["dataset"]["properties"]["fields"]
+        assert "maxProperties" not in schema["properties"]["datasets"]
     dataset = data["$defs"]["dataset"]["properties"]
-    assert fields["maxProperties"] == dataset["columns"]["maxItems"] == caps.max_columns
-    assert dataset["rows"]["items"]["maxProperties"] == caps.max_columns
-    assert dataset["rows"]["maxItems"] == caps.max_rows
-    for definition in ("cell", "decimal", "date", "datetime"):
-        assert data["$defs"][definition]["maxLength"] == caps.max_string_chars
+    assert "maxItems" not in dataset["rows"]
+    assert "maxItems" not in dataset["columns"]
+    # The same structurally valid envelope can be accepted or rejected by policy.
+    source = {
+        "format": "cardreport.data/1",
+        "datasets": {"x": {"columns": ["n"], "rows": [{"n": 1}] * 2001}},
+    }
+    validator("data").validate(source)
+    with pytest.raises(DataError):
+        datasets_from_json(json.dumps(source))
+    from cardreport import DataLimits
+
+    assert (
+        len(
+            datasets_from_json(json.dumps(source), limits=DataLimits(max_rows=2001))[
+                "x"
+            ].rows
+        )
+        == 2001
+    )
     formats = template["$defs"]
     assert set(formats["numericFormat"]["anyOf"][0]["enum"]) == set(
         formats["format"]["anyOf"][0]["enum"]

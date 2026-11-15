@@ -184,6 +184,10 @@ The installed `cardreport` command is equivalent. See the
 
 ## Documentation
 
+For larger datasets, tables, images and page counts, see [configurable resource limits](docs/user/limits.md).
+
+- [Images and logos](docs/user/images.md) — PNG/JPEG, database bytes, header placement and template assets.
+
 - [Quickstart](https://github.com/arch7tect/cardreport/blob/main/docs/user/quickstart.md) — build from application data; return strings/bytes.
 - [KPI dashboards](https://github.com/arch7tect/cardreport/blob/main/docs/user/dashboards.md) — compact charts, category legends and larger KPI values; [multi-page dashboards](https://github.com/arch7tect/cardreport/blob/main/docs/user/guide.md#dashboards-across-pages) use flow to carry whole rows and split tables.
 - [Templates](https://github.com/arch7tect/cardreport/blob/main/docs/user/templates.md) — JSON presentation with separate named datasets.

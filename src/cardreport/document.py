@@ -1,11 +1,12 @@
 """Frozen export snapshot, retaining the public component tree (no geometry IR)."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from .formatting import Formatting
-from .model import Block, Page, Theme
+from .limits import DEFAULT_REPORT_LIMITS, ReportLimits
+from .model import Block, Image, Page, Theme
 
 
 @dataclass(frozen=True)
@@ -37,3 +38,7 @@ class ReportDocument:
     formatting: Formatting | None = None
     empty_text: str = "No data"
     timezone: str | None = None
+    logo: Image | None = None
+    logo_position: Literal["left", "right"] = "left"
+    images: Mapping[str, Image] = field(default_factory=dict)
+    limits: ReportLimits = DEFAULT_REPORT_LIMITS

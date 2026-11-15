@@ -185,3 +185,10 @@ See the [dashboard tutorial](dashboards.md) for Python embedding and layout rule
 named datasets in one Python file. It shows daily date headings, default formatting,
 a date-pattern override and a percentage subtitle. Import `build_report()` to
 embed it or run `uv run --all-extras python examples/daily_report.py` for HTML/PDF.
+
+## Images and company logos
+
+[images_report.py](../../examples/images_report.py) shows embedded PNG resources,
+`from_file`/`from_bytes`, right-aligned header branding and image blocks. Its
+`build_template()` produces a portable JSON/YAML definition without manual Base64.
+See [images and logos](images.md) for commands and automatic sizing rules.

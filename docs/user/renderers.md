@@ -15,6 +15,7 @@ ReportTemplate.bind have exactly these capabilities and geometric checks.
 | HTML | Self-contained, requires JavaScript | Self-contained static preview |
 | Dashboard / explicit pages | Yes | Yes |
 | Cards, text, KPI, unsplit tables | Yes | Yes |
+| PNG/JPEG images and header logos | Yes | Yes |
 | Weighted rows/columns | Yes | Yes |
 | Automatic flow / split tables | Yes | Unsupported |
 | Single-series bars | Yes | Yes |
@@ -266,3 +267,8 @@ tolerances and overflow rejection remain unchanged; display precision does not
 imply exact physical printer dimensions. Current overflow is not a guaranteed
 resize recommendation. Check the diagnostic path/page, give the block more space
 or move it; for chart collisions, consider wider charts or optional value labels.
+
+Custom renderers must handle the new Image component and optional ReportDocument.logo
+(or explicitly raise UnsupportedFeatureError). ReportDocument.images contains the
+validated images by diagnostic path, including the header logo. Exhaustive component
+unions now include Image. Silently ignoring images is not supported.

@@ -212,3 +212,26 @@ whole-value bindings and data-origin text remain literal. See the
 
 See the [timezone decision](decisions/timezones.md) for input/display separation,
 naive-UTC semantics and shared date-axis labels.
+
+## Static images
+
+`Image` snapshots PNG/JPEG bytes and reads metadata via Pillow without pixel
+decoding. The typed component and optional `Report.logo` survive in the document
+snapshot. Named template assets bind to ordinary Image components. No registry,
+network access, database schema or resource service is added. Shared image markup
+implements sizing; a size-free header logo uses a 30 by 15 mm rectangle.
+
+PDF workers verify pixel decoding; Chromium waits for browser image readiness,
+and the pinned WeasyPrint box adapter checks that images produced replaced boxes.
+The native fetcher permits exact font and image data URIs only. Direct Chromium
+HTML export checks pixels in the caller; template registration reads metadata
+only. Pillow safety thresholds are unchanged. See [images](../user/images.md).
+
+## Resource policies
+
+Applications supply immutable DataLimits and ReportLimits; templates contain no
+resource overrides. Template byte budgets live on ReportTemplate. Input traversal
+node allowances derive from byte budgets; fixed depth guards still protect
+recursive code. ReportDocument carries the report budget into both renderers.
+Published schemas describe structure, while configured resource checks run in
+Python and the selected renderer. See [the user contract](../user/limits.md).

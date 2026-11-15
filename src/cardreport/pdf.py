@@ -37,7 +37,7 @@ def render_pdf(report: ReportDocument, *, deadline: float) -> bytes:
         )
     from .html import render_html
 
-    html = render_html(report)
+    html = render_html(report, check_images=False)
     left = deadline - time.monotonic()
     if left <= 0:
         raise RenderTimeoutError("HTML preparation exceeded export deadline")

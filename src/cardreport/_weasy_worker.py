@@ -33,23 +33,29 @@ def main() -> None:
         data = files("cardreport").joinpath("assets", name).read_bytes()
         fonts["data:font/ttf;base64," + b64encode(data).decode()] = data
 
-    class BundledFonts:
+    resources = {url: (data, "font/ttf") for url, data in fonts.items()}
+    from ._images import check_html_images
+
+    html = payload["html"]
+    resources.update(check_html_images(html))
+
+    class BundledResources:
         _fail_on_errors = False  # Record denial; fail explicitly after native layout.
         blocked: bool = False
 
         def __call__(self, url: str) -> Any:
             from weasyprint.urls import URLFetcherResponse
 
-            if url not in fonts:
+            if url not in resources:
                 self.blocked = True
                 raise ValueError("External resource blocked")
-            return URLFetcherResponse(url, fonts[url], {"Content-Type": "font/ttf"})
+            data, media_type = resources[url]
+            return URLFetcherResponse(url, data, {"Content-Type": media_type})
 
-    fetch = BundledFonts()
+    fetch = BundledResources()
 
     config = FontConfiguration()
     verify_adapter(HTML, config, fetch)
-    html = payload["html"]
     expected_paths = set(re.findall(r'data-path="([^"]+)"', html))
     first = HTML(string=html, url_fetcher=fetch).render(font_config=config)
     if fetch.blocked:

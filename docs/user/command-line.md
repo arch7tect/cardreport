@@ -265,3 +265,10 @@ regeneration. Prefer [Python embedding](dashboards.md#templates-and-the-operatio
 Template [text substitutions](templates.md#text-substitutions) also work through
 `validate` and `render`, without extra flags. CSV dates are parsed using the declared
 field schema before substitution; JSON/YAML keep their existing typed data formats.
+
+## Resource budgets
+
+Both commands support `--template-max-bytes`, repeatable `--data-limit NAME=INTEGER`
+and `--report-limit NAME=INTEGER`. See [limits and long reports](limits.md) for
+field names, defaults and an example. Values must be positive; limits never come
+from template or dataset contents.

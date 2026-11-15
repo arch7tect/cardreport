@@ -46,3 +46,7 @@ Language, formatting and template compatibility are described in the
 User-facing release history lives in [What’s new](../../CHANGELOG.md).
 
 - [Data loading performance](data-loading-performance.md): reproducible load/bind measurements and the 0.7.1 fix.
+
+- [Static images and header logos](decisions/static-images.md) — embedded resources, sizing and validation boundaries.
+
+- [Configurable resource budgets](decisions/resource-limits.md) and [review](history/reviews/2026-11-15-resource-limits.md).

@@ -24,6 +24,7 @@ from .formatting import (
     language_tag,
     report_timezone,
 )
+from .limits import DEFAULT_REPORT_LIMITS, ReportLimits
 from .model import (
     KPI,
     BarChart,
@@ -32,6 +33,7 @@ from .model import (
     Column,
     Format,
     Funnel,
+    Image,
     LineChart,
     Number,
     Page,
@@ -46,8 +48,6 @@ from .model import (
     format_value,
     number,
 )
-
-MAX_BLOCKS, MAX_ROWS, MAX_POINTS, MAX_DEPTH, MAX_PAGES = 500, 2000, 500, 12, 100
 
 
 @lru_cache(maxsize=1)
@@ -106,7 +106,9 @@ def chart_labels(obj: Chart) -> list[str]:
     return result
 
 
-def validate_chart(obj: Chart, path: str) -> None:
+def validate_chart(
+    obj: Chart, path: str, limits: ReportLimits = DEFAULT_REPORT_LIMITS
+) -> None:
     check_format(obj.value_format, path + ".value_format")
     if obj.value_format == "date":
         raise ValidationError(f"{path}: chart values must use a numeric format")
@@ -147,8 +149,8 @@ def validate_chart(obj: Chart, path: str) -> None:
         if obj.legend_position != "bottom" and not has_legend:
             raise ValidationError(f"{path}.legend_position: requires a category legend")
     labels = obj.x if isinstance(obj, LineChart) else obj.labels
-    if len(labels) > MAX_POINTS:
-        raise ValidationError(f"{path}: maximum {MAX_POINTS} chart points")
+    if len(labels) > limits.max_chart_points:
+        raise ValidationError(f"{path}: maximum {limits.max_chart_points} chart points")
     is_date = isinstance(obj, LineChart) and obj.x_kind == "date"
     for value in labels:
         if is_date or (isinstance(obj, BarChart) and isinstance(value, date)):
@@ -184,9 +186,9 @@ def validate_chart(obj: Chart, path: str) -> None:
             raise ValidationError(
                 f"{path}.x: styled date lines require strictly increasing UTC dates"
             )
-    if not is_date and len(x) > 30:
+    if not is_date and len(x) > limits.max_chart_categories:
         raise ValidationError(
-            f"{path}: at most 30 categories; use a date axis for longer lines"
+            f"{path}: at most {limits.max_chart_categories} categories; use a date axis for longer lines"
         )
     series: Mapping[str, Sequence[Number | None]] | None
     if isinstance(obj, Funnel):
@@ -215,8 +217,9 @@ def normalize_chart(
     formatting: Formatting | None = None,
     language: str = "en",
     timezone: str | None = None,
+    limits: ReportLimits = DEFAULT_REPORT_LIMITS,
 ) -> ChartData:
-    validate_chart(obj, path)
+    validate_chart(obj, path, limits)
     series: Mapping[str, Sequence[Number | None]] | None
     if isinstance(obj, Funnel):
         series = {"": obj.values}
@@ -296,6 +299,9 @@ def validate_timeout(timeout: float) -> None:
 
 
 def validate_report(report: Report) -> ReportDocument:
+    limits = report.limits
+    if not isinstance(limits, ReportLimits):
+        raise ValidationError("limits: expected ReportLimits")
     report.page.dimensions()
     language = language_tag(report.language)
     timezone = report.timezone
@@ -342,6 +348,13 @@ def validate_report(report: Report) -> ReportDocument:
             raise ValidationError(f"theme.{key}: outside {lo}..{hi}")
     text(report.title, "title", 500)
     text(report.subtitle, "subtitle", 1000)
+    images: dict[str, Image] = {}
+    if report.logo_position not in ("left", "right"):
+        raise ValidationError("logo_position: use left or right")
+    if report.logo is not None:
+        if not isinstance(report.logo, Image):
+            raise ValidationError("logo: expected Image")
+        images["logo"] = report.logo
     charts: dict[str, ChartData] = {}
     blocks = report.blocks
     seen: set[int] = set()
@@ -356,7 +369,7 @@ def validate_report(report: Report) -> ReportDocument:
     ) -> None:
         nonlocal count, cells
         count += 1
-        if count > MAX_BLOCKS or depth > MAX_DEPTH:
+        if count > 500 or depth > 12:
             raise ValidationError(f"{path}: report nesting/block limit exceeded")
         if id(obj) in seen:
             raise ValidationError(f"{path}: cyclic layout")
@@ -391,6 +404,8 @@ def validate_report(report: Report) -> ReportDocument:
                     fixed = False
                 for i, child in enumerate(obj.children):
                     node(child, f"{path}.{i}", depth + 1, fixed)
+            elif isinstance(obj, Image):
+                images[path] = obj
             elif isinstance(obj, Text):
                 if obj.style not in ("body", "heading", "caption"):
                     raise ValidationError(f"{path}: invalid text style")
@@ -408,13 +423,18 @@ def validate_report(report: Report) -> ReportDocument:
                 if obj.note is not None:
                     text(obj.note, path + ".note", 500)
             elif isinstance(obj, Table):
-                if not 1 <= len(obj.columns) <= 20 or len(obj.rows) > MAX_ROWS:
+                if (
+                    not 1 <= len(obj.columns) <= limits.max_table_columns
+                    or len(obj.rows) > limits.max_table_rows
+                ):
                     raise ValidationError(
-                        f"{path}: table limited to 20 columns and {MAX_ROWS} rows"
+                        f"{path}: table limited to {limits.max_table_columns} columns and {limits.max_table_rows} rows"
                     )
                 cells += len(obj.columns) * len(obj.rows)
-                if cells > 20000:
-                    raise ValidationError(f"{path}: report exceeds 20000 table cells")
+                if cells > limits.max_table_cells:
+                    raise ValidationError(
+                        f"{path}: report exceeds {limits.max_table_cells} table cells"
+                    )
                 keys: list[str] = []
                 for col in obj.columns:
                     if not isinstance(col, TableColumn):
@@ -452,7 +472,7 @@ def validate_report(report: Report) -> ReportDocument:
                 if isinstance(obj, BarChart):
                     category_colors(obj, theme, len(obj.labels), path)
                 charts[path] = normalize_chart(
-                    obj, path, formatting, language, timezone
+                    obj, path, formatting, language, timezone, limits
                 )
             else:
                 raise ValidationError(f"{path}: unsupported component")
@@ -473,4 +493,8 @@ def validate_report(report: Report) -> ReportDocument:
         formatting,
         empty,
         timezone,
+        report.logo,
+        report.logo_position,
+        MappingProxyType(images),
+        limits,
     )

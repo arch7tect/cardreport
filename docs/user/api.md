@@ -13,7 +13,7 @@ checks run during `validate()` or export. Handle errors around composition too.
 - [Report](#report) and [export methods](#export-methods)
 - [Page](#page) and [Theme](#theme)
 - [Card](#card), [Row](#row), [Column](#column), [PageBreak](#pagebreak)
-- [Text](#text), [KPI](#kpi), [TableColumn](#tablecolumn), [Table](#table)
+- [Image](#image), [Text](#text), [KPI](#kpi), [TableColumn](#tablecolumn), [Table](#table)
 - [BarChart](#barchart), [LineChart](#linechart), [Funnel](#funnel)
 - [Currency and formatting](#currency-and-formatting), [types](#types), [limits](#limits)
 - [Renderers](#renderers), [extension data](#extension-data), [errors](#errors)
@@ -25,7 +25,9 @@ Report(title: str = "", *, subtitle: str = "",
        mode: Literal["dashboard", "flow"] = "dashboard",
        page: Page | None = None, theme: Theme | None = None,
        language: str = "en", formatting: Formatting | None = None,
-       empty_text: str | None = None, timezone: str | None = None)
+       empty_text: str | None = None, timezone: str | None = None,
+       logo: Image | None = None, logo_position: Literal["left", "right"] = "left",
+       limits: ReportLimits = ReportLimits())
 
 add(block: Block) -> Self
 row(*children: Component, widths: Sequence[float] | None = None,
@@ -204,6 +206,30 @@ from cardreport import KPI, PageBreak, Report
 
 pages = Report().add(KPI("First", 1)).add(PageBreak()).add(KPI("Second", 2))
 ```
+
+## Image
+
+```text
+Image(data: bytes, width_mm: float | None = None, height_mm: float | None = None,
+      alt: str = "", align: Literal["left", "center", "right"] = "left",
+      valign: Literal["top", "center", "bottom"] = "top")
+Image.from_bytes(data: bytes | bytearray | memoryview, *, width_mm=None,
+                 height_mm=None, alt="", align="left", valign="top") -> Image
+Image.from_file(path: str | Path, *, width_mm=None,
+                height_mm=None, alt="", align="left", valign="top") -> Image
+to_asset() -> dict[str, str]
+```
+
+Static PNG/JPEG bytes are snapshotted; dimensions must be positive and at most
+1000 mm. Alt text is at most 1000 characters, literal and HTML-escaped.
+One dimension preserves proportions; two contain the image without cropping.
+With neither supplied, ordinary images fill available width (and fit a definite
+height); header logos use a 30 × 15 mm box. Alignment defaults to left/top.
+`Report.logo_position` defaults to left. File DPI is ignored. JPEG EXIF orientation
+is honored; PNG uses its stored orientation. Pillow metadata checks preserve its
+standard safety thresholds. Pixels are decoded during export; failures raise
+`RenderError`. SVG/animation are unsupported. See [images and logos](images.md)
+for examples, template assets, validation boundaries and layout details.
 
 ## Text
 
@@ -434,7 +460,7 @@ date/time rules, examples, sampled date ticks and scalar/axis rounding differenc
 Number = int | float | Decimal
 Value = Number | str | date | datetime | None
 Format = Literal["number", "integer", "percent", "date"] | Currency
-CardContent = Text | KPI | Table | BarChart | LineChart | Funnel | Row | Column
+CardContent = Image | Text | KPI | Table | BarChart | LineChart | Funnel | Row | Column
 Component = CardContent | Card
 Block = Component | PageBreak
 ```
@@ -444,7 +470,10 @@ points. Runtime semantic validation is still required for input values and layou
 
 ## Limits
 
-| Input | Limit |
+Default resource values are configurable through `ReportLimits`; see
+[resource limits and long reports](limits.md). Structural rules remain fixed.
+
+| Input | Default / structural bound |
 | --- | --- |
 | Components across all nesting levels / maximum depth | 500 / 12 (top level is depth 0) |
 | Output pages | 100 |
@@ -496,7 +525,10 @@ ChartData(labels: tuple[str, ...], series: tuple[ChartSeries, ...],
 ReportDocument(title: str, subtitle: str, mode: Literal["dashboard", "flow"],
                page: Page, theme: Theme, blocks: tuple[Block, ...],
                charts: Mapping[str, ChartData], language: str = "en",
-               formatting: Formatting | None = None, empty_text: str = "No data")
+               formatting: Formatting | None = None, empty_text: str = "No data",
+               timezone: str | None = None, logo: Image | None = None,
+               logo_position: Literal["left", "right"] = "left",
+               images: Mapping[str, Image] = {})
 ```
 
 `ChartData.labels` contains category coordinates or normalized ISO line dates.
@@ -575,15 +607,16 @@ No constructor stores a connection or a lazy iterator.
 ## ReportTemplate
 
 ```text
-ReportTemplate(spec: Mapping[str, object])
-ReportTemplate.from_dict(spec: Mapping[str, object]) -> ReportTemplate
-ReportTemplate.from_json(source: str | bytes) -> ReportTemplate
-ReportTemplate.from_yaml(source: str | bytes) -> ReportTemplate
+ReportTemplate(spec: Mapping[str, object], *, max_bytes: int = 1048576)
+ReportTemplate.from_dict(spec: Mapping[str, object], *, max_bytes: int = 1048576) -> ReportTemplate
+ReportTemplate.from_json(source: str | bytes, *, max_bytes: int = 1048576) -> ReportTemplate
+ReportTemplate.from_yaml(source: str | bytes, *, max_bytes: int = 1048576) -> ReportTemplate
 ReportTemplate.to_dict() -> dict[str, object]
 ReportTemplate.to_json() -> str
 ReportTemplate.to_yaml() -> str
 ReportTemplate.datasets: Mapping[str, DatasetSchema]  # read-only
-ReportTemplate.bind(data: Mapping[str, Dataset], *, limits=DataLimits()) -> Report
+ReportTemplate.bind(data: Mapping[str, Dataset], *, limits=DataLimits(),
+                    report_limits=ReportLimits()) -> Report
 ```
 
 TemplateError and BindingError derive from ValidationError; both have optional

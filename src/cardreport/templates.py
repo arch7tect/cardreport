@@ -1,6 +1,8 @@
 """Versioned presentation definitions bound to existing concrete components."""
 
 import json
+from base64 import b64decode
+from binascii import Error as Base64Error
 from collections.abc import Mapping
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
@@ -33,6 +35,7 @@ from .data import (
     validate_bundle,
 )
 from .formatting import Formatting, language_tag, report_timezone
+from .limits import DEFAULT_REPORT_LIMITS, ReportLimits
 from .model import (
     KPI,
     BarChart,
@@ -44,6 +47,7 @@ from .model import (
     Currency,
     Format,
     Funnel,
+    Image,
     LineChart,
     Number,
     Page,
@@ -137,12 +141,52 @@ def _component_limits(report: object) -> None:
 
 class _Builder:
     def __init__(
-        self, contracts: Mapping[str, DatasetSchema], data: Mapping[str, Dataset] | None
+        self,
+        contracts: Mapping[str, DatasetSchema],
+        data: Mapping[str, Dataset] | None,
+        assets: object = None,
+        report_limits: ReportLimits = DEFAULT_REPORT_LIMITS,
     ) -> None:
         self.contracts, self.data = contracts, data
+        self.report_limits = report_limits
         self.paths: dict[str, str] = {}
         self.table_sources: dict[str, str] = {}
+        self.location = "assets"
+        self.assets: dict[str, Image] = {}
+        for key, value in mapping({} if assets is None else assets).items():
+            self.location = "assets." + key
+            asset = mapping(value)
+            try:
+                image = Image.from_bytes(
+                    b64decode(cast(str, asset["data_base64"]), validate=True)
+                )
+                if image._media_type != asset["media_type"]:
+                    raise ValueError("media_type differs from image content")
+            except (ValueError, Base64Error, ValidationError) as exc:
+                raise TemplateError(
+                    "invalid image asset: " + str(exc), template_path=self.location
+                ) from exc
+            self.assets[key] = image
         self.location = "report"
+
+    def image(self, value: object, path: str) -> Image:
+        from dataclasses import replace
+
+        self.location = path
+        obj = mapping(value)
+        name = cast(str, obj["asset"])
+        if name not in self.assets:
+            raise ValueError("image names an undeclared asset")
+        return replace(
+            self.assets[name],
+            width_mm=None if obj.get("width_mm") is None else numeric(obj["width_mm"]),
+            height_mm=None
+            if obj.get("height_mm") is None
+            else numeric(obj["height_mm"]),
+            alt=cast(str, obj.get("alt", "")),
+            align=cast(Literal["left", "center", "right"], obj.get("align", "left")),
+            valign=cast(Literal["top", "center", "bottom"], obj.get("valign", "top")),
+        )
 
     def field(self, dataset: str, field: str) -> FieldSpec:
         if dataset not in self.contracts or field not in self.contracts[dataset].fields:
@@ -237,6 +281,8 @@ class _Builder:
                     height_mm=None if height is None else numeric(height),
                 )
             return Column(*children, heights=weights(obj.get("heights")))
+        if kind == "image":
+            return self.image(obj, path)
         if kind == "text":
             return Text(
                 cast(str, self.text(obj["text"], path + ".text")),
@@ -422,7 +468,14 @@ class _Builder:
             cast(str, self.text(obj.get("title", ""), "report.title")),
             subtitle=cast(str, self.text(obj.get("subtitle", ""), "report.subtitle")),
             language=language,
+            limits=self.report_limits,
             timezone=timezone,
+            logo=None
+            if obj.get("logo") is None
+            else self.image(obj["logo"], "report.logo"),
+            logo_position=cast(
+                Literal["left", "right"], obj.get("logo_position", "left")
+            ),
             formatting=formatting,
             empty_text=empty_text,
             mode=cast(Literal["dashboard", "flow"], obj.get("mode", "dashboard")),
@@ -461,6 +514,8 @@ class _Builder:
         self, error: Exception
     ) -> tuple[str | None, str | None, int | None, str | None]:
         prefix = str(error).split(": ", 1)[0]
+        if prefix == "image" or prefix.startswith("image."):
+            return self.location + prefix.removeprefix("image"), None, None, None
         if prefix in (
             "title",
             "subtitle",
@@ -497,24 +552,36 @@ class _Builder:
 class ReportTemplate:
     _encoded: str = dataclass_field(repr=False)
     datasets: Mapping[str, DatasetSchema]
+    max_bytes: int
 
-    def __init__(self, spec: Mapping[str, object]) -> None:
+    def __init__(
+        self, spec: Mapping[str, object], *, max_bytes: int = MAX_TEMPLATE_BYTES
+    ) -> None:
         error_builder: _Builder | None = None
         try:
-            check_tree(spec)
+            if type(max_bytes) is not int or max_bytes < 1:
+                raise ValueError("max_bytes: expected a positive integer")
+            check_tree(spec, max_nodes=max_bytes)
             encoded = json.dumps(
                 plain_tree(spec),
                 ensure_ascii=False,
                 allow_nan=False,
                 separators=(",", ":"),
             )
-            if len(encoded.encode("utf-8")) > MAX_TEMPLATE_BYTES:
+            if len(encoded.encode("utf-8")) > max_bytes:
                 raise ValueError("template byte limit exceeded")
-            root = mapping(load_json(encoded, MAX_TEMPLATE_BYTES))
+            root = mapping(load_json(encoded, max_bytes))
             _component_limits(root.get("report"))
             validate_structure("template", root)
             contracts = schemas(root["datasets"])
-            builder = _Builder(contracts, None)
+            # Sample rows validate structure and formats; actual resource budgets
+            # apply at bind. The template byte budget bounds static columns.
+            builder = _Builder(
+                contracts,
+                None,
+                root.get("assets"),
+                ReportLimits(max_table_columns=max_bytes, max_table_cells=max_bytes),
+            )
             error_builder = builder
             builder.build(root["report"])
         except TemplateError:
@@ -538,25 +605,36 @@ class ReportTemplate:
                 else None,
             ) from exc
         object.__setattr__(self, "_encoded", encoded)
+        object.__setattr__(self, "max_bytes", max_bytes)
         object.__setattr__(self, "datasets", contracts)
 
     @classmethod
-    def from_dict(cls, spec: Mapping[str, object]) -> "ReportTemplate":
-        return cls(spec)
+    def from_dict(
+        cls, spec: Mapping[str, object], *, max_bytes: int = MAX_TEMPLATE_BYTES
+    ) -> "ReportTemplate":
+        return cls(spec, max_bytes=max_bytes)
 
     @classmethod
-    def from_json(cls, source: str | bytes) -> "ReportTemplate":
+    def from_json(
+        cls, source: str | bytes, *, max_bytes: int = MAX_TEMPLATE_BYTES
+    ) -> "ReportTemplate":
         try:
-            return cls(mapping(load_json(source, MAX_TEMPLATE_BYTES)))
+            if type(max_bytes) is not int or max_bytes < 1:
+                raise ValueError("max_bytes: expected a positive integer")
+            return cls(mapping(load_json(source, max_bytes)), max_bytes=max_bytes)
         except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
             raise TemplateError("invalid template JSON") from exc
 
     @classmethod
-    def from_yaml(cls, source: str | bytes) -> "ReportTemplate":
+    def from_yaml(
+        cls, source: str | bytes, *, max_bytes: int = MAX_TEMPLATE_BYTES
+    ) -> "ReportTemplate":
         from ._yaml import load_yaml
 
         try:
-            return cls(mapping(load_yaml(source, MAX_TEMPLATE_BYTES)))
+            if type(max_bytes) is not int or max_bytes < 1:
+                raise ValueError("max_bytes: expected a positive integer")
+            return cls(mapping(load_yaml(source, max_bytes)), max_bytes=max_bytes)
         except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
             raise TemplateError("invalid template YAML") from exc
 
@@ -564,18 +642,22 @@ class ReportTemplate:
         from ._yaml import dump_yaml
 
         try:
-            return dump_yaml(self.to_dict(), MAX_TEMPLATE_BYTES)
+            return dump_yaml(self.to_dict(), self.max_bytes)
         except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
             raise TemplateError("unable to serialize template YAML") from exc
 
     def to_dict(self) -> dict[str, object]:
-        return mapping(load_json(self._encoded, MAX_TEMPLATE_BYTES))
+        return mapping(load_json(self._encoded, self.max_bytes))
 
     def to_json(self) -> str:
         return self._encoded
 
     def bind(
-        self, data: Mapping[str, Dataset], *, limits: DataLimits = DEFAULT_LIMITS
+        self,
+        data: Mapping[str, Dataset],
+        *,
+        limits: DataLimits = DEFAULT_LIMITS,
+        report_limits: ReportLimits = DEFAULT_REPORT_LIMITS,
     ) -> Report:
         try:
             validate_bundle(data, limits)
@@ -592,9 +674,10 @@ class ReportTemplate:
                 raise BindingError(
                     str(exc), dataset=dataset, row=exc.row, field=exc.field
                 ) from exc
-        builder = _Builder(self.datasets, data)
+        root = self.to_dict()
+        builder = _Builder(self.datasets, data, root.get("assets"), report_limits)
         try:
-            return builder.build(self.to_dict()["report"])
+            return builder.build(root["report"])
         except BindingError:
             raise
         except (ValueError, TypeError, ValidationError) as exc:

@@ -12,6 +12,9 @@ def main() -> None:
     from playwright.sync_api import Error, Request, sync_playwright
 
     html = sys.stdin.buffer.read().decode("utf-8")
+    from ._images import check_html_images
+
+    check_html_images(html)
     with sync_playwright() as pw:
         try:
             browser = pw.chromium.launch(timeout=0)

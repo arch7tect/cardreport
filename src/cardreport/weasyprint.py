@@ -41,7 +41,6 @@ from .model import (
 )
 from .pdf import run_worker
 from .renderers import Renderer
-from .validation import MAX_PAGES
 
 
 class WeasyPrintRenderer(Renderer):
@@ -178,7 +177,7 @@ class WeasyPrintRenderer(Renderer):
             )
             has_content = True
         segments.append(current)
-        if len(segments) > MAX_PAGES:
+        if len(segments) > doc.limits.max_pages:
             from .layout import LayoutDiagnostic
             from .model import LayoutOverflowError
 
@@ -208,7 +207,12 @@ class WeasyPrintRenderer(Renderer):
         )
         html = f'<!doctype html><html lang="{escape(doc.language, quote=True)}"><head><meta charset="utf-8"><title>{escape(doc.title or "Report")}</title><style>{styles}</style></head><body>{content}</body></html>'
         payload = json.dumps(
-            {"html": html, "charts": charts, "pages": len(segments), "pdf": pdf}
+            {
+                "html": html,
+                "charts": charts,
+                "pages": len(segments),
+                "pdf": pdf,
+            }
         ).encode()
         if any(
             importlib.util.find_spec(name) is None

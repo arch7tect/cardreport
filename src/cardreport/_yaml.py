@@ -12,7 +12,9 @@ def _reader() -> YAML:
     return YAML(typ="safe", pure=True)
 
 
-def load_yaml(source: str | bytes, max_bytes: int) -> object:
+def load_yaml(
+    source: str | bytes, max_bytes: int, *, max_nodes: int | None = None
+) -> object:
     if not isinstance(source, (str, bytes)):
         raise ValueError("expected YAML text or bytes")
     if len(source) > max_bytes:
@@ -20,6 +22,7 @@ def load_yaml(source: str | bytes, max_bytes: int) -> object:
     text = source.decode("utf-8") if isinstance(source, bytes) else source
     if len(text.encode("utf-8")) > max_bytes:
         raise ValueError("YAML byte limit exceeded")
+    max_nodes = len(text.encode("utf-8")) if max_nodes is None else max_nodes
     try:
         # Stream events before composition allocates a node graph. This is only
         # a resource guard; ruamel owns all syntax and scalar interpretation.
@@ -29,7 +32,7 @@ def load_yaml(source: str | bytes, max_bytes: int) -> object:
                 depth += 1
             elif isinstance(event, CollectionEndEvent):
                 depth -= 1
-            if depth > 65 or count > 2_000_000:
+            if depth > 65 or count > 4 * max_nodes:
                 raise ValueError("YAML event/depth limit exceeded")
         # Compose keeps aliases as references. Bound their expanded graph before
         # the standard constructor can flatten merges or materialize values.
@@ -40,7 +43,7 @@ def load_yaml(source: str | bytes, max_bytes: int) -> object:
         while stack:
             item, depth = stack.pop()
             count += 1
-            if depth > 64 or count > 1_000_000:
+            if depth > 64 or count > 2 * max_nodes:
                 raise ValueError("YAML depth/expanded-node limit exceeded")
             if isinstance(item, ScalarNode):
                 # Also bound YAML 1.1 base-60 integer arithmetic before conversion.

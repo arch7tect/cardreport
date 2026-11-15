@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import ROUND_HALF_EVEN, Context, Decimal, InvalidOperation, localcontext
 from pathlib import Path
@@ -12,6 +12,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Literal, Self
 
 from .layout import LayoutDiagnostic
+from .limits import DEFAULT_REPORT_LIMITS, ReportLimits
 
 if TYPE_CHECKING:
     from .formatting import Formatting
@@ -60,7 +61,9 @@ class Currency:
 type Number = int | float | Decimal
 type Value = Number | str | date | datetime | None
 type Format = Literal["number", "integer", "percent", "date"] | Currency
-type CardContent = Text | KPI | Table | BarChart | LineChart | Funnel | Row | Column
+type CardContent = (
+    Image | Text | KPI | Table | BarChart | LineChart | Funnel | Row | Column
+)
 type Component = CardContent | Card
 type Block = Component | PageBreak
 type Chart = BarChart | LineChart | Funnel
@@ -127,6 +130,94 @@ class Theme:
 class Text:
     text: str
     style: Literal["body", "heading", "caption"] = "body"
+
+
+@dataclass(frozen=True)
+class Image:
+    """Embedded static PNG/JPEG; metadata is read without decoding pixels."""
+
+    data: bytes = field(repr=False)
+    width_mm: float | None = None
+    height_mm: float | None = None
+    alt: str = ""
+    align: Literal["left", "center", "right"] = "left"
+    valign: Literal["top", "center", "bottom"] = "top"
+    _size: tuple[int, int] = field(init=False, repr=False)
+    _media_type: str = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        from ._images import image_info
+
+        if not isinstance(self.data, (bytes, bytearray, memoryview)):
+            raise ValidationError("image.data: expected image bytes")
+        object.__setattr__(self, "data", bytes(self.data))
+        for key in ("width_mm", "height_mm"):
+            value = getattr(self, key)
+            if value is not None and not 0 < number(value, "image." + key) <= 1000:
+                raise ValidationError(
+                    "image." + key + ": expected positive size up to 1000 mm"
+                )
+        if not isinstance(self.alt, str) or len(self.alt) > 1000:
+            raise ValidationError("image.alt: expected text up to 1000 characters")
+        try:
+            self.alt.encode("utf-8")
+        except UnicodeError as exc:
+            raise ValidationError("image.alt: expected valid Unicode text") from exc
+        if any(ord(char) < 32 and char not in "\t\n\r" for char in self.alt):
+            raise ValidationError("image.alt: control characters are not supported")
+        if self.align not in ("left", "center", "right") or self.valign not in (
+            "top",
+            "center",
+            "bottom",
+        ):
+            raise ValidationError("image: invalid alignment")
+        media_type, size = image_info(self.data)
+        object.__setattr__(self, "_media_type", media_type)
+        object.__setattr__(self, "_size", size)
+
+    def to_asset(self) -> dict[str, str]:
+        """Return a portable JSON/YAML template resource, without layout settings."""
+        from base64 import b64encode
+
+        return {
+            "media_type": self._media_type,
+            "data_base64": b64encode(self.data).decode("ascii"),
+        }
+
+    @classmethod
+    def from_bytes(
+        cls,
+        data: bytes | bytearray | memoryview,
+        *,
+        width_mm: float | None = None,
+        height_mm: float | None = None,
+        alt: str = "",
+        align: Literal["left", "center", "right"] = "left",
+        valign: Literal["top", "center", "bottom"] = "top",
+    ) -> Self:
+        if not isinstance(data, (bytes, bytearray, memoryview)):
+            raise ValidationError("image.data: expected image bytes")
+        return cls(bytes(data), width_mm, height_mm, alt, align, valign)
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | Path,
+        *,
+        width_mm: float | None = None,
+        height_mm: float | None = None,
+        alt: str = "",
+        align: Literal["left", "center", "right"] = "left",
+        valign: Literal["top", "center", "bottom"] = "top",
+    ) -> Self:
+        return cls.from_bytes(
+            Path(path).read_bytes(),
+            width_mm=width_mm,
+            height_mm=height_mm,
+            alt=alt,
+            align=align,
+            valign=valign,
+        )
 
 
 @dataclass(frozen=True)
@@ -374,12 +465,19 @@ class Report:
         formatting: Formatting | None = None,
         empty_text: str | None = None,
         timezone: str | None = None,
+        logo: Image | None = None,
+        logo_position: Literal["left", "right"] = "left",
+        limits: ReportLimits = DEFAULT_REPORT_LIMITS,
     ) -> None:
         from .formatting import Formatting, language_tag, report_timezone
 
         if formatting is not None and not isinstance(formatting, Formatting):
             raise ValidationError("formatting: expected Formatting")
+        if not isinstance(limits, ReportLimits):
+            raise ValidationError("limits: expected ReportLimits")
+        self.limits = limits
         report_timezone(timezone)
+        self.logo, self.logo_position = logo, logo_position
         self.timezone = timezone
         self.language = language_tag(language)
         self.formatting, self.empty_text = formatting, empty_text

@@ -18,6 +18,8 @@ ASSETS = {
     "py.typed",
     "cli.py",
     "_yaml.py",
+    "_images.py",
+    "limits.py",
     "_schema.py",
     "schemas/__init__.py",
     "schemas/template-1.json",
@@ -87,6 +89,8 @@ def check_archives(directory: Path) -> Path:
                 "series_report.py",
                 "flow_dashboard.py",
                 "daily_report.py",
+                "images_report.py",
+                "assets/company-logo.png",
             ]
         } <= source_names
         metadata_file = archive.extractfile(prefix + "PKG-INFO")
@@ -129,6 +133,13 @@ def installed_smoke(full: bool) -> None:
     examples = ROOT / "examples"
     import runpy
 
+    from cardreport import DataLimits, Image, Report, ReportLimits
+
+    assert DataLimits(max_rows=2001).max_rows == 2001
+    assert Report(limits=ReportLimits(max_pages=101)).limits.max_pages == 101
+    image = Image.from_file(examples / "assets/company-logo.png", width_mm=30)
+    assert image.to_asset()["media_type"] == "image/png"
+    assert "data:image/png;base64," in Report("Logo", logo=image).to_html()
     daily_namespace = runpy.run_path(str(examples / "daily_report.py"))
     daily = daily_namespace["build_report"]()
     assert daily.title == "Daily report for 14.11.2026"
@@ -264,6 +275,11 @@ def installed_smoke(full: bool) -> None:
             (1,),
         )
         for renderer in (ChromiumRenderer(), WeasyPrintRenderer()):
+            image_pdf = PdfReader(
+                io.BytesIO(Report("Logo", logo=image).to_pdf(renderer=renderer))
+            )
+            assert image_pdf.pages[0].images
+
             series_pdf = PdfReader(
                 io.BytesIO(series_report().to_pdf(renderer=renderer))
             )

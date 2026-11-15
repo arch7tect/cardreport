@@ -93,8 +93,7 @@ def test_bad_json(source):
 
 
 def test_caps_and_schema_types():
-    with pytest.raises(DataError):
-        DataLimits(max_rows=2001)
+    assert DataLimits(max_rows=2001).max_rows == 2001
     with pytest.raises(DataError):
         DataLimits(max_rows=True)
     with pytest.raises(DataError):

@@ -21,6 +21,7 @@ from .model import (
     Chart,
     Column,
     Funnel,
+    Image,
     LineChart,
     PageBreak,
     Row,
@@ -29,7 +30,7 @@ from .model import (
     Theme,
     format_value,
 )
-from .validation import MAX_PAGES, weights
+from .validation import weights
 
 
 def safe_json(value: object) -> str:
@@ -100,6 +101,10 @@ def render_block(
             for i, c in enumerate(obj.children)
         )
         return f'<div class="{kind.lower()}" {attrs} style="{style}">{kids}</div>'
+    if isinstance(obj, Image):
+        from ._images import markup
+
+        return markup(obj, path, definite)
     if isinstance(obj, Text):
         return f'<div class="text {obj.style}" {attrs}>{escape(obj.text)}</div>'
     if isinstance(obj, KPI):
@@ -172,11 +177,21 @@ def legend_frame(
 
 
 def render_header(report: ReportDocument) -> str:
-    return (
-        f"<header><h1>{escape(report.title)}</h1><div>{escape(report.subtitle)}</div></header>"
-        if report.title or report.subtitle
-        else ""
+    if report.logo is None:
+        return (
+            f"<header><h1>{escape(report.title)}</h1><div>{escape(report.subtitle)}</div></header>"
+            if report.title or report.subtitle
+            else ""
+        )
+    from ._images import markup
+
+    logo = markup(report.logo, "logo", logo=True)
+    title = f'<div class="header-text"><h1>{escape(report.title)}</h1><div>{escape(report.subtitle)}</div></div>'
+    children = logo + title if report.logo_position == "left" else title + logo
+    columns = (
+        "auto minmax(0,1fr)" if report.logo_position == "left" else "minmax(0,1fr) auto"
     )
+    return f'<header class="header-logo" style="grid-template-columns:{columns}">{children}</header>'
 
 
 def render_styles(report: ReportDocument) -> str:
@@ -196,7 +211,15 @@ def render_styles(report: ReportDocument) -> str:
     )
 
 
-def render_html(report: ReportDocument) -> str:
+def render_html(report: ReportDocument, *, check_images: bool = True) -> str:
+    if check_images:
+        from ._images import check_pixels
+
+        seen_images: set[bytes] = set()
+        for path, image in report.images.items():
+            if image.data not in seen_images:
+                check_pixels(image.data, path)
+                seen_images.add(image.data)
     from .charts import chart_spec
 
     charts: dict[str, object] = {}
@@ -239,7 +262,11 @@ def render_html(report: ReportDocument) -> str:
             header=render_header(report),
             plotly=get_plotlyjs() if charts else "",
             settings=safe_json(
-                {"mode": report.mode, "charts": charts, "pageLimit": MAX_PAGES}
+                {
+                    "mode": report.mode,
+                    "charts": charts,
+                    "pageLimit": report.limits.max_pages,
+                }
             ),
             script=asset.joinpath("layout.js").read_text(),
             language=report.language,

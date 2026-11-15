@@ -18,6 +18,7 @@ from cardreport import (
     DatasetSchema,
     FieldSpec,
     Formatting,
+    Image,
     LineChart,
     PageBreak,
     Renderer,
@@ -118,3 +119,9 @@ Renderer()  # type: ignore[abstract]
 
 assert_type(Report(timezone="Asia/Nicosia").timezone, str | None)
 Report(timezone=42)  # type: ignore[arg-type]
+
+image = Image.from_bytes(b"", width_mm=30, alt="Company")
+assert_type(image, Image)
+assert_type(image.to_asset(), dict[str, str])
+Report(logo=image, logo_position="right").add(Card(image))
+Image.from_file("logo.png", align="wrong")  # type: ignore[arg-type]

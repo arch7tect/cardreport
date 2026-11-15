@@ -15,6 +15,7 @@ from .data import (
 from .document import ChartData, ChartSeries, ReportDocument
 from .formatting import Formatting
 from .layout import LayoutDiagnostic
+from .limits import ReportLimits
 from .model import (
     KPI,
     BarChart,
@@ -27,6 +28,7 @@ from .model import (
     DependencyError,
     Format,
     Funnel,
+    Image,
     LayoutOverflowError,
     LineChart,
     Number,
@@ -51,6 +53,8 @@ from .templates import ReportTemplate
 from .weasyprint import WeasyPrintRenderer
 
 __all__ = [
+    "ReportLimits",
+    "Image",
     "LayoutDiagnostic",
     "Formatting",
     "ReportTemplate",

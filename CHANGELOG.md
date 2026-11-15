@@ -5,6 +5,18 @@ User-visible changes to CardReport. Installation and usage start in the
 
 ## Unreleased
 
+## 0.10.0 — 2026-11-15
+
+- Add static PNG/JPEG `Image` components, `from_file`/`from_bytes`, automatic
+  proportional sizing and left/right first-page header logos.
+- Add named embedded image assets to JSON/YAML templates and `Image.to_asset()`.
+  Both renderers check image decoding and retain overflow diagnostics.
+- Add Pillow as a core dependency, retaining its standard image safety checks.
+- Allow applications to raise DataLimits and template byte budgets; add ReportLimits
+  for table sizes, chart points/categories and page counts. Defaults remain unchanged.
+- Add CLI resource overrides. JSON Schemas describe structure independently of
+  runtime size policy; YAML alias expansion remains bounded by actual input size.
+
 ## 0.9.1 — 2026-11-14
 
 - Fix datetime display: preserve supplied offsets by default instead of forcing

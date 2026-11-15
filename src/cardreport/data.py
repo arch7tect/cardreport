@@ -35,12 +35,11 @@ class DataLimits:
     max_json_bytes: int = 16 * 1024 * 1024
 
     def __post_init__(self) -> None:
-        caps = (2000, 100, 32, 100000, 10000, 16 * 1024 * 1024, 16 * 1024 * 1024)
-        for spec, cap in zip(dataclass_fields(self), caps, strict=True):
+        for spec in dataclass_fields(self):
             key = spec.name
             value = getattr(self, key)
-            if type(value) is not int or not 1 <= value <= cap:
-                raise DataError(f"limits.{key}: expected integer in 1..{cap}")
+            if type(value) is not int or value < 1:
+                raise DataError(f"limits.{key}: expected a positive integer")
 
 
 DEFAULT_LIMITS = DataLimits()
@@ -230,8 +229,6 @@ class DatasetSchema:
             raise DataError("schema fields must be a mapping")
         if self.cardinality not in ("one", "many"):
             raise DataError("cardinality must be one or many")
-        if len(self.fields) > DEFAULT_LIMITS.max_columns:
-            raise DataError("schema column limit exceeded")
         for key, spec in self.fields.items():
             try:
                 name(key)
@@ -298,8 +295,8 @@ def _decode(value: object) -> object:
     kind, text = value["$type"], value["value"]
     if not isinstance(kind, str) or kind not in shape.cell_kinds:
         raise ValueError("invalid typed cell kind")
-    if not isinstance(text, str) or len(text) > DEFAULT_LIMITS.max_string_chars:
-        raise ValueError("invalid or excessive typed cell text")
+    if not isinstance(text, str):
+        raise ValueError("invalid typed cell text")
     try:
         return parse_scalar(text, kind)
     except ValueError as exc:
@@ -399,7 +396,13 @@ def datasets_from_yaml(
 
     try:
         tree = load_yaml(source, limits.max_json_bytes)
-        check_tree(tree, allow_dates=True)
+        check_tree(
+            tree,
+            allow_dates=True,
+            max_nodes=len(
+                source.encode("utf-8") if isinstance(source, str) else source
+            ),
+        )
         return _bundle_from_tree(_transport_dates(tree), limits)
     except (ValueError, TypeError, RecursionError, UnicodeError) as exc:
         raise DataError("invalid data YAML") from exc

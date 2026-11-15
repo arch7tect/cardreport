@@ -82,7 +82,9 @@ def _constant(value: str) -> object:
     raise ValueError("nonfinite JSON number")
 
 
-def load_json(source: str | bytes, max_bytes: int) -> object:
+def load_json(
+    source: str | bytes, max_bytes: int, *, max_nodes: int | None = None
+) -> object:
     if not isinstance(source, (str, bytes)):
         raise ValueError("expected JSON text or bytes")
     if len(source) > max_bytes:
@@ -94,18 +96,20 @@ def load_json(source: str | bytes, max_bytes: int) -> object:
     result: object = json.loads(
         source, object_pairs_hook=_pairs, parse_constant=_constant
     )
-    check_tree(result)
+    check_tree(result, max_nodes=max_bytes if max_nodes is None else max_nodes)
     return result
 
 
-def check_tree(value: object, *, allow_dates: bool = False) -> None:
+def check_tree(
+    value: object, *, allow_dates: bool = False, max_nodes: int = 500_000
+) -> None:
     # Iterative traversal bounds native trees too, including cycles.
     stack: list[tuple[object, int]] = [(value, 0)]
     count = 0
     while stack:
         item, depth = stack.pop()
         count += 1
-        if depth > 64 or count > 500_000:
+        if depth > 64 or count > max_nodes:
             raise ValueError("input tree depth/node limit exceeded")
         if isinstance(item, Mapping):
             stack.extend((v, depth + 1) for v in mapping(item).values())

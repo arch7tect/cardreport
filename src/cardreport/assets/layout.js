@@ -102,6 +102,10 @@
     return true;
   }
   async function run() {
+    await Promise.all([...source.querySelectorAll('img[data-image-path]')].map(async img => {
+      try { await img.decode(); } catch { throw new Error(`${img.dataset.imagePath}: image could not be decoded`); }
+      if (!img.naturalWidth || !img.naturalHeight) throw new Error(`${img.dataset.imagePath}: image could not be decoded`);
+    }));
     await Promise.all([document.fonts.load('12px CardReport'),document.fonts.load('bold 12px CardReport')]);
     if (!document.fonts.check('12px CardReport') || !document.fonts.check('bold 12px CardReport')) throw new Error('report: bundled font unavailable');
     const blocks=[...source.children];newPage();let pendingBreak=false;

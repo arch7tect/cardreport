@@ -42,11 +42,9 @@ def load(spec, syntax="json", **kwargs):
             for kind in ("integer", "text", "number", "PRIVATE", None, [], {})
         ],
         *[{"$type": kind, "value": 1} for kind in ("date", "datetime", "decimal")],
-        {"$type": "decimal", "value": "0" * 10000 + "1"},
         True,
         [],
         1e16,
-        "a" * 10001,
     ],
 )
 def test_invalid_cells_match_full_schema_and_keep_locations(syntax, value):
@@ -186,7 +184,7 @@ def test_fixed_metadata_assumptions_match_schema():
     assert shape.cell_keys == set(schema["$defs"]["typedCell"]["required"])
     for kind in shape.cell_kinds:
         assert schema["$defs"][kind]["type"] == "string"
-        assert schema["$defs"][kind]["maxLength"] == DataLimits().max_string_chars
+        assert "maxLength" not in schema["$defs"][kind]
 
 
 @pytest.mark.parametrize("bad_name", ["", "PRIVATE" * 15, "\ud800"])
@@ -218,3 +216,25 @@ def test_root_errors_keep_safe_details():
     ]:
         with pytest.raises(DataError, match=message):
             load(spec)
+
+
+@pytest.mark.parametrize("syntax", ["json", "yaml"])
+def test_string_resource_limit_is_separate_from_schema(syntax):
+    spec = document("a" * 10001)
+    assert Draft202012Validator(json.loads(json_schema("data"))).is_valid(spec)
+    with pytest.raises(DataError):
+        load(spec, syntax)
+    assert (
+        len(
+            load(spec, syntax, limits=DataLimits(max_string_chars=10001))["x"].rows[0][
+                0
+            ]
+        )
+        == 10001
+    )
+
+
+def test_typed_lexical_text_is_bounded_by_transport_not_decoded_string_budget():
+    assert load(document({"$type": "decimal", "value": "0" * 10001 + "1"}))[
+        "x"
+    ].rows == ((Decimal("1"),),)

@@ -8,8 +8,10 @@ from typing import Literal
 
 from . import (
     DataError,
+    DataLimits,
     Dataset,
     ReportError,
+    ReportLimits,
     ReportTemplate,
     WeasyPrintRenderer,
     datasets_from_json,
@@ -18,7 +20,6 @@ from . import (
 )
 from ._inputs import LocatedError
 from .adapters.csv import from_csv
-from .data import DEFAULT_LIMITS
 from .templates import MAX_TEMPLATE_BYTES
 from .validation import validate_timeout
 
@@ -37,6 +38,9 @@ class _Arguments(argparse.Namespace):
     overwrite: bool
     renderer: str
     timeout: float
+    template_max_bytes: int
+    data_limit: list[str]
+    report_limit: list[str]
 
 
 def _timeout(value: str) -> float:
@@ -93,6 +97,21 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _input_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--template-max-bytes", type=int, default=MAX_TEMPLATE_BYTES)
+    parser.add_argument(
+        "--data-limit",
+        action="append",
+        default=[],
+        metavar="NAME=INTEGER",
+        help="override a DataLimits field (repeatable)",
+    )
+    parser.add_argument(
+        "--report-limit",
+        action="append",
+        default=[],
+        metavar="NAME=INTEGER",
+        help="override a ReportLimits field (repeatable)",
+    )
     parser.add_argument(
         "--template", type=Path, required=True, help="template JSON or YAML file"
     )
@@ -147,14 +166,43 @@ def _csv_inputs(args: _Arguments) -> list[tuple[str, Path]]:
     ]
 
 
+def _overrides(values: list[str]) -> dict[str, int]:
+    result: dict[str, int] = {}
+    for value in values:
+        key, separator, number = value.partition("=")
+        if not separator or key in result:
+            raise ValueError("limits require unique NAME=INTEGER entries")
+        result[key] = int(number)
+    return result
+
+
+def _data_limits(args: _Arguments) -> DataLimits:
+    try:
+        return DataLimits(**_overrides(args.data_limit))
+    except TypeError as exc:
+        raise ValueError("unknown DataLimits field") from exc
+
+
+def _report_limits(args: _Arguments) -> ReportLimits:
+    try:
+        return ReportLimits(**_overrides(args.report_limit))
+    except TypeError as exc:
+        raise ValueError("unknown ReportLimits field") from exc
+
+
 def _load_inputs(args: _Arguments) -> tuple[ReportTemplate, dict[str, Dataset]]:
+    limits = _data_limits(args)
+    if args.template_max_bytes < 1:
+        raise ValueError("--template-max-bytes must be positive")
     csv_inputs = _csv_inputs(args)
     read_template = (
         ReportTemplate.from_yaml
         if args.template.suffix.lower() in (".yaml", ".yml")
         else ReportTemplate.from_json
     )
-    template = read_template(_read(args.template, MAX_TEMPLATE_BYTES))
+    template = read_template(
+        _read(args.template, args.template_max_bytes), max_bytes=args.template_max_bytes
+    )
     sources: dict[str, Path] = {}
     for name, path in csv_inputs:
         if name not in template.datasets:
@@ -172,7 +220,7 @@ def _load_inputs(args: _Arguments) -> tuple[ReportTemplate, dict[str, Dataset]]:
             datasets_from_yaml
             if args.data.suffix.lower() in (".yaml", ".yml")
             else datasets_from_json
-        )(_read(args.data, DEFAULT_LIMITS.max_json_bytes))
+        )(_read(args.data, limits.max_json_bytes), limits=limits)
         if args.data is not None
         else {}
     )
@@ -187,6 +235,7 @@ def _load_inputs(args: _Arguments) -> tuple[ReportTemplate, dict[str, Dataset]]:
                 encoding=args.csv_encoding,
                 delimiter=args.csv_delimiter,
                 null_values=args.csv_null,
+                limits=limits,
             )
         except DataError as exc:
             raise DataError(
@@ -217,7 +266,9 @@ def _render(args: _Arguments) -> Path:
             f"{args.output}: output exists; use --overwrite to replace it"
         )
     template, datasets = _load_inputs(args)
-    report = template.bind(datasets)
+    report = template.bind(
+        datasets, limits=_data_limits(args), report_limits=_report_limits(args)
+    )
     renderer = WeasyPrintRenderer() if args.renderer == "weasyprint" else None
     if suffix == ".pdf":
         return report.write_pdf(
@@ -261,7 +312,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "validate":
             template, datasets = _load_inputs(args)
             if args.data is not None or args.csv or args.csv_as:
-                template.bind(datasets)
+                template.bind(
+                    datasets,
+                    limits=_data_limits(args),
+                    report_limits=_report_limits(args),
+                )
                 print("Template and data valid; layout has not been checked")
             else:
                 print("Template valid; data and layout have not been checked")
